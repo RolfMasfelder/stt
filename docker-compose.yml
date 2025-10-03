@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  stt:
+    build: .
+    container_name: stt-app
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - ${AUDIO_INPUT_DIR}:/app/audio  # Mount for audio files
+      - ${OUTPUT_DIR}:/app/output  # Mount for output files
+    environment:
+      - PYTHONPATH=/app
+      - LM_STUDIO_HOST=${LM_STUDIO_HOST}
+      - LM_STUDIO_PORT=${LM_STUDIO_PORT}
+      - LM_STUDIO_MODEL=${LM_STUDIO_MODEL}
+      - WHISPER_MODEL=${WHISPER_MODEL}
+      - WHISPER_DEVICE=${WHISPER_DEVICE}
+      - LOG_LEVEL=${LOG_LEVEL}
+    networks:
+      - stt-network
+    depends_on:
+      - lmstudio
+    profiles:
+      - production
+
+  # Development service with more development-friendly settings
+  stt-dev:
+    build: .
+    container_name: stt-dev
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - ${AUDIO_INPUT_DIR}:/app/audio
+      - ${OUTPUT_DIR}:/app/output
+    environment:
+      - PYTHONPATH=/app
+      - LM_STUDIO_HOST=${LM_STUDIO_HOST}
+      - LM_STUDIO_PORT=${LM_STUDIO_PORT}
+      - LM_STUDIO_MODEL=${LM_STUDIO_MODEL}
+      - WHISPER_MODEL=${WHISPER_MODEL}
+      - WHISPER_DEVICE=${WHISPER_DEVICE}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - DEVELOPMENT_MODE=${DEVELOPMENT_MODE}
+      - DEBUG=${DEBUG}
+    network_mode: host  # Use host networking for easier development
+    profiles:
+      - dev
+    command: bash  # Override to keep container running for development
+
+  # LM Studio service (placeholder for future implementation)
+  lmstudio:
+    image: alpine:latest  # Placeholder - replace with actual LM Studio image when available
+    container_name: lmstudio
+    env_file:
+      - .env
+    ports:
+      - "${LM_STUDIO_PORT}:${LM_STUDIO_PORT}"
+    networks:
+      - stt-network
+    profiles:
+      - production
+    command: sh -c "echo 'LM Studio placeholder - implement actual service' && sleep infinity"
+
+networks:
+  stt-network:
+    driver: bridge
+
+volumes:
+  audio_data:
+  output_data:

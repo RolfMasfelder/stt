@@ -1,0 +1,70 @@
+# See https://help.github.com/ignore-files/ for more about ignoring files.
+lib/*
+lib64/*
+bin/*
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+.history/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Virtual environments
+.env
+.env.sh
+venv/
+ENV/
+venv_test_installation/
+.venv*
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# Compiled Python modules
+*.pyc
+*.pyo
+*.pyd
+
+# Python testing
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.*
+
+# this application's specific files
+archive
+
+# any log file
+*.log
+*log.txt
+todo
+scratchpad
+
+# Pyenv
+.python-version
+
+.gpte_consent
+
+# docs
+docs/_build
+docs/applications
+docs/benchmark
+docs/cli
+docs/core
+docs/intro
+docs/tools
+
+# coding assistants
+.aider*
+.gpteng
+
+# TODO files
+/!todo*
