@@ -68,3 +68,8 @@ docs/tools
 
 # TODO files
 /!todo*
+
+# wav
+*.wav
+audio/*
+output/*

@@ -1,5 +1,5 @@
-faster-whisper==1.0.3
+faster-whisper==1.2.0
 numpy==2.1.1         # wird von sounddevice gebraucht
-python-dotenv==1.0.0 # for loading .env files
+python-dotenv==1.1.1 # for loading .env files
 requests==2.32.3
 sounddevice==0.4.7   # falls du selbst Audio aufzeichnen willst
