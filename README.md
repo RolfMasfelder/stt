@@ -7,12 +7,28 @@ Dieses Projekt zeigt eine minimalistische Pipeline:
 
 ## Voraussetzungen
 - Linux (getestet mit openSUSE)
-- Python 3.12 (in venv empfohlen)
-- LM Studio installiert und laufend (API auf `http://cirrus7-neu:1234`)
+- Python 3.12+ (in venv empfohlen)
+- LM Studio installiert und laufend (API-URL via `.env` konfigurierbar)
 
 ## Installation
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+python -m venv --prompt stt venv
+source venv/bin/activate
 pip install -r requirements.txt
+```
+
+## Nutzung
+```bash
+# Audio-Datei transkribieren
+python -m stt meeting.wav
+
+# Mit Zusammenfassung via LM Studio
+python -m stt meeting.wav --summarize
+
+# Ausgabe in Datei
+python -m stt meeting.wav -o output/transcript.txt
+
+# Via Docker
+docker-compose --profile dev up stt-dev
+docker-compose exec stt-dev python -m stt audio/meeting.wav
 ```

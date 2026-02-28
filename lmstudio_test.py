@@ -1,26 +1,24 @@
-import os
+"""Test script for LM Studio API connectivity and summarization.
 
-import requests
-from dotenv import load_dotenv
+Use 'python -m stt <audio_file> --summarize' for production use.
+"""
 
-# Load environment variables from .env file
-load_dotenv()
+from stt.config import load_config
+from stt.logging_setup import setup_logging
+from stt.summarize import SummarizationError, summarize_text
 
-lm_studio_host = os.getenv("LM_STUDIO_HOST", "localhost")
-lm_studio_port = os.getenv("LM_STUDIO_PORT", "1234")
-lmstudio_url = f"http://{lm_studio_host}:{lm_studio_port}/v1/chat/completions"
-model_name = os.getenv("LM_STUDIO_MODEL", "mistral-7b-instruct")
+if __name__ == "__main__":
+    config = load_config()
+    setup_logging(config.log_level)
 
-# Example transcript for testing
-transcript = "Das ist ein Test-Transkript für die Zusammenfassung."
+    print(f"Connecting to LM Studio at {config.lm_studio.url}")
+    print(f"Using model: {config.lm_studio.model}")
 
-payload = {
-    "model": model_name,
-    "messages": [
-        {"role": "system", "content": "Fasse Texte zusammen."},
-        {"role": "user", "content": transcript},
-    ],
-}
+    # Example transcript for testing
+    transcript = "Das ist ein Test-Transkript für die Zusammenfassung."
 
-response = requests.post(lmstudio_url, json=payload)
-print(response.json()["choices"][0]["message"]["content"])
+    try:
+        summary = summarize_text(transcript, config.lm_studio)
+        print(f"\nErgebnis:\n{summary}")
+    except SummarizationError as e:
+        print(f"\nFehler: {e}")

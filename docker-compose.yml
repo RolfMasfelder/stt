@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   stt:
     build: .
@@ -67,7 +65,3 @@ services:
 networks:
   stt-network:
     driver: bridge
-
-volumes:
-  audio_data:
-  output_data:

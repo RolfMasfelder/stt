@@ -1,17 +1,11 @@
-import os
+"""Legacy entry point — delegates to the stt package.
 
-from dotenv import load_dotenv
-from faster_whisper import WhisperModel
+Use 'python -m stt <audio_file>' instead.
+"""
 
-# Load environment variables from .env file
-load_dotenv()
+import sys
 
-model_name = os.getenv("WHISPER_MODEL", "small")
-device = os.getenv("WHISPER_DEVICE", "cpu")
-audio_file = os.getenv("AUDIO_INPUT_FILE", "meeting.wav")
+from stt.__main__ import main
 
-model = WhisperModel(model_name, device=device)
-segments, info = model.transcribe(audio_file)
-
-transcript = " ".join([s.text for s in segments])
-print(transcript)
+if __name__ == "__main__":
+    sys.exit(main())

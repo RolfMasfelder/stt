@@ -13,9 +13,6 @@
 
 ## Git Remotes
 - `origin` → Local mirror (NO CI)
-<!-- `github` → GitHub with Actions (USE for automation)
-- Always push to `github` for CI/PRs
--->
 
 ## Documentation (if needed)
 - Check `TODO.md` for production-critical items if needed
@@ -45,4 +42,3 @@
 - Check `TODO.md` for production-critical items if needed
 - Use `docs/` folder for additional docs if needed
 - Use `scripts/` folder for additional shell scripts
-

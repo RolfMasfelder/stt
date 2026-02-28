@@ -4,31 +4,15 @@ fail_fast: false  # Don't stop on first failure, let all tools run
 default_stages: [pre-commit]
 
 repos:
-  # First, run ruff for linting and auto-fixes (before formatting)
+  # Ruff: linting + formatting (replaces black, isort, flake8)
   - repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: "v0.12.5"
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
-        types: [python]
-
-  # Then run black for formatting (after ruff fixes)
-  - repo: https://github.com/psf/black
-    rev: 25.1.0
-    hooks:
-      - id: black
-        args: [--config, pyproject.toml]
-        types: [python]
-        language_version: python3.12
-
-  # Finally, run ruff again to check formatting (but without --fix to avoid conflicts)
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: "v0.12.5"
-    hooks:
       - id: ruff-format
-        types: [python]
 
-  # Other hooks that don't conflict with formatting
+  # General file quality checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -36,27 +20,12 @@ repos:
       - id: check-docstring-first
       - id: check-toml
       - id: check-yaml
-        exclude: ^k8s/.*\.yaml$  # Exclude Kubernetes files
-      - id: check-yaml
-        name: check-yaml-k8s
-        files: ^k8s/.*\.yaml$
-        args: ['--allow-multiple-documents']
       - id: check-json
       - id: check-added-large-files
       - id: detect-private-key
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: debug-statements
-#      - id: double-quote-string-fixer
       - id: name-tests-test
-        args: [--django]
+        args: [--pytest-test-first]
       - id: requirements-txt-fixer
-
-  # dependency management
-  # - repo: local
-  #   hooks:
-  #     - id: check-requirements
-  #       name: Check requirements.txt
-  #       entry: python scripts/simple_requirements_check.py --docker
-  #       language: system
-  #       pass_filenames: false

@@ -24,8 +24,5 @@ RUN useradd --create-home --shell /bin/bash stt && \
     chown -R stt:stt /app
 USER stt
 
-# Expose port for potential API
-EXPOSE 8000
-
 # Default command
-CMD ["python", "transkribe.py"]
+CMD ["python", "-m", "stt"]
