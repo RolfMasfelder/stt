@@ -12,10 +12,16 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class WhisperConfig:
-    """Configuration for the Whisper speech-to-text model."""
+    """Configuration for the Whisper speech-to-text model.
+
+    When api_url is set, transcription is offloaded to a remote
+    faster-whisper-server via its OpenAI-compatible API instead of
+    running the model locally.
+    """
 
     model_name: str = "small"
     device: str = "cpu"
+    api_url: str | None = None
 
 
 @dataclass(frozen=True)
@@ -25,6 +31,7 @@ class LMStudioConfig:
     host: str = "localhost"
     port: int = 1234
     model: str = "mistral-7b-instruct"
+    timeout: int = 120
 
     @property
     def url(self) -> str:
@@ -58,16 +65,20 @@ def load_config(env_file: str | None = None) -> AppConfig:
     else:
         load_dotenv()
 
+    whisper_api_url = os.getenv("WHISPER_API_URL") or None
     whisper = WhisperConfig(
         model_name=os.getenv("WHISPER_MODEL", "small"),
         device=os.getenv("WHISPER_DEVICE", "cpu"),
+        api_url=whisper_api_url,
     )
 
     lm_studio_port = os.getenv("LM_STUDIO_PORT", "1234")
+    lm_studio_timeout = os.getenv("LM_STUDIO_TIMEOUT", "120")
     lm_studio = LMStudioConfig(
         host=os.getenv("LM_STUDIO_HOST", "localhost"),
         port=int(lm_studio_port),
         model=os.getenv("LM_STUDIO_MODEL", "mistral-7b-instruct"),
+        timeout=int(lm_studio_timeout),
     )
 
     log_level = os.getenv("LOG_LEVEL", "INFO")

@@ -6,7 +6,14 @@ import pytest
 import requests
 
 from stt.config import LMStudioConfig
-from stt.summarize import SummarizationError, summarize_text
+from stt.summarize import (
+    STRUCTURE_SYSTEM_PROMPT,
+    SUMMARY_SYSTEM_PROMPT,
+    SummarizationError,
+    process_transcript,
+    structure_text,
+    summarize_text,
+)
 
 
 class TestSummarizeText:
@@ -113,3 +120,95 @@ class TestSummarizeText:
         call_args = mock_post.call_args
         messages = call_args.kwargs["json"]["messages"]
         assert messages[0]["content"] == "Custom prompt"
+
+
+class TestStructureText:
+    """Tests for structure_text."""
+
+    @patch("stt.summarize.requests.post")
+    def test_uses_structure_prompt(self, mock_post: MagicMock) -> None:
+        """Should use the STRUCTURE_SYSTEM_PROMPT."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "choices": [{"message": {"content": "## Thema 1\nInhalt"}}]
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        result = structure_text("Ein langer Transkript-Text.")
+
+        call_args = mock_post.call_args
+        messages = call_args.kwargs["json"]["messages"]
+        assert messages[0]["content"] == STRUCTURE_SYSTEM_PROMPT
+        assert "## Thema 1" in result
+
+    def test_empty_text_raises(self) -> None:
+        """Should raise ValueError for empty text."""
+        with pytest.raises(ValueError, match="must not be empty"):
+            structure_text("")
+
+    @patch("stt.summarize.requests.post")
+    def test_connection_error(self, mock_post: MagicMock) -> None:
+        """Should propagate SummarizationError."""
+        mock_post.side_effect = requests.ConnectionError("refused")
+        with pytest.raises(SummarizationError):
+            structure_text("Text")
+
+
+class TestProcessTranscript:
+    """Tests for process_transcript (full pipeline)."""
+
+    @patch("stt.summarize.requests.post")
+    def test_two_step_pipeline(self, mock_post: MagicMock) -> None:
+        """Should call LM Studio twice: structure then summarize."""
+        structured_response = MagicMock()
+        structured_response.status_code = 200
+        structured_response.json.return_value = {
+            "choices": [{"message": {"content": "## Abschnitt 1\nDetails"}}]
+        }
+        structured_response.raise_for_status = MagicMock()
+
+        summary_response = MagicMock()
+        summary_response.status_code = 200
+        summary_response.json.return_value = {
+            "choices": [{"message": {"content": "Kurze Zusammenfassung"}}]
+        }
+        summary_response.raise_for_status = MagicMock()
+
+        mock_post.side_effect = [structured_response, summary_response]
+
+        structured, summary = process_transcript("Langer Transkript-Text")
+
+        assert mock_post.call_count == 2
+        assert "## Abschnitt 1" in structured
+        assert summary == "Kurze Zusammenfassung"
+
+        # First call should use structure prompt
+        first_call = mock_post.call_args_list[0]
+        assert (
+            first_call.kwargs["json"]["messages"][0]["content"]
+            == STRUCTURE_SYSTEM_PROMPT
+        )
+
+        # Second call should use summary prompt
+        second_call = mock_post.call_args_list[1]
+        assert (
+            second_call.kwargs["json"]["messages"][0]["content"]
+            == SUMMARY_SYSTEM_PROMPT
+        )
+
+    @patch("stt.summarize.requests.post")
+    def test_structure_failure_stops_pipeline(self, mock_post: MagicMock) -> None:
+        """Should not attempt summarization if structuring fails."""
+        mock_post.side_effect = requests.ConnectionError("refused")
+
+        with pytest.raises(SummarizationError):
+            process_transcript("Text")
+
+        assert mock_post.call_count == 1
+
+    def test_empty_text_raises(self) -> None:
+        """Should raise ValueError for empty text."""
+        with pytest.raises(ValueError, match="must not be empty"):
+            process_transcript("")

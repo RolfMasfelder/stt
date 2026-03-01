@@ -29,6 +29,6 @@ python -m stt meeting.wav --summarize
 python -m stt meeting.wav -o output/transcript.txt
 
 # Via Docker
-docker-compose --profile dev up stt-dev
-docker-compose exec stt-dev python -m stt audio/meeting.wav
+docker compose --profile dev up stt-dev
+docker compose exec stt-dev python -m stt audio/meeting.wav
 ```

@@ -83,3 +83,89 @@ class TestCLI:
         ):
             result = main([str(audio_file)])
             assert result == 1
+
+    @patch("stt.__main__.process_transcript")
+    @patch("stt.__main__.transcribe_audio")
+    @patch("stt.__main__.load_config")
+    def test_process_flag(
+        self,
+        mock_config: MagicMock,
+        mock_transcribe: MagicMock,
+        mock_process: MagicMock,
+        tmp_path: MagicMock,
+    ) -> None:
+        """Should run full pipeline with --process."""
+        audio_file = tmp_path / "test.wav"
+        audio_file.write_bytes(b"fake")
+
+        config = MagicMock()
+        config.log_level = "WARNING"
+        config.audio_input_dir = tmp_path
+        mock_config.return_value = config
+        mock_transcribe.return_value = "Transkript"
+        mock_process.return_value = ("## Struktur", "Zusammenfassung")
+
+        result = main([str(audio_file), "--process"])
+        assert result == 0
+        mock_process.assert_called_once_with("Transkript", config.lm_studio)
+
+    @patch("stt.__main__.process_transcript")
+    @patch("stt.__main__.transcribe_audio")
+    @patch("stt.__main__.load_config")
+    def test_process_saves_files(
+        self,
+        mock_config: MagicMock,
+        mock_transcribe: MagicMock,
+        mock_process: MagicMock,
+        tmp_path: MagicMock,
+    ) -> None:
+        """Should save structure and summary files with --process --output."""
+        audio_file = tmp_path / "test.wav"
+        audio_file.write_bytes(b"fake")
+        output_file = tmp_path / "result.txt"
+
+        config = MagicMock()
+        config.log_level = "WARNING"
+        config.audio_input_dir = tmp_path
+        mock_config.return_value = config
+        mock_transcribe.return_value = "Transkript"
+        mock_process.return_value = ("Strukturiert", "Zusammenfassung")
+
+        result = main([str(audio_file), "--process", "-o", str(output_file)])
+        assert result == 0
+
+        # Transcript written to main output
+        assert output_file.read_text() == "Transkript"
+        # Structure + summary written as separate files
+        assert (tmp_path / "result_struktur.md").read_text() == "Strukturiert"
+        assert (tmp_path / "result_zusammenfassung.md").read_text() == "Zusammenfassung"
+
+    @patch("stt.__main__.transcribe_audio")
+    @patch("stt.__main__.load_config")
+    def test_timeout_override(
+        self,
+        mock_config: MagicMock,
+        mock_transcribe: MagicMock,
+        tmp_path: MagicMock,
+    ) -> None:
+        """Should override LM Studio timeout from CLI --timeout."""
+        from stt.config import AppConfig, LMStudioConfig, WhisperConfig
+
+        audio_file = tmp_path / "test.wav"
+        audio_file.write_bytes(b"fake")
+
+        config = AppConfig(
+            lm_studio=LMStudioConfig(timeout=120),
+            whisper=WhisperConfig(),
+        )
+        mock_config.return_value = config
+        mock_transcribe.return_value = "Hello"
+
+        with patch("stt.__main__.summarize_text") as mock_summarize:
+            mock_summarize.return_value = "Summary"
+            result = main([str(audio_file), "--summarize", "--timeout", "900"])
+
+        assert result == 0
+        # The config passed to summarize_text should have timeout=900
+        called_config = mock_summarize.call_args.args[1]
+        assert called_config.timeout == 900

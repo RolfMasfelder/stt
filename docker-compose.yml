@@ -15,6 +15,7 @@ services:
       - LM_STUDIO_MODEL=${LM_STUDIO_MODEL}
       - WHISPER_MODEL=${WHISPER_MODEL}
       - WHISPER_DEVICE=${WHISPER_DEVICE}
+      - WHISPER_API_URL=${WHISPER_API_URL}
       - LOG_LEVEL=${LOG_LEVEL}
     networks:
       - stt-network
@@ -40,6 +41,7 @@ services:
       - LM_STUDIO_MODEL=${LM_STUDIO_MODEL}
       - WHISPER_MODEL=${WHISPER_MODEL}
       - WHISPER_DEVICE=${WHISPER_DEVICE}
+      - WHISPER_API_URL=${WHISPER_API_URL}
       - LOG_LEVEL=${LOG_LEVEL}
       - DEVELOPMENT_MODE=${DEVELOPMENT_MODE}
       - DEBUG=${DEBUG}
@@ -47,6 +49,21 @@ services:
     profiles:
       - dev
     command: bash  # Override to keep container running for development
+
+  # Remote Whisper transcription server (faster-whisper-server)
+  # Run on a more powerful machine for faster transcription
+  whisper-server:
+    image: fedirz/faster-whisper-server:latest-cpu
+    container_name: whisper-server
+    ports:
+      - "8000:8000"
+    environment:
+      - WHISPER__MODEL=${WHISPER_MODEL:-small}
+      - WHISPER__DEVICE=${WHISPER_DEVICE:-cpu}
+    networks:
+      - stt-network
+    profiles:
+      - whisper-remote
 
   # LM Studio service (placeholder for future implementation)
   lmstudio:
