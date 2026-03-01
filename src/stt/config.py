@@ -22,6 +22,7 @@ class WhisperConfig:
     model_name: str = "small"
     device: str = "cpu"
     api_url: str | None = None
+    timeout: int = 600
 
 
 @dataclass(frozen=True)
@@ -66,10 +67,12 @@ def load_config(env_file: str | None = None) -> AppConfig:
         load_dotenv()
 
     whisper_api_url = os.getenv("WHISPER_API_URL") or None
+    whisper_timeout = os.getenv("WHISPER_TIMEOUT", "600")
     whisper = WhisperConfig(
         model_name=os.getenv("WHISPER_MODEL", "small"),
         device=os.getenv("WHISPER_DEVICE", "cpu"),
         api_url=whisper_api_url,
+        timeout=int(whisper_timeout),
     )
 
     lm_studio_port = os.getenv("LM_STUDIO_PORT", "1234")

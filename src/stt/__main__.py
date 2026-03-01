@@ -7,7 +7,12 @@ from pathlib import Path
 
 from stt.config import load_config
 from stt.logging_setup import setup_logging
-from stt.summarize import SummarizationError, process_transcript, summarize_text
+from stt.summarize import (
+    SummarizationError,
+    diarize_text,  # noqa: F401 (used with --diarize standalone)
+    process_transcript,
+    summarize_text,
+)
 from stt.transcribe import TranscriptionError, transcribe_audio
 
 logger = logging.getLogger(__name__)
@@ -34,6 +39,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Full pipeline: structure into sections, then summarize",
     )
     parser.add_argument(
+        "--diarize",
+        action="store_true",
+        help="Identify speakers in the transcript (adds speaker labels)",
+    )
+    parser.add_argument(
         "--output",
         "-o",
         type=Path,
@@ -45,6 +55,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=int,
         default=None,
         help="LM Studio request timeout in seconds (overrides .env)",
+    )
+    parser.add_argument(
+        "--whisper-timeout",
+        type=int,
+        default=None,
+        help="Whisper transcription timeout in seconds (overrides .env)",
     )
     return parser.parse_args(argv)
 
@@ -62,14 +78,20 @@ def main(argv: list[str] | None = None) -> int:
     config = load_config()
     setup_logging(config.log_level)
 
-    # Override timeout from CLI if provided
-    if args.timeout is not None:
+    # Override timeouts from CLI if provided
+    if args.timeout is not None or args.whisper_timeout is not None:
         from dataclasses import replace
 
-        config = replace(
-            config,
-            lm_studio=replace(config.lm_studio, timeout=args.timeout),
-        )
+        if args.timeout is not None:
+            config = replace(
+                config,
+                lm_studio=replace(config.lm_studio, timeout=args.timeout),
+            )
+        if args.whisper_timeout is not None:
+            config = replace(
+                config,
+                whisper=replace(config.whisper, timeout=args.whisper_timeout),
+            )
 
     # Determine audio file path
     if args.audio_file:
@@ -114,10 +136,17 @@ def main(argv: list[str] | None = None) -> int:
             logger.error("Summarization failed: %s", e)
             return 1
 
-    # Full pipeline: structure + summarize
+    # Full pipeline: structure + summarize (+ optional diarize)
     if args.process:
         try:
-            structured, summary = process_transcript(transcript, config.lm_studio)
+            structured, summary, diarized = process_transcript(
+                transcript, config.lm_studio, diarize=args.diarize
+            )
+
+            if diarized:
+                print("\n--- Sprecherzuordnung ---")
+                print(diarized)
+
             print("\n--- Strukturierung ---")
             print(structured)
             print("\n--- Zusammenfassung ---")
@@ -129,6 +158,11 @@ def main(argv: list[str] | None = None) -> int:
                 out_dir = args.output.parent
                 out_dir.mkdir(parents=True, exist_ok=True)
 
+                if diarized:
+                    diarized_path = out_dir / f"{stem}_sprecher.md"
+                    diarized_path.write_text(diarized, encoding="utf-8")
+                    logger.info("Diarized text written to %s", diarized_path)
+
                 structured_path = out_dir / f"{stem}_struktur.md"
                 structured_path.write_text(structured, encoding="utf-8")
                 logger.info("Structured text written to %s", structured_path)
@@ -138,6 +172,24 @@ def main(argv: list[str] | None = None) -> int:
                 logger.info("Summary written to %s", summary_path)
         except SummarizationError as e:
             logger.error("Processing failed: %s", e)
+            return 1
+
+    # Standalone diarize (without --process)
+    elif args.diarize:
+        try:
+            diarized = diarize_text(transcript, config.lm_studio)
+            print("\n--- Sprecherzuordnung ---")
+            print(diarized)
+
+            if args.output:
+                stem = args.output.stem
+                out_dir = args.output.parent
+                out_dir.mkdir(parents=True, exist_ok=True)
+                diarized_path = out_dir / f"{stem}_sprecher.md"
+                diarized_path.write_text(diarized, encoding="utf-8")
+                logger.info("Diarized text written to %s", diarized_path)
+        except SummarizationError as e:
+            logger.error("Diarization failed: %s", e)
             return 1
 
     return 0

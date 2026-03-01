@@ -103,11 +103,13 @@ class TestCLI:
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
         mock_transcribe.return_value = "Transkript"
-        mock_process.return_value = ("## Struktur", "Zusammenfassung")
+        mock_process.return_value = ("## Struktur", "Zusammenfassung", None)
 
         result = main([str(audio_file), "--process"])
         assert result == 0
-        mock_process.assert_called_once_with("Transkript", config.lm_studio)
+        mock_process.assert_called_once_with(
+            "Transkript", config.lm_studio, diarize=False
+        )
 
     @patch("stt.__main__.process_transcript")
     @patch("stt.__main__.transcribe_audio")
@@ -129,7 +131,7 @@ class TestCLI:
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
         mock_transcribe.return_value = "Transkript"
-        mock_process.return_value = ("Strukturiert", "Zusammenfassung")
+        mock_process.return_value = ("Strukturiert", "Zusammenfassung", None)
 
         result = main([str(audio_file), "--process", "-o", str(output_file)])
         assert result == 0

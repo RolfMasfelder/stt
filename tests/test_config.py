@@ -14,6 +14,7 @@ class TestWhisperConfig:
         assert config.model_name == "small"
         assert config.device == "cpu"
         assert config.api_url is None
+        assert config.timeout == 600
 
     def test_custom_values(self) -> None:
         config = WhisperConfig(model_name="large-v3", device="cuda")
@@ -53,6 +54,7 @@ class TestLoadConfig:
             "WHISPER_MODEL": "large-v3",
             "WHISPER_DEVICE": "cuda",
             "WHISPER_API_URL": "http://192.168.178.80:8000",
+            "WHISPER_TIMEOUT": "1800",
             "LM_STUDIO_HOST": "testhost",
             "LM_STUDIO_PORT": "9999",
             "LM_STUDIO_MODEL": "test-model",
@@ -68,6 +70,7 @@ class TestLoadConfig:
         assert config.whisper.model_name == "large-v3"
         assert config.whisper.device == "cuda"
         assert config.whisper.api_url == "http://192.168.178.80:8000"
+        assert config.whisper.timeout == 1800
         assert config.lm_studio.host == "testhost"
         assert config.lm_studio.port == 9999
         assert config.lm_studio.model == "test-model"
@@ -79,6 +82,7 @@ class TestLoadConfig:
         config = load_config(env_file="/dev/null")
         assert config.whisper.model_name == "small"
         assert config.whisper.api_url is None
+        assert config.whisper.timeout == 600
         assert config.lm_studio.host == "localhost"
         assert config.lm_studio.timeout == 120
         assert config.log_level == "INFO"

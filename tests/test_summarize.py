@@ -7,9 +7,11 @@ import requests
 
 from stt.config import LMStudioConfig
 from stt.summarize import (
+    DIARIZE_SYSTEM_PROMPT,
     STRUCTURE_SYSTEM_PROMPT,
     SUMMARY_SYSTEM_PROMPT,
     SummarizationError,
+    diarize_text,
     process_transcript,
     structure_text,
     summarize_text,
@@ -42,6 +44,32 @@ class TestSummarizeText:
 
         result = summarize_text("Ein langer Text zum Zusammenfassen.")
         assert result == "Zusammenfassung"
+
+    @patch("stt.summarize.requests.post")
+    def test_strips_think_tags(self, mock_post: MagicMock) -> None:
+        """Should remove <think>...</think> blocks from model output."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "choices": [
+                {
+                    "message": {
+                        "content": (
+                            "<think>\nI need to analyze this...\n"
+                            "Let me think step by step.\n</think>\n"
+                            "## Ergebnis\nDas ist die Antwort."
+                        )
+                    }
+                }
+            ]
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        result = summarize_text("Ein Text.")
+        assert "<think>" not in result
+        assert "## Ergebnis" in result
+        assert result == "## Ergebnis\nDas ist die Antwort."
 
     @patch("stt.summarize.requests.post")
     def test_connection_error(self, mock_post: MagicMock) -> None:
@@ -178,11 +206,12 @@ class TestProcessTranscript:
 
         mock_post.side_effect = [structured_response, summary_response]
 
-        structured, summary = process_transcript("Langer Transkript-Text")
+        structured, summary, diarized = process_transcript("Langer Transkript-Text")
 
         assert mock_post.call_count == 2
         assert "## Abschnitt 1" in structured
         assert summary == "Kurze Zusammenfassung"
+        assert diarized is None
 
         # First call should use structure prompt
         first_call = mock_post.call_args_list[0]
@@ -212,3 +241,93 @@ class TestProcessTranscript:
         """Should raise ValueError for empty text."""
         with pytest.raises(ValueError, match="must not be empty"):
             process_transcript("")
+
+    @patch("stt.summarize.requests.post")
+    def test_three_step_pipeline_with_diarize(self, mock_post: MagicMock) -> None:
+        """Should call LM Studio three times when diarize=True."""
+        diarize_response = MagicMock()
+        diarize_response.status_code = 200
+        diarize_response.json.return_value = {
+            "choices": [
+                {
+                    "message": {
+                        "content": (
+                            "**Sprecher 1:** Hallo zusammen.\n"
+                            "**Sprecher 2:** Hi, danke f\u00fcr die Einladung."
+                        )
+                    }
+                }
+            ]
+        }
+        diarize_response.raise_for_status = MagicMock()
+
+        structured_response = MagicMock()
+        structured_response.status_code = 200
+        structured_response.json.return_value = {
+            "choices": [{"message": {"content": "## Begr\u00fc\u00dfung\nHallo"}}]
+        }
+        structured_response.raise_for_status = MagicMock()
+
+        summary_response = MagicMock()
+        summary_response.status_code = 200
+        summary_response.json.return_value = {
+            "choices": [{"message": {"content": "Kurze Zusammenfassung"}}]
+        }
+        summary_response.raise_for_status = MagicMock()
+
+        mock_post.side_effect = [
+            diarize_response,
+            structured_response,
+            summary_response,
+        ]
+
+        structured, summary, diarized = process_transcript(
+            "Hallo zusammen. Hi, danke.", diarize=True
+        )
+
+        assert mock_post.call_count == 3
+        assert diarized is not None
+        assert "Sprecher 1" in diarized
+        assert "Sprecher 2" in diarized
+
+        # First call should use diarize prompt
+        first_call = mock_post.call_args_list[0]
+        assert (
+            first_call.kwargs["json"]["messages"][0]["content"] == DIARIZE_SYSTEM_PROMPT
+        )
+
+
+class TestDiarizeText:
+    """Tests for diarize_text."""
+
+    @patch("stt.summarize.requests.post")
+    def test_uses_diarize_prompt(self, mock_post: MagicMock) -> None:
+        """Should use the DIARIZE_SYSTEM_PROMPT."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "choices": [
+                {"message": {"content": "**Sprecher 1:** Hallo\n**Sprecher 2:** Hi"}}
+            ]
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        result = diarize_text("Hallo. Hi.")
+
+        call_args = mock_post.call_args
+        messages = call_args.kwargs["json"]["messages"]
+        assert messages[0]["content"] == DIARIZE_SYSTEM_PROMPT
+        assert "Sprecher 1" in result
+
+    def test_empty_text_raises(self) -> None:
+        """Should raise ValueError for empty text."""
+        with pytest.raises(ValueError, match="must not be empty"):
+            diarize_text("")
+
+    @patch("stt.summarize.requests.post")
+    def test_connection_error(self, mock_post: MagicMock) -> None:
+        """Should propagate SummarizationError."""
+        mock_post.side_effect = requests.ConnectionError("refused")
+        with pytest.raises(SummarizationError):
+            diarize_text("Text")

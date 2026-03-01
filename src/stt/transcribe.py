@@ -62,7 +62,7 @@ def _transcribe_remote(audio_path: Path, config: WhisperConfig) -> str:
     with open(audio_path, "rb") as f:
         files = {"file": (audio_path.name, f, "audio/wav")}
         data = {"model": config.model_name, "response_format": "text"}
-        response = requests.post(url, files=files, data=data, timeout=600)
+        response = requests.post(url, files=files, data=data, timeout=config.timeout)
 
     if response.status_code != 200:
         raise TranscriptionError(
