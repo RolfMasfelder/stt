@@ -1,6 +1,7 @@
 # Lokale Meeting-Transkription und Zusammenfassung
 
 Dieses Projekt zeigt eine minimalistische Pipeline:
+
 1. Meeting oder Audio aufnehmen (z. B. WAV-Datei).
 2. Transkription mit [faster-whisper](https://github.com/SYSTRAN/faster-whisper).
 3. Sprechererkennung mit [pyannote.audio](https://github.com/pyannote/pyannote-audio) (direkt auf Audio).
@@ -8,7 +9,7 @@ Dieses Projekt zeigt eine minimalistische Pipeline:
 
 ## Architektur
 
-```
+```txt
 Lokaler Rechner                     Remote-Rechner 192.168.178.80
 ──────────────                      ─────────────────────────────
 python -m stt meeting.wav           Docker: stt-server (:8001)
@@ -31,12 +32,14 @@ Das Projekt besteht aus zwei Varianten in einer `docker-compose.yml`:
 Die API-Schnittstelle ist in [`openapi.json`](openapi.json) definiert.
 
 ## Voraussetzungen
+
 - Linux (getestet mit openSUSE)
 - Python 3.12+ (in venv empfohlen)
 - LM Studio installiert und laufend auf dem Remote-Rechner
 - HuggingFace-Token für pyannote-Modelle (`HF_STT_TOKEN` in `.env`)
 
 ## Installation
+
 ```bash
 python -m venv --prompt stt venv
 source venv/bin/activate
@@ -46,6 +49,7 @@ pip install -r requirements.txt
 ## Nutzung
 
 ### CLI mit Remote-Server (empfohlen)
+
 ```bash
 # Audio-Datei transkribieren (via Remote-Server)
 python -m stt meeting.wav
@@ -61,6 +65,7 @@ python -m stt meeting.wav --summarize
 ```
 
 ### Lokale Verarbeitung (ohne Server)
+
 ```bash
 # Ausgabe in Datei
 python -m stt meeting.wav -o data/output/transcript.txt
@@ -75,6 +80,7 @@ Hinweis: `--diarize` mit `--skip` verwendet LLM-basierte Sprechererkennung (Heur
 da ohne Audiodatei keine audio-basierte Diarization möglich ist.
 
 ### Docker
+
 ```bash
 # Remote: Server starten
 docker compose --profile server up -d stt-server

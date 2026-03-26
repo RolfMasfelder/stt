@@ -5,6 +5,7 @@
 **Beschreibung:** Das System transkribiert Audio-Dateien (WAV, MP3 etc.) zu Text.
 
 **Akzeptanzkriterien:**
+
 - Unterstützung lokaler Transkription via faster-whisper
 - Unterstützung remote Transkription via faster-whisper-server (OpenAI-kompatible API)
 - Automatische Spracherkennung
@@ -19,6 +20,7 @@
 **Beschreibung:** Das System erkennt verschiedene Sprecher in einer Audio-Aufnahme und ordnet Textabschnitte den jeweiligen Sprechern zu.
 
 **Akzeptanzkriterien:**
+
 - Kombination von Whisper-Timestamps mit pyannote.audio Speaker-Diarization
 - Automatische Erkennung der Anzahl der Sprecher
 - Konsistente Sprecher-Labels (Sprecher 1, Sprecher 2, ...)
@@ -33,6 +35,7 @@
 **Beschreibung:** Wenn keine Audio-Datei vorliegt, identifiziert das System Sprecher anhand von Textmerkmalen (Frage-Antwort-Muster, Sprachstil, Themen).
 
 **Akzeptanzkriterien:**
+
 - Funktioniert auf reinem Text (kein Audio nötig)
 - Nutzbar mit `--skip --text-file --diarize`
 - Verwendet LM Studio als LLM-Backend
@@ -46,6 +49,7 @@
 **Beschreibung:** Das System gliedert ein Transkript in thematische Abschnitte mit Überschriften.
 
 **Akzeptanzkriterien:**
+
 - Automatische Erkennung thematischer Blöcke
 - Markdown-Überschriften (## Heading)
 - Vollständiger Textinhalt bleibt erhalten
@@ -59,6 +63,7 @@
 **Beschreibung:** Das System erstellt eine kompakte Zusammenfassung eines strukturierten Transkripts.
 
 **Akzeptanzkriterien:**
+
 - Maximal 2-3 Sätze pro Abschnitt
 - Beibehaltung der Abschnittsstruktur
 - Markdown-Ausgabe
@@ -72,6 +77,7 @@
 **Beschreibung:** Ein einziger Befehl führt die gesamte Verarbeitungskette aus: Transkription → Sprechererkennung → Strukturierung → Zusammenfassung.
 
 **Akzeptanzkriterien:**
+
 - Steuerung über `--process` CLI-Flag
 - Optionale Sprechererkennung mit `--diarize`
 - Speicherung von Teilergebnissen (_sprecher.md, _struktur.md, _zusammenfassung.md)
@@ -85,6 +91,7 @@
 **Beschreibung:** Das System bietet eine HTTP-API zur Verarbeitung von Audio-Dateien.
 
 **Akzeptanzkriterien:**
+
 - FastAPI-Server auf konfigurierbarem Port
 - Endpoints: `/health`, `/v1/transcribe`, `/v1/diarize`, `/v1/process`
 - Multipart-Upload von Audio-Dateien
@@ -100,6 +107,7 @@
 **Beschreibung:** Das CLI erkennt automatisch, ob ein STT-Server konfiguriert ist und delegiert die Verarbeitung an diesen.
 
 **Akzeptanzkriterien:**
+
 - Konfiguration via `STT_SERVER_URL` Umgebungsvariable
 - Gleiches CLI-Interface wie lokaler Modus
 - Transparente Umschaltung zwischen lokal und remote
@@ -113,6 +121,7 @@
 **Beschreibung:** Statt einer Audio-Datei kann ein bereits vorhandenes Transkript als Text-Datei übergeben werden.
 
 **Akzeptanzkriterien:**
+
 - Steuerung über `--skip --text-file <pfad>`
 - Kombinierbar mit `--diarize`, `--process`, `--summarize`
 - Keine Audio-Verarbeitung nötig

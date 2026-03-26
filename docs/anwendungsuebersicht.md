@@ -2,7 +2,7 @@
 
 ## Gesamtübersicht
 
-```
+```txt
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                              STT-System                                        │
 │                                                                                 │
@@ -77,7 +77,7 @@ Definiert in [`openapi.json`](../openapi.json).
 
 ## Datenfluss
 
-```
+```txt
 Audio (.wav)
     │
     ▼

@@ -7,12 +7,14 @@
 **Entscheidung:** pyannote.audio 4.x für audio-basierte Speaker Diarization einsetzen.
 
 **Begründung:**
+
 - Nutzt Audiomerkmale (Stimme, Tonhöhe) statt Textheuristik
 - State-of-the-art Ergebnisse bei Speaker Diarization
 - Läuft lokal, benötigt nur einmaligen Modell-Download
 - Kombinierbar mit Whisper-Timestamps für Segment-Zuordnung
 
 **Konsequenzen:**
+
 - HuggingFace-Token erforderlich (akzeptiert Terms of Service)
 - Höherer Speicherverbrauch durch pyannote-Modell
 - LLM-basierte Diarization bleibt als Fallback für `--skip`-Modus
@@ -26,12 +28,14 @@
 **Entscheidung:** Aufteilung in leichtgewichtigen CLI-Client (lokal) und Processing-Server (remote, Docker).
 
 **Begründung:**
+
 - Remote-Server kann GPU nutzen
 - CLI bleibt schlank, benötigt keine ML-Bibliotheken
 - Transparente Umschaltung via `STT_SERVER_URL`
 - Gleiche CLI-Flags funktionieren in beiden Modi
 
 **Konsequenzen:**
+
 - FastAPI-Server erforderlich (`server.py`)
 - HTTP-Client erforderlich (`client.py`)
 - OpenAPI-Spec als Schnittstellenvertrag
@@ -46,12 +50,14 @@
 **Entscheidung:** FastAPI verwenden.
 
 **Begründung:**
+
 - Native async-Unterstützung (Upload-Handling)
 - Automatische OpenAPI/Swagger-Dokumentation
 - Pydantic-Modelle für Request/Response-Validierung
 - Form-Parameter-Handling für Multipart-Uploads
 
 **Konsequenzen:**
+
 - uvicorn als ASGI-Server erforderlich
 - Pydantic als zusätzliche Abhängigkeit
 
@@ -64,11 +70,13 @@
 **Entscheidung:** `@dataclass(frozen=True)` für alle Config-Klassen.
 
 **Begründung:**
+
 - Immutability verhindert versehentliche Änderungen
 - Konfiguration wird einmal geladen und bleibt konsistent
 - `dataclasses.replace()` für explizite Overrides (z. B. CLI-Timeouts)
 
 **Konsequenzen:**
+
 - `replace()` statt direkter Zuweisung bei Übersteuerung
 
 ---
@@ -80,12 +88,14 @@
 **Entscheidung:** LM Studio als lokales LLM-Backend.
 
 **Begründung:**
+
 - OpenAI-kompatible API (`/v1/chat/completions`)
 - Einfache Modellverwaltung (GUI)
 - Läuft nativ auf dem Remote-Server (kein Docker nötig)
 - Unterstützt verschiedene Modelle (aktuell: glm-4.7-flash)
 
 **Konsequenzen:**
+
 - Muss manuell gestartet werden (kein Docker-Management)
 - `lmstudio`-Service in docker-compose.yml ist nur Platzhalter
 
@@ -98,10 +108,12 @@
 **Entscheidung:** Zusammenfassung unter `data/` mit Unterverzeichnissen `audio/` und `output/`.
 
 **Begründung:**
+
 - Klare Trennung von Code (`src/`) und Daten (`data/`)
 - Einfacheres Volume-Mounting in Docker
 - Übersichtlichere Projektstruktur
 
 **Konsequenzen:**
+
 - Umgebungsvariablen `AUDIO_INPUT_DIR` und `OUTPUT_DIR` angepasst
 - Docker-Volumes zeigen auf `data/audio` und `data/output`
