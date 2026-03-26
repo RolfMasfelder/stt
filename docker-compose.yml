@@ -10,7 +10,7 @@ services:
     ports:
       - "8090:8090"
     volumes:
-      - .:/app
+      - .:/app:z
     environment:
       - PYTHONPATH=/app
       - LM_STUDIO_HOST=${LM_STUDIO_HOST}
@@ -37,9 +37,9 @@ services:
     env_file:
       - .env
     volumes:
-      - .:/app
-      - ${AUDIO_INPUT_DIR:-./data/audio}:/app/data/audio
-      - ${OUTPUT_DIR:-./data/output}:/app/data/output
+      - .:/app:z
+      - ${AUDIO_INPUT_DIR:-./data/audio}:/app/data/audio:z
+      - ${OUTPUT_DIR:-./data/output}:/app/data/output:z
     environment:
       - PYTHONPATH=/app
       - STT_SERVER_URL=${STT_SERVER_URL}
@@ -59,9 +59,9 @@ services:
     env_file:
       - .env
     volumes:
-      - .:/app
-      - ${AUDIO_INPUT_DIR:-./data/audio}:/app/data/audio
-      - ${OUTPUT_DIR:-./data/output}:/app/data/output
+      - .:/app:z
+      - ${AUDIO_INPUT_DIR:-./data/audio}:/app/data/audio:z
+      - ${OUTPUT_DIR:-./data/output}:/app/data/output:z
     environment:
       - PYTHONPATH=/app
       - LM_STUDIO_HOST=${LM_STUDIO_HOST}

@@ -19,6 +19,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Install the stt package
+RUN pip install --no-cache-dir -e .
+
 # Pre-download pyannote model if HF token is available at build time
 # Usage: DOCKER_BUILDKIT=1 docker build --secret id=hf_token,env=HF_STT_TOKEN .
 RUN --mount=type=secret,id=hf_token \
@@ -36,4 +39,4 @@ RUN useradd --create-home --shell /bin/bash stt && \
 USER stt
 
 # Default command: run FastAPI server
-CMD ["python", "-m", "uvicorn", "stt.server:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["python", "-m", "uvicorn", "stt.server:app", "--host", "0.0.0.0", "--port", "8090"]
