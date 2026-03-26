@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import requests
+import torch
 from faster_whisper import WhisperModel
 from pyannote.audio import Pipeline
 
@@ -47,12 +48,9 @@ def _get_whisper_segments_remote(
     audio_path: Path, config: WhisperConfig
 ) -> list[tuple[float, float, str]]:
     """Get transcription segments with timestamps from remote faster-whisper-server."""
-    url = config.api_url
+    url = config.transcription_url
     if not url:
         raise DiarizationError("Remote transcription requires api_url to be set")
-
-    if not url.endswith("/v1/audio/transcriptions"):
-        url = url.rstrip("/") + "/v1/audio/transcriptions"
 
     with open(audio_path, "rb") as f:
         files = {"file": (audio_path.name, f, "audio/wav")}
@@ -83,8 +81,6 @@ def _run_diarization(audio_path: Path, config: DiarizeConfig):
     pipeline = Pipeline.from_pretrained(config.model_name, token=config.hf_token)
 
     if config.device != "cpu":
-        import torch
-
         pipeline.to(torch.device(config.device))
 
     return pipeline(str(audio_path))

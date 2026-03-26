@@ -5,6 +5,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+from stt.config import DiarizeConfig, LMStudioConfig, WhisperConfig
+from stt.summarize import ProcessResult
+
 
 @pytest.fixture
 def client():
@@ -12,25 +15,15 @@ def client():
     with patch("stt.server.load_config") as mock_config:
         config = MagicMock()
         config.log_level = "WARNING"
-        config.whisper.model_name = "small"
-        config.whisper.device = "cpu"
-        config.whisper.api_url = None
-        config.whisper.timeout = 600
-        config.diarize.hf_token = "hf_test"
-        config.diarize.model_name = "pyannote/speaker-diarization-3.1"
-        config.diarize.device = "cpu"
-        config.lm_studio.host = "localhost"
-        config.lm_studio.port = 1234
+        config.whisper = WhisperConfig()
+        config.diarize = DiarizeConfig(hf_token="hf_test")
+        config.lm_studio = LMStudioConfig()
         mock_config.return_value = config
 
-        # Re-import to pick up the mocked config
-        import importlib
+        from stt.server import app
 
-        import stt.server
-
-        importlib.reload(stt.server)
-
-        yield TestClient(stt.server.app)
+        with TestClient(app) as tc:
+            yield tc
 
 
 class TestHealthEndpoint:
@@ -129,10 +122,10 @@ class TestProcessEndpoint:
         ]
         mock_diarize.return_value = segments
         mock_format.return_value = "**Sprecher 1:**\nText"
-        mock_process.return_value = (
-            "## Struktur",
-            "Zusammenfassung",
-            "**Sprecher 1:**\nText",
+        mock_process.return_value = ProcessResult(
+            structured_text="## Struktur",
+            summary="Zusammenfassung",
+            diarized_text="**Sprecher 1:**\nText",
         )
 
         response = client.post(
@@ -153,7 +146,11 @@ class TestProcessEndpoint:
         self, mock_transcribe, mock_process, client
     ) -> None:
         mock_transcribe.return_value = "Transkript"
-        mock_process.return_value = ("Strukturiert", "Zusammenfassung", None)
+        mock_process.return_value = ProcessResult(
+            structured_text="Strukturiert",
+            summary="Zusammenfassung",
+            diarized_text=None,
+        )
 
         response = client.post(
             "/v1/process",

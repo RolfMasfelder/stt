@@ -39,6 +39,31 @@ class STTClient:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
+    def _post_file(self, endpoint: str, audio_file: Path, data: dict) -> dict:
+        """Send an audio file to a server endpoint and return the JSON response.
+
+        Raises:
+            FileNotFoundError: If the audio file does not exist.
+            ClientError: If the server request fails.
+        """
+        if not audio_file.exists():
+            raise FileNotFoundError(f"Audio file not found: {audio_file}")
+
+        url = f"{self.base_url}{endpoint}"
+        logger.info("Sending request to %s", url)
+
+        with open(audio_file, "rb") as f:
+            files = {"file": (audio_file.name, f)}
+            try:
+                resp = requests.post(url, files=files, data=data, timeout=self.timeout)
+            except requests.RequestException as e:
+                raise ClientError(f"Request to {url} failed: {e}") from e
+
+        if resp.status_code != 200:
+            raise ClientError(f"Server returned HTTP {resp.status_code}: {resp.text}")
+
+        return resp.json()
+
     def health(self) -> bool:
         """Check if the server is healthy."""
         try:
@@ -57,24 +82,8 @@ class STTClient:
             FileNotFoundError: If the audio file does not exist.
             ClientError: If the server request fails.
         """
-        if not audio_file.exists():
-            raise FileNotFoundError(f"Audio file not found: {audio_file}")
-
-        url = f"{self.base_url}/v1/transcribe"
-        logger.info("Sending transcription request to %s", url)
-
-        with open(audio_file, "rb") as f:
-            files = {"file": (audio_file.name, f)}
-            data = {"model": model}
-            try:
-                resp = requests.post(url, files=files, data=data, timeout=self.timeout)
-            except requests.RequestException as e:
-                raise ClientError(f"Request to {url} failed: {e}") from e
-
-        if resp.status_code != 200:
-            raise ClientError(f"Server returned HTTP {resp.status_code}: {resp.text}")
-
-        return resp.json()["text"]
+        body = self._post_file("/v1/transcribe", audio_file, {"model": model})
+        return body["text"]
 
     def diarize(self, audio_file: Path, model: str = "small") -> DiarizedResult:
         """Transcribe and diarize an audio file on the remote server.
@@ -86,24 +95,7 @@ class STTClient:
             FileNotFoundError: If the audio file does not exist.
             ClientError: If the server request fails.
         """
-        if not audio_file.exists():
-            raise FileNotFoundError(f"Audio file not found: {audio_file}")
-
-        url = f"{self.base_url}/v1/diarize"
-        logger.info("Sending diarization request to %s", url)
-
-        with open(audio_file, "rb") as f:
-            files = {"file": (audio_file.name, f)}
-            data = {"model": model}
-            try:
-                resp = requests.post(url, files=files, data=data, timeout=self.timeout)
-            except requests.RequestException as e:
-                raise ClientError(f"Request to {url} failed: {e}") from e
-
-        if resp.status_code != 200:
-            raise ClientError(f"Server returned HTTP {resp.status_code}: {resp.text}")
-
-        body = resp.json()
+        body = self._post_file("/v1/diarize", audio_file, {"model": model})
         return DiarizedResult(
             text=body["text"],
             diarized_text=body["diarized_text"],
@@ -122,24 +114,8 @@ class STTClient:
             FileNotFoundError: If the audio file does not exist.
             ClientError: If the server request fails.
         """
-        if not audio_file.exists():
-            raise FileNotFoundError(f"Audio file not found: {audio_file}")
-
-        url = f"{self.base_url}/v1/process"
-        logger.info("Sending process request to %s", url)
-
-        with open(audio_file, "rb") as f:
-            files = {"file": (audio_file.name, f)}
-            data = {"model": model, "diarize": str(diarize).lower()}
-            try:
-                resp = requests.post(url, files=files, data=data, timeout=self.timeout)
-            except requests.RequestException as e:
-                raise ClientError(f"Request to {url} failed: {e}") from e
-
-        if resp.status_code != 200:
-            raise ClientError(f"Server returned HTTP {resp.status_code}: {resp.text}")
-
-        body = resp.json()
+        data = {"model": model, "diarize": str(diarize).lower()}
+        body = self._post_file("/v1/process", audio_file, data)
         return ProcessResult(
             text=body["text"],
             diarized_text=body.get("diarized_text"),

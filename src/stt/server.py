@@ -2,26 +2,40 @@
 
 import logging
 import tempfile
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from dataclasses import replace
 from pathlib import Path
 
 from fastapi import FastAPI, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from stt.config import load_config
+from stt.config import AppConfig, WhisperConfig, load_config
 from stt.diarize import DiarizationError, diarize_audio, format_diarized_segments
 from stt.logging_setup import setup_logging
 from stt.summarize import SummarizationError, process_transcript
 from stt.transcribe import TranscriptionError, transcribe_audio
 
-config = load_config()
-setup_logging(config.log_level)
-
 logger = logging.getLogger(__name__)
+
+config: AppConfig = None  # type: ignore[assignment]
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Load configuration on startup."""
+    global config  # noqa: PLW0603
+    config = load_config()
+    setup_logging(config.log_level)
+    logger.info("STT Server started")
+    yield
+
 
 app = FastAPI(
     title="STT Server API",
     description="Speech-to-Text Server mit Transkription, Sprechererkennung und Zusammenfassung",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 
@@ -68,6 +82,11 @@ async def _save_upload(upload: UploadFile) -> Path:
         tmp.close()
 
 
+def _get_whisper_config(model: str) -> WhisperConfig:
+    """Create a WhisperConfig with the given model name."""
+    return replace(config.whisper, model_name=model)
+
+
 @app.get("/health")
 async def health() -> HealthResponse:
     return HealthResponse(status="ok")
@@ -79,9 +98,7 @@ async def transcribe(
 ) -> TranscribeResponse:
     audio_path = await _save_upload(file)
     try:
-        from dataclasses import replace
-
-        whisper_cfg = replace(config.whisper, model_name=model)
+        whisper_cfg = _get_whisper_config(model)
         text = transcribe_audio(audio_path, whisper_cfg)
         return TranscribeResponse(text=text)
     except (TranscriptionError, FileNotFoundError) as e:
@@ -99,9 +116,7 @@ async def diarize(file: UploadFile, model: str = Form("small")) -> DiarizeRespon
 
     audio_path = await _save_upload(file)
     try:
-        from dataclasses import replace
-
-        whisper_cfg = replace(config.whisper, model_name=model)
+        whisper_cfg = _get_whisper_config(model)
         segments = diarize_audio(audio_path, whisper_cfg, config.diarize)
         diarized_text = format_diarized_segments(segments)
         plain_text = " ".join(seg.text for seg in segments)
@@ -127,9 +142,7 @@ async def process(
 ) -> ProcessResponse:
     audio_path = await _save_upload(file)
     try:
-        from dataclasses import replace
-
-        whisper_cfg = replace(config.whisper, model_name=model)
+        whisper_cfg = _get_whisper_config(model)
 
         diarized_text: str | None = None
 
@@ -140,7 +153,7 @@ async def process(
         else:
             plain_text = transcribe_audio(audio_path, whisper_cfg)
 
-        structured, summary, diarized = process_transcript(
+        result = process_transcript(
             plain_text,
             config.lm_studio,
             diarize=False,
@@ -149,9 +162,9 @@ async def process(
 
         return ProcessResponse(
             text=plain_text,
-            diarized_text=diarized,
-            structured_text=structured,
-            summary=summary,
+            diarized_text=result.diarized_text,
+            structured_text=result.structured_text,
+            summary=result.summary,
         )
     except (
         TranscriptionError,

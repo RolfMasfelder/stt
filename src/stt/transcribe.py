@@ -44,13 +44,9 @@ def _transcribe_remote(audio_path: Path, config: WhisperConfig) -> str:
     Uses the OpenAI-compatible ``/v1/audio/transcriptions`` endpoint
     provided by `faster-whisper-server`.
     """
-    url = config.api_url
+    url = config.transcription_url
     if not url:
         raise TranscriptionError("Remote transcription requires api_url to be set")
-
-    # Ensure the URL points to the transcriptions endpoint
-    if not url.endswith("/v1/audio/transcriptions"):
-        url = url.rstrip("/") + "/v1/audio/transcriptions"
 
     logger.info(
         "Starting remote transcription: file=%s, url=%s, model=%s",

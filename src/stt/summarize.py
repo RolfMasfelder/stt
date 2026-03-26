@@ -2,53 +2,28 @@
 
 import logging
 import re
+from dataclasses import dataclass
 
 import requests
 
 from stt.config import LMStudioConfig
+from stt.prompts import (
+    DEFAULT_SYSTEM_PROMPT,
+    DIARIZE_SYSTEM_PROMPT,
+    STRUCTURE_SYSTEM_PROMPT,
+    SUMMARY_SYSTEM_PROMPT,
+)
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SYSTEM_PROMPT = "Fasse Texte zusammen."
 
-STRUCTURE_SYSTEM_PROMPT = (
-    "Du erhältst ein Transkript einer Audio-Aufnahme. "
-    "Gliedere den VOLLSTÄNDIGEN Inhalt in thematische Abschnitte. "
-    "Gib jedem Abschnitt eine kurze, aussagekräftige Überschrift (## Markdown). "
-    "Antworte ausschließlich mit dem gegliederten Text. "
-    "Keine Erklärungen, keine Analyse, kein Kommentar."
-)
+@dataclass(frozen=True)
+class ProcessResult:
+    """Result from the full processing pipeline."""
 
-SUMMARY_SYSTEM_PROMPT = (
-    "Du erhältst einen bereits in Abschnitte gegliederten Text im markdown Format. "
-    "Jeder Abschnitt wird mit einem ## Überschrift markiert. "
-    "Erstelle eine KURZE Zusammenfassung: maximal 2-3 Sätze pro Abschnitt. "
-    "Ziel ist eine kompakte Übersicht, NICHT eine Wiederholung des vollen Textes. "
-    "Behalte die Überschriften bei, aber kürze den Inhalt radikal auf das Wesentliche. "
-    "Antworte ausschließlich mit der Zusammenfassung im Markdown-Format."
-)
-
-DIARIZE_SYSTEM_PROMPT = (
-    "Du erhältst ein Transkript einer Audio-Aufnahme mit mehreren Sprechern. "
-    "Deine Aufgabe: Weise jedem Textabschnitt ein konsistentes Speaker-Label zu.\n\n"
-    "VORGEHEN:\n"
-    "1. Schätze zuerst die Anzahl der Sprecher anhand des gesamten Textes.\n"
-    "2. Vergib feste Labels: **Sprecher 1:**, **Sprecher 2:**, etc.\n"
-    "3. Behalte die Zuordnung im gesamten Text konsistent bei — "
-    "derselbe Sprecher behält immer dasselbe Label.\n\n"
-    "ERKENNUNGSMERKMALE für Sprecherwechsel:\n"
-    "- Direkte Anreden oder Begrüßungen (z.B. 'Hallo', 'Jan, ...', 'Moin')\n"
-    "- Frage-Antwort-Muster\n"
-    "- Themenwechsel oder Perspektivwechsel\n"
-    "- Unterschiedlicher Sprachstil, Wortwahl oder Fachkenntnis\n"
-    "- Zustimmung/Widerspruch zu vorherigem Beitrag\n\n"
-    "REGELN:\n"
-    "- Gib den VOLLSTÄNDIGEN Text zurück — kürze oder fasse NICHTS zusammen.\n"
-    "- Setze das Speaker-Label als eigene Zeile vor den jeweiligen Abschnitt.\n"
-    "- Fasse aufeinanderfolgende Sätze desselben Sprechers unter einem Label zusammen.\n"
-    "- Antworte ausschließlich mit dem zugeordneten Text.\n"
-    "- Keine Erklärungen, keine Analyse, keine Einleitung."
-)
+    structured_text: str
+    summary: str
+    diarized_text: str | None
 
 
 class SummarizationError(Exception):
@@ -176,7 +151,7 @@ def process_transcript(
     config: LMStudioConfig | None = None,
     diarize: bool = False,
     diarized_text: str | None = None,
-) -> tuple[str, str, str | None]:
+) -> ProcessResult:
     """Full pipeline: optionally diarize, structure, then summarize.
 
     Performs 2-3 LLM calls:
@@ -192,8 +167,7 @@ def process_transcript(
             diarization). When set, skips LLM-based diarization.
 
     Returns:
-        A tuple of (structured_text, summary, diarized_text).
-        diarized_text is None when diarize=False and no pre-computed text.
+        ProcessResult with structured_text, summary, and optional diarized_text.
 
     Raises:
         ValueError: If the input text is empty.
@@ -209,4 +183,6 @@ def process_transcript(
     structured = structure_text(input_text, config)
     logger.info("Summarizing structured text (%d characters)", len(structured))
     summary = summarize_text(structured, config, system_prompt=SUMMARY_SYSTEM_PROMPT)
-    return structured, summary, diarized
+    return ProcessResult(
+        structured_text=structured, summary=summary, diarized_text=diarized
+    )

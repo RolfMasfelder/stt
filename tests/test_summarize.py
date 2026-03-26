@@ -6,10 +6,12 @@ import pytest
 import requests
 
 from stt.config import LMStudioConfig
-from stt.summarize import (
+from stt.prompts import (
     DIARIZE_SYSTEM_PROMPT,
     STRUCTURE_SYSTEM_PROMPT,
     SUMMARY_SYSTEM_PROMPT,
+)
+from stt.summarize import (
     SummarizationError,
     diarize_text,
     process_transcript,
@@ -206,12 +208,12 @@ class TestProcessTranscript:
 
         mock_post.side_effect = [structured_response, summary_response]
 
-        structured, summary, diarized = process_transcript("Langer Transkript-Text")
+        result = process_transcript("Langer Transkript-Text")
 
         assert mock_post.call_count == 2
-        assert "## Abschnitt 1" in structured
-        assert summary == "Kurze Zusammenfassung"
-        assert diarized is None
+        assert "## Abschnitt 1" in result.structured_text
+        assert result.summary == "Kurze Zusammenfassung"
+        assert result.diarized_text is None
 
         # First call should use structure prompt
         first_call = mock_post.call_args_list[0]
@@ -281,14 +283,12 @@ class TestProcessTranscript:
             summary_response,
         ]
 
-        structured, summary, diarized = process_transcript(
-            "Hallo zusammen. Hi, danke.", diarize=True
-        )
+        result = process_transcript("Hallo zusammen. Hi, danke.", diarize=True)
 
         assert mock_post.call_count == 3
-        assert diarized is not None
-        assert "Sprecher 1" in diarized
-        assert "Sprecher 2" in diarized
+        assert result.diarized_text is not None
+        assert "Sprecher 1" in result.diarized_text
+        assert "Sprecher 2" in result.diarized_text
 
         # First call should use diarize prompt
         first_call = mock_post.call_args_list[0]

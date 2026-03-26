@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 from stt.__main__ import main
+from stt.summarize import ProcessResult
 
 
 class TestCLI:
@@ -108,7 +109,11 @@ class TestCLI:
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
         mock_transcribe.return_value = "Transkript"
-        mock_process.return_value = ("## Struktur", "Zusammenfassung", None)
+        mock_process.return_value = ProcessResult(
+            structured_text="## Struktur",
+            summary="Zusammenfassung",
+            diarized_text=None,
+        )
 
         result = main([str(audio_file), "--process"])
         assert result == 0
@@ -140,7 +145,11 @@ class TestCLI:
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
         mock_transcribe.return_value = "Transkript"
-        mock_process.return_value = ("Strukturiert", "Zusammenfassung", None)
+        mock_process.return_value = ProcessResult(
+            structured_text="Strukturiert",
+            summary="Zusammenfassung",
+            diarized_text=None,
+        )
 
         result = main([str(audio_file), "--process", "-o", str(output_file)])
         assert result == 0
@@ -245,7 +254,11 @@ class TestCLI:
         config.log_level = "WARNING"
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
-        mock_process.return_value = ("Strukturiert", "Zusammenfassung", None)
+        mock_process.return_value = ProcessResult(
+            structured_text="Strukturiert",
+            summary="Zusammenfassung",
+            diarized_text=None,
+        )
 
         result = main(["--skip", "--text-file", str(text_file), "--process"])
         assert result == 0

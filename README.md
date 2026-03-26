@@ -54,7 +54,7 @@ python -m stt meeting.wav
 python -m stt meeting.wav --diarize
 
 # Volle Pipeline: Sprechererkennung + Strukturierung + Zusammenfassung
-python -m stt meeting.wav --diarize --process -o output/result.txt
+python -m stt meeting.wav --diarize --process -o data/output/result.txt
 
 # Nur Zusammenfassung (ohne Sprechererkennung)
 python -m stt meeting.wav --summarize
@@ -63,12 +63,12 @@ python -m stt meeting.wav --summarize
 ### Lokale Verarbeitung (ohne Server)
 ```bash
 # Ausgabe in Datei
-python -m stt meeting.wav -o output/transcript.txt
+python -m stt meeting.wav -o data/output/transcript.txt
 
 # LLM-Verarbeitung auf bestehendem Text (kein Audio nötig)
-python -m stt --skip --text-file output/transcript.txt --diarize -o output/result.txt
-python -m stt --skip --text-file output/transcript.txt --process --diarize -o output/result.txt
-python -m stt --skip --text-file output/transcript.txt --summarize -o output/result.txt
+python -m stt --skip --text-file data/output/transcript.txt --diarize -o data/output/result.txt
+python -m stt --skip --text-file data/output/transcript.txt --process --diarize -o data/output/result.txt
+python -m stt --skip --text-file data/output/transcript.txt --summarize -o data/output/result.txt
 ```
 
 Hinweis: `--diarize` mit `--skip` verwendet LLM-basierte Sprechererkennung (Heuristik),

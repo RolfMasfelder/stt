@@ -24,6 +24,16 @@ class WhisperConfig:
     api_url: str | None = None
     timeout: int = 600
 
+    @property
+    def transcription_url(self) -> str | None:
+        """Return the full URL for the transcriptions endpoint, or None if local."""
+        if not self.api_url:
+            return None
+        url = self.api_url.rstrip("/")
+        if not url.endswith("/v1/audio/transcriptions"):
+            url += "/v1/audio/transcriptions"
+        return url
+
 
 @dataclass(frozen=True)
 class DiarizeConfig:
@@ -56,8 +66,8 @@ class AppConfig:
     whisper: WhisperConfig = field(default_factory=WhisperConfig)
     lm_studio: LMStudioConfig = field(default_factory=LMStudioConfig)
     diarize: DiarizeConfig = field(default_factory=DiarizeConfig)
-    audio_input_dir: Path = Path("./audio")
-    output_dir: Path = Path("./output")
+    audio_input_dir: Path = Path("./data/audio")
+    output_dir: Path = Path("./data/output")
     log_level: str = "INFO"
     stt_server_url: str | None = None
 
@@ -109,8 +119,8 @@ def load_config(env_file: str | None = None) -> AppConfig:
         whisper=whisper,
         lm_studio=lm_studio,
         diarize=diarize,
-        audio_input_dir=Path(os.getenv("AUDIO_INPUT_DIR", "./audio")),
-        output_dir=Path(os.getenv("OUTPUT_DIR", "./output")),
+        audio_input_dir=Path(os.getenv("AUDIO_INPUT_DIR", "./data/audio")),
+        output_dir=Path(os.getenv("OUTPUT_DIR", "./data/output")),
         log_level=log_level,
         stt_server_url=stt_server_url,
     )
