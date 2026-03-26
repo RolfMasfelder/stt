@@ -213,7 +213,7 @@ class TestDiarizeAudio:
 class TestRemoteWhisperSegments:
     """Tests for _get_whisper_segments_remote."""
 
-    @patch("stt.diarize.requests.post")
+    @patch("stt.whisper_common.requests.post")
     def test_successful_remote_segments(
         self, mock_post: MagicMock, tmp_path: Path
     ) -> None:
@@ -239,7 +239,7 @@ class TestRemoteWhisperSegments:
         assert result[0] == (0.0, 3.0, "Hallo")
         assert result[1] == (3.0, 6.0, "Welt")
 
-    @patch("stt.diarize.requests.post")
+    @patch("stt.whisper_common.requests.post")
     def test_remote_http_error(self, mock_post: MagicMock, tmp_path: Path) -> None:
         from stt.diarize import _get_whisper_segments_remote
 

@@ -4,12 +4,11 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-import requests
 import torch
-from faster_whisper import WhisperModel
 from pyannote.audio import Pipeline
 
 from stt.config import DiarizeConfig, WhisperConfig
+from stt.whisper_common import post_whisper_remote, run_whisper_local
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +17,7 @@ class DiarizationError(Exception):
     """Raised when speaker diarization fails."""
 
 
-@dataclass
+@dataclass(frozen=True)
 class DiarizedSegment:
     """A text segment with speaker label and timestamps."""
 
@@ -32,15 +31,7 @@ def _get_whisper_segments_local(
     audio_path: Path, config: WhisperConfig
 ) -> list[tuple[float, float, str]]:
     """Get transcription segments with timestamps using local whisper."""
-    model = WhisperModel(config.model_name, device=config.device)
-    segments, info = model.transcribe(str(audio_path))
-
-    logger.info(
-        "Detected language: %s (probability: %.2f)",
-        info.language,
-        info.language_probability,
-    )
-
+    segments, _info = run_whisper_local(audio_path, config)
     return [(seg.start, seg.end, seg.text.strip()) for seg in segments]
 
 
@@ -48,17 +39,12 @@ def _get_whisper_segments_remote(
     audio_path: Path, config: WhisperConfig
 ) -> list[tuple[float, float, str]]:
     """Get transcription segments with timestamps from remote faster-whisper-server."""
-    url = config.transcription_url
-    if not url:
-        raise DiarizationError("Remote transcription requires api_url to be set")
-
-    with open(audio_path, "rb") as f:
-        files = {"file": (audio_path.name, f, "audio/wav")}
-        data = {
-            "model": config.model_name,
-            "response_format": "verbose_json",
-        }
-        response = requests.post(url, files=files, data=data, timeout=config.timeout)
+    try:
+        response = post_whisper_remote(
+            audio_path, config, response_format="verbose_json"
+        )
+    except ValueError as e:
+        raise DiarizationError(str(e)) from e
 
     if response.status_code != 200:
         raise DiarizationError(
@@ -155,20 +141,28 @@ def diarize_audio(
 
         # Normalize speaker names (SPEAKER_00 → Sprecher 1, etc.)
         speaker_map: dict[str, str] = {}
+        normalized = []
         for seg in result:
             if seg.speaker not in speaker_map:
                 speaker_map[seg.speaker] = f"Sprecher {len(speaker_map) + 1}"
-            seg.speaker = speaker_map[seg.speaker]
+            normalized.append(
+                DiarizedSegment(
+                    speaker=speaker_map[seg.speaker],
+                    start=seg.start,
+                    end=seg.end,
+                    text=seg.text,
+                )
+            )
 
         logger.info(
             "Diarization complete: %d segments, %d speakers",
-            len(result),
+            len(normalized),
             len(speaker_map),
         )
-        return result
+        return normalized
     except DiarizationError:
         raise
-    except Exception as e:
+    except (RuntimeError, OSError) as e:
         raise DiarizationError(f"Failed to diarize {audio_path}: {e}") from e
 
 

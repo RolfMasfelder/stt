@@ -2,8 +2,8 @@ services:
   stt-server:
     build:
       context: .
-      args:
-        - HF_STT_TOKEN=${HF_STT_TOKEN}
+      secrets:
+        - hf_token
     container_name: stt-server
     env_file:
       - .env
@@ -33,8 +33,8 @@ services:
   stt-cli:
     build:
       context: .
-      args:
-        - HF_STT_TOKEN=${HF_STT_TOKEN}
+      secrets:
+        - hf_token
     container_name: stt-cli
     env_file:
       - .env
@@ -55,8 +55,8 @@ services:
   stt-dev:
     build:
       context: .
-      args:
-        - HF_STT_TOKEN=${HF_STT_TOKEN}
+      secrets:
+        - hf_token
     container_name: stt-dev
     env_file:
       - .env
@@ -113,3 +113,7 @@ services:
 networks:
   stt-network:
     driver: bridge
+
+secrets:
+  hf_token:
+    environment: "HF_STT_TOKEN"

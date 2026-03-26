@@ -4,9 +4,9 @@ import logging
 from pathlib import Path
 
 import requests
-from faster_whisper import WhisperModel
 
 from stt.config import WhisperConfig
+from stt.whisper_common import post_whisper_remote, run_whisper_local
 
 logger = logging.getLogger(__name__)
 
@@ -24,41 +24,25 @@ def _transcribe_local(audio_path: Path, config: WhisperConfig) -> str:
         config.device,
     )
 
-    model = WhisperModel(config.model_name, device=config.device)
-    segments, info = model.transcribe(str(audio_path))
-
-    logger.info(
-        "Detected language: %s (probability: %.2f)",
-        info.language,
-        info.language_probability,
-    )
-
+    segments, _info = run_whisper_local(audio_path, config)
     transcript = " ".join(segment.text for segment in segments)
     logger.info("Transcription complete: %d characters", len(transcript))
     return transcript.strip()
 
 
 def _transcribe_remote(audio_path: Path, config: WhisperConfig) -> str:
-    """Send audio to a remote faster-whisper-server for transcription.
-
-    Uses the OpenAI-compatible ``/v1/audio/transcriptions`` endpoint
-    provided by `faster-whisper-server`.
-    """
-    url = config.transcription_url
-    if not url:
-        raise TranscriptionError("Remote transcription requires api_url to be set")
-
+    """Send audio to a remote faster-whisper-server for transcription."""
     logger.info(
         "Starting remote transcription: file=%s, url=%s, model=%s",
         audio_path,
-        url,
+        config.transcription_url,
         config.model_name,
     )
 
-    with open(audio_path, "rb") as f:
-        files = {"file": (audio_path.name, f, "audio/wav")}
-        data = {"model": config.model_name, "response_format": "text"}
-        response = requests.post(url, files=files, data=data, timeout=config.timeout)
+    try:
+        response = post_whisper_remote(audio_path, config, response_format="text")
+    except ValueError as e:
+        raise TranscriptionError(str(e)) from e
 
     if response.status_code != 200:
         raise TranscriptionError(
@@ -104,5 +88,5 @@ def transcribe_audio(
         return _transcribe_local(audio_path, config)
     except TranscriptionError:
         raise
-    except Exception as e:
+    except (RuntimeError, OSError, requests.RequestException) as e:
         raise TranscriptionError(f"Failed to transcribe {audio_path}: {e}") from e

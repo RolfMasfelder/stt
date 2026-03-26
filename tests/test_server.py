@@ -175,3 +175,48 @@ class TestProcessEndpoint:
         )
         assert response.status_code == 500
         assert "boom" in response.json()["detail"]
+
+
+class TestUploadValidation:
+    """Tests for upload validation (file size, content type)."""
+
+    def test_unsupported_audio_format(self, client) -> None:
+        response = client.post(
+            "/v1/transcribe",
+            files={"file": ("test.txt", b"not audio", "text/plain")},
+        )
+        assert response.status_code == 400
+        assert "Unsupported audio format" in response.json()["detail"]
+
+    def test_file_too_large(self, client) -> None:
+        # Actual upload of 500MB+ would be slow; we patch _MAX_UPLOAD_BYTES
+        with patch("stt.server._MAX_UPLOAD_BYTES", 10):
+            response = client.post(
+                "/v1/transcribe",
+                files={"file": ("test.wav", b"x" * 20, "audio/wav")},
+            )
+        assert response.status_code == 413
+        assert "too large" in response.json()["detail"]
+
+
+class TestDiarizeNoToken:
+    """Tests for missing HF token."""
+
+    def test_missing_hf_token_returns_503(self) -> None:
+        with patch("stt.server.load_config") as mock_config:
+            config = MagicMock()
+            config.log_level = "WARNING"
+            config.whisper = WhisperConfig()
+            config.diarize = DiarizeConfig()  # no hf_token
+            config.lm_studio = LMStudioConfig()
+            mock_config.return_value = config
+
+            from stt.server import app
+
+            with TestClient(app) as tc:
+                response = tc.post(
+                    "/v1/diarize",
+                    files={"file": ("test.wav", b"fake", "audio/wav")},
+                )
+        assert response.status_code == 503
+        assert "HF_STT_TOKEN" in response.json()["detail"]

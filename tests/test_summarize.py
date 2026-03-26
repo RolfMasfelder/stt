@@ -331,3 +331,29 @@ class TestDiarizeText:
         mock_post.side_effect = requests.ConnectionError("refused")
         with pytest.raises(SummarizationError):
             diarize_text("Text")
+
+
+class TestEdgeCases:
+    """Tests for edge cases and error scenarios."""
+
+    @patch("stt.summarize.requests.post")
+    def test_json_decode_error(self, mock_post: MagicMock) -> None:
+        """Should wrap JSON parse errors in SummarizationError."""
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.side_effect = ValueError("Invalid JSON")
+        mock_post.return_value = mock_response
+
+        with pytest.raises(SummarizationError, match="Unexpected response format"):
+            summarize_text("Test text")
+
+    @patch("stt.summarize.requests.post")
+    def test_empty_choices_array(self, mock_post: MagicMock) -> None:
+        """Should raise SummarizationError for empty choices."""
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.return_value = {"choices": []}
+        mock_post.return_value = mock_response
+
+        with pytest.raises(SummarizationError, match="Unexpected response format"):
+            summarize_text("Test text")

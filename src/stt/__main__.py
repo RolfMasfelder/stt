@@ -320,8 +320,6 @@ def _run_postprocessing(
 
     return 0
 
-    return 0
-
 
 def main(argv: list[str] | None = None) -> int:
     """Main entry point.

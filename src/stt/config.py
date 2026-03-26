@@ -125,5 +125,13 @@ def load_config(env_file: str | None = None) -> AppConfig:
         stt_server_url=stt_server_url,
     )
 
-    logger.debug("Configuration loaded: %s", config)
+    _log_config(config)
     return config
+
+
+def _log_config(cfg: AppConfig) -> None:
+    """Log configuration with sensitive values masked."""
+    config_str = str(cfg)
+    if cfg.diarize.hf_token:
+        config_str = config_str.replace(cfg.diarize.hf_token, "***")
+    logger.debug("Configuration loaded: %s", config_str)
