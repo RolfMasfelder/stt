@@ -8,7 +8,7 @@ services:
     env_file:
       - .env
     ports:
-      - "8001:8001"
+      - "8090:8090"
     volumes:
       - .:/app
     environment:
@@ -23,11 +23,9 @@ services:
       - LOG_LEVEL=${LOG_LEVEL}
     networks:
       - stt-network
-    depends_on:
-      - lmstudio
     profiles:
       - production
-    command: ["python", "-m", "uvicorn", "stt.server:app", "--host", "0.0.0.0", "--port", "8001"]
+    command: ["python", "-m", "uvicorn", "stt.server:app", "--host", "0.0.0.0", "--port", "8090"]
 
   # CLI service for one-off commands via docker-compose exec/run
   stt-cli:
@@ -95,20 +93,6 @@ services:
       - stt-network
     profiles:
       - whisper-remote
-
-  # LM Studio service (placeholder for future implementation)
-  lmstudio:
-    image: alpine:latest  # Placeholder - replace with actual LM Studio image when available
-    container_name: lmstudio
-    env_file:
-      - .env
-    ports:
-      - "${LM_STUDIO_PORT}:${LM_STUDIO_PORT}"
-    networks:
-      - stt-network
-    profiles:
-      - production
-    command: sh -c "echo 'LM Studio placeholder - implement actual service' && sleep infinity"
 
 networks:
   stt-network:
