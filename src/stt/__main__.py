@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from stt.config import load_config
+from stt.diarize import DiarizationError, diarize_audio, format_diarized_segments
 from stt.logging_setup import setup_logging
 from stt.summarize import (
     SummarizationError,
@@ -62,6 +63,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="Whisper transcription timeout in seconds (overrides .env)",
     )
+    parser.add_argument(
+        "--skip",
+        action="store_true",
+        help="Skip speech-to-text transcription (requires --text-file)",
+    )
+    parser.add_argument(
+        "--text-file",
+        type=Path,
+        default=None,
+        help="Path to an existing text file to use instead of transcription",
+    )
     return parser.parse_args(argv)
 
 
@@ -78,6 +90,8 @@ def main(argv: list[str] | None = None) -> int:
     config = load_config()
     setup_logging(config.log_level)
 
+    diarized_text: str | None = None
+
     # Override timeouts from CLI if provided
     if args.timeout is not None or args.whisper_timeout is not None:
         from dataclasses import replace
@@ -93,30 +107,59 @@ def main(argv: list[str] | None = None) -> int:
                 whisper=replace(config.whisper, timeout=args.whisper_timeout),
             )
 
-    # Determine audio file path
-    if args.audio_file:
-        audio_path = Path(args.audio_file)
-    else:
-        # Look for files in the configured audio input directory
-        audio_dir = config.audio_input_dir
-        wav_files = sorted(audio_dir.glob("*.wav"))
-        if not wav_files:
-            logger.error(
-                "No audio file specified and no .wav files found in %s", audio_dir
-            )
+    # --skip mode: read transcript from an existing text file
+    if args.skip:
+        if not args.text_file:
+            logger.error("--skip requires --text-file to be specified")
             return 1
-        audio_path = wav_files[0]
-        logger.info("No audio file specified, using: %s", audio_path)
+        text_path = Path(args.text_file)
+        if not text_path.exists():
+            logger.error("Text file not found: %s", text_path)
+            return 1
+        transcript = text_path.read_text(encoding="utf-8")
+        logger.info(
+            "Skipping transcription, loaded text from %s (%d characters)",
+            text_path,
+            len(transcript),
+        )
+    else:
+        # Determine audio file path
+        if args.audio_file:
+            audio_path = Path(args.audio_file)
+        else:
+            # Look for files in the configured audio input directory
+            audio_dir = config.audio_input_dir
+            wav_files = sorted(audio_dir.glob("*.wav"))
+            if not wav_files:
+                logger.error(
+                    "No audio file specified and no .wav files found in %s",
+                    audio_dir,
+                )
+                return 1
+            audio_path = wav_files[0]
+            logger.info("No audio file specified, using: %s", audio_path)
 
-    # Transcribe
-    try:
-        transcript = transcribe_audio(audio_path, config.whisper)
-    except FileNotFoundError as e:
-        logger.error("%s", e)
-        return 1
-    except TranscriptionError as e:
-        logger.error("Transcription failed: %s", e)
-        return 1
+        # Transcribe + optionally diarize from audio
+        if args.diarize and config.diarize.hf_token:
+            try:
+                segments = diarize_audio(audio_path, config.whisper, config.diarize)
+                diarized_text = format_diarized_segments(segments)
+                transcript = " ".join(seg.text for seg in segments)
+            except FileNotFoundError as e:
+                logger.error("%s", e)
+                return 1
+            except DiarizationError as e:
+                logger.error("Diarization failed: %s", e)
+                return 1
+        else:
+            try:
+                transcript = transcribe_audio(audio_path, config.whisper)
+            except FileNotFoundError as e:
+                logger.error("%s", e)
+                return 1
+            except TranscriptionError as e:
+                logger.error("Transcription failed: %s", e)
+                return 1
 
     # Output transcript
     if args.output:
@@ -140,7 +183,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.process:
         try:
             structured, summary, diarized = process_transcript(
-                transcript, config.lm_studio, diarize=args.diarize
+                transcript,
+                config.lm_studio,
+                diarize=args.diarize,
+                diarized_text=diarized_text,
             )
 
             if diarized:
@@ -177,7 +223,7 @@ def main(argv: list[str] | None = None) -> int:
     # Standalone diarize (without --process)
     elif args.diarize:
         try:
-            diarized = diarize_text(transcript, config.lm_studio)
+            diarized = diarized_text or diarize_text(transcript, config.lm_studio)
             print("\n--- Sprecherzuordnung ---")
             print(diarized)
 

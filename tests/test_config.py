@@ -3,7 +3,13 @@
 import os
 from unittest.mock import patch
 
-from stt.config import AppConfig, LMStudioConfig, WhisperConfig, load_config
+from stt.config import (
+    AppConfig,
+    DiarizeConfig,
+    LMStudioConfig,
+    WhisperConfig,
+    load_config,
+)
 
 
 class TestWhisperConfig:
@@ -45,6 +51,21 @@ class TestLMStudioConfig:
         assert config.timeout == 600
 
 
+class TestDiarizeConfig:
+    """Tests for DiarizeConfig."""
+
+    def test_defaults(self) -> None:
+        config = DiarizeConfig()
+        assert config.hf_token is None
+        assert config.model_name == "pyannote/speaker-diarization-3.1"
+        assert config.device == "cpu"
+
+    def test_custom_values(self) -> None:
+        config = DiarizeConfig(hf_token="hf_test", device="cuda")
+        assert config.hf_token == "hf_test"
+        assert config.device == "cuda"
+
+
 class TestLoadConfig:
     """Tests for load_config."""
 
@@ -59,6 +80,9 @@ class TestLoadConfig:
             "LM_STUDIO_PORT": "9999",
             "LM_STUDIO_MODEL": "test-model",
             "LM_STUDIO_TIMEOUT": "300",
+            "HF_STT_TOKEN": "hf_test123",
+            "DIARIZE_MODEL": "pyannote/speaker-diarization-3.0",
+            "DIARIZE_DEVICE": "cuda",
             "LOG_LEVEL": "DEBUG",
             "AUDIO_INPUT_DIR": "/tmp/audio",
             "OUTPUT_DIR": "/tmp/output",
@@ -75,6 +99,9 @@ class TestLoadConfig:
         assert config.lm_studio.port == 9999
         assert config.lm_studio.model == "test-model"
         assert config.lm_studio.timeout == 300
+        assert config.diarize.hf_token == "hf_test123"
+        assert config.diarize.model_name == "pyannote/speaker-diarization-3.0"
+        assert config.diarize.device == "cuda"
         assert config.log_level == "DEBUG"
 
     @patch.dict(os.environ, {}, clear=True)
@@ -85,6 +112,8 @@ class TestLoadConfig:
         assert config.whisper.timeout == 600
         assert config.lm_studio.host == "localhost"
         assert config.lm_studio.timeout == 120
+        assert config.diarize.hf_token is None
+        assert config.diarize.model_name == "pyannote/speaker-diarization-3.1"
         assert config.log_level == "INFO"
 
     def test_app_config_defaults(self) -> None:

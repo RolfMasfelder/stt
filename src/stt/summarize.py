@@ -30,14 +30,24 @@ SUMMARY_SYSTEM_PROMPT = (
 
 DIARIZE_SYSTEM_PROMPT = (
     "Du erhältst ein Transkript einer Audio-Aufnahme mit mehreren Sprechern. "
-    "Kennzeichne jeden Sprecherwechsel mit einem Speaker-Label "
-    "(z.B. **Sprecher 1:**, **Sprecher 2:**, etc.). "
-    "Erkenne Sprecherwechsel anhand von Kontextwechseln, Anreden, "
-    "Fragen und Antworten, unterschiedlichem Sprachstil oder Themenwechseln. "
-    "Wenn der gleiche Sprecher mehrere Sätze hintereinander sagt, "
-    "fasse sie unter einem Label zusammen. "
-    "Antworte ausschließlich mit dem zugeordneten Text. "
-    "Keine Erklärungen, keine Analyse."
+    "Deine Aufgabe: Weise jedem Textabschnitt ein konsistentes Speaker-Label zu.\n\n"
+    "VORGEHEN:\n"
+    "1. Schätze zuerst die Anzahl der Sprecher anhand des gesamten Textes.\n"
+    "2. Vergib feste Labels: **Sprecher 1:**, **Sprecher 2:**, etc.\n"
+    "3. Behalte die Zuordnung im gesamten Text konsistent bei — "
+    "derselbe Sprecher behält immer dasselbe Label.\n\n"
+    "ERKENNUNGSMERKMALE für Sprecherwechsel:\n"
+    "- Direkte Anreden oder Begrüßungen (z.B. 'Hallo', 'Jan, ...', 'Moin')\n"
+    "- Frage-Antwort-Muster\n"
+    "- Themenwechsel oder Perspektivwechsel\n"
+    "- Unterschiedlicher Sprachstil, Wortwahl oder Fachkenntnis\n"
+    "- Zustimmung/Widerspruch zu vorherigem Beitrag\n\n"
+    "REGELN:\n"
+    "- Gib den VOLLSTÄNDIGEN Text zurück — kürze oder fasse NICHTS zusammen.\n"
+    "- Setze das Speaker-Label als eigene Zeile vor den jeweiligen Abschnitt.\n"
+    "- Fasse aufeinanderfolgende Sätze desselben Sprechers unter einem Label zusammen.\n"
+    "- Antworte ausschließlich mit dem zugeordneten Text.\n"
+    "- Keine Erklärungen, keine Analyse, keine Einleitung."
 )
 
 
@@ -165,6 +175,7 @@ def process_transcript(
     text: str,
     config: LMStudioConfig | None = None,
     diarize: bool = False,
+    diarized_text: str | None = None,
 ) -> tuple[str, str, str | None]:
     """Full pipeline: optionally diarize, structure, then summarize.
 
@@ -177,16 +188,18 @@ def process_transcript(
         text: The raw transcript text.
         config: LM Studio configuration. Uses defaults if None.
         diarize: If True, run speaker diarization before structuring.
+        diarized_text: Pre-computed diarized text (e.g. from audio-based
+            diarization). When set, skips LLM-based diarization.
 
     Returns:
         A tuple of (structured_text, summary, diarized_text).
-        diarized_text is None when diarize=False.
+        diarized_text is None when diarize=False and no pre-computed text.
 
     Raises:
         ValueError: If the input text is empty.
         SummarizationError: If any API request fails.
     """
-    diarized: str | None = None
+    diarized = diarized_text
     input_text = text
 
     if diarize:

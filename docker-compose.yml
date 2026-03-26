@@ -1,6 +1,9 @@
 services:
   stt:
-    build: .
+    build:
+      context: .
+      args:
+        - HF_STT_TOKEN=${HF_STT_TOKEN}
     container_name: stt-app
     env_file:
       - .env
@@ -16,6 +19,7 @@ services:
       - WHISPER_MODEL=${WHISPER_MODEL}
       - WHISPER_DEVICE=${WHISPER_DEVICE}
       - WHISPER_API_URL=${WHISPER_API_URL}
+      - HF_STT_TOKEN=${HF_STT_TOKEN}
       - LOG_LEVEL=${LOG_LEVEL}
     networks:
       - stt-network
@@ -26,7 +30,10 @@ services:
 
   # Development service with more development-friendly settings
   stt-dev:
-    build: .
+    build:
+      context: .
+      args:
+        - HF_STT_TOKEN=${HF_STT_TOKEN}
     container_name: stt-dev
     env_file:
       - .env
@@ -42,6 +49,7 @@ services:
       - WHISPER_MODEL=${WHISPER_MODEL}
       - WHISPER_DEVICE=${WHISPER_DEVICE}
       - WHISPER_API_URL=${WHISPER_API_URL}
+      - HF_STT_TOKEN=${HF_STT_TOKEN}
       - LOG_LEVEL=${LOG_LEVEL}
       - DEVELOPMENT_MODE=${DEVELOPMENT_MODE}
       - DEBUG=${DEBUG}

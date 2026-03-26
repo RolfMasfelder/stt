@@ -2,6 +2,7 @@
 
 import logging
 import sys
+import warnings
 
 
 def setup_logging(level: str = "INFO") -> None:
@@ -17,3 +18,6 @@ def setup_logging(level: str = "INFO") -> None:
         datefmt="%Y-%m-%d %H:%M:%S",
         handlers=[logging.StreamHandler(sys.stderr)],
     )
+
+    # Suppress noisy torchcodec warning from pyannote when no GPU is available
+    warnings.filterwarnings("ignore", message="torchcodec is not installed correctly")

@@ -26,6 +26,15 @@ class WhisperConfig:
 
 
 @dataclass(frozen=True)
+class DiarizeConfig:
+    """Configuration for pyannote speaker diarization."""
+
+    hf_token: str | None = None
+    model_name: str = "pyannote/speaker-diarization-3.1"
+    device: str = "cpu"
+
+
+@dataclass(frozen=True)
 class LMStudioConfig:
     """Configuration for the LM Studio API connection."""
 
@@ -46,6 +55,7 @@ class AppConfig:
 
     whisper: WhisperConfig = field(default_factory=WhisperConfig)
     lm_studio: LMStudioConfig = field(default_factory=LMStudioConfig)
+    diarize: DiarizeConfig = field(default_factory=DiarizeConfig)
     audio_input_dir: Path = Path("./audio")
     output_dir: Path = Path("./output")
     log_level: str = "INFO"
@@ -84,11 +94,18 @@ def load_config(env_file: str | None = None) -> AppConfig:
         timeout=int(lm_studio_timeout),
     )
 
+    diarize = DiarizeConfig(
+        hf_token=os.getenv("HF_STT_TOKEN") or None,
+        model_name=os.getenv("DIARIZE_MODEL", "pyannote/speaker-diarization-3.1"),
+        device=os.getenv("DIARIZE_DEVICE", "cpu"),
+    )
+
     log_level = os.getenv("LOG_LEVEL", "INFO")
 
     config = AppConfig(
         whisper=whisper,
         lm_studio=lm_studio,
+        diarize=diarize,
         audio_input_dir=Path(os.getenv("AUDIO_INPUT_DIR", "./audio")),
         output_dir=Path(os.getenv("OUTPUT_DIR", "./output")),
         log_level=log_level,
