@@ -86,6 +86,7 @@ class TestLoadConfig:
             "LOG_LEVEL": "DEBUG",
             "AUDIO_INPUT_DIR": "/tmp/audio",
             "OUTPUT_DIR": "/tmp/output",
+            "STT_SERVER_URL": "http://192.168.178.80:8001",
         },
         clear=False,
     )
@@ -103,6 +104,7 @@ class TestLoadConfig:
         assert config.diarize.model_name == "pyannote/speaker-diarization-3.0"
         assert config.diarize.device == "cuda"
         assert config.log_level == "DEBUG"
+        assert config.stt_server_url == "http://192.168.178.80:8001"
 
     @patch.dict(os.environ, {}, clear=True)
     def test_load_defaults(self) -> None:
@@ -115,7 +117,9 @@ class TestLoadConfig:
         assert config.diarize.hf_token is None
         assert config.diarize.model_name == "pyannote/speaker-diarization-3.1"
         assert config.log_level == "INFO"
+        assert config.stt_server_url is None
 
     def test_app_config_defaults(self) -> None:
         config = AppConfig()
         assert config.log_level == "INFO"
+        assert config.stt_server_url is None

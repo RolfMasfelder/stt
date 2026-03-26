@@ -1,0 +1,305 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "STT Server API",
+    "description": "Speech-to-Text Server mit Transkription, Sprechererkennung und Zusammenfassung",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://192.168.178.80:8001",
+      "description": "Remote STT Server"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "Server ist bereit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transcribe": {
+      "post": {
+        "summary": "Audio transkribieren",
+        "description": "Transkribiert eine Audio-Datei zu Text mit faster-whisper.",
+        "operationId": "transcribe",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Audio-Datei (WAV, MP3, etc.)"
+                  },
+                  "model": {
+                    "type": "string",
+                    "default": "small",
+                    "description": "Whisper-Modellname"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transkription erfolgreich",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscribeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Ungültige Eingabe"
+          },
+          "500": {
+            "description": "Transkription fehlgeschlagen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/diarize": {
+      "post": {
+        "summary": "Transkription mit Sprechererkennung",
+        "description": "Transkribiert Audio und identifiziert Sprecher mittels pyannote.audio.",
+        "operationId": "diarize",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Audio-Datei (WAV, MP3, etc.)"
+                  },
+                  "model": {
+                    "type": "string",
+                    "default": "small",
+                    "description": "Whisper-Modellname"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Diarization erfolgreich",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiarizeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Ungültige Eingabe"
+          },
+          "500": {
+            "description": "Diarization fehlgeschlagen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/process": {
+      "post": {
+        "summary": "Volle Pipeline",
+        "description": "Transkription + Sprechererkennung + Strukturierung + Zusammenfassung.",
+        "operationId": "process",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Audio-Datei (WAV, MP3, etc.)"
+                  },
+                  "model": {
+                    "type": "string",
+                    "default": "small",
+                    "description": "Whisper-Modellname"
+                  },
+                  "diarize": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Sprechererkennung aktivieren"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verarbeitung erfolgreich",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Ungültige Eingabe"
+          },
+          "500": {
+            "description": "Verarbeitung fehlgeschlagen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          }
+        }
+      },
+      "TranscribeResponse": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Transkribierter Text"
+          }
+        }
+      },
+      "DiarizedSegment": {
+        "type": "object",
+        "required": ["speaker", "start", "end", "text"],
+        "properties": {
+          "speaker": {
+            "type": "string",
+            "example": "Sprecher 1"
+          },
+          "start": {
+            "type": "number",
+            "format": "float",
+            "description": "Startzeit in Sekunden"
+          },
+          "end": {
+            "type": "number",
+            "format": "float",
+            "description": "Endzeit in Sekunden"
+          },
+          "text": {
+            "type": "string",
+            "description": "Gesprochener Text in diesem Segment"
+          }
+        }
+      },
+      "DiarizeResponse": {
+        "type": "object",
+        "required": ["text", "diarized_text", "segments"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Volltext ohne Speaker-Labels"
+          },
+          "diarized_text": {
+            "type": "string",
+            "description": "Formatierter Text mit Speaker-Labels"
+          },
+          "segments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiarizedSegment"
+            }
+          }
+        }
+      },
+      "ProcessResponse": {
+        "type": "object",
+        "required": ["text", "structured_text", "summary"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Volltext"
+          },
+          "diarized_text": {
+            "type": "string",
+            "nullable": true,
+            "description": "Text mit Speaker-Labels (null wenn diarize=false)"
+          },
+          "structured_text": {
+            "type": "string",
+            "description": "In Abschnitte gegliederter Text"
+          },
+          "summary": {
+            "type": "string",
+            "description": "Zusammenfassung"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["detail"],
+        "properties": {
+          "detail": {
+            "type": "string",
+            "description": "Fehlerbeschreibung"
+          }
+        }
+      }
+    }
+  }
+}

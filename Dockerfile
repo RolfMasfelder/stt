@@ -31,5 +31,5 @@ RUN useradd --create-home --shell /bin/bash stt && \
     chown -R stt:stt /app /home/stt
 USER stt
 
-# Default command
-CMD ["python", "-m", "stt"]
+# Default command: run FastAPI server
+CMD ["python", "-m", "uvicorn", "stt.server:app", "--host", "0.0.0.0", "--port", "8001"]

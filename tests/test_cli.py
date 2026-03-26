@@ -18,6 +18,7 @@ class TestCLI:
         audio_file.write_bytes(b"fake")
 
         config = MagicMock()
+        config.stt_server_url = None
         config.log_level = "WARNING"
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
@@ -34,6 +35,7 @@ class TestCLI:
     ) -> None:
         """Should return 1 when no audio files are found."""
         config = MagicMock()
+        config.stt_server_url = None
         config.log_level = "WARNING"
         config.audio_input_dir = tmp_path
 
@@ -53,6 +55,7 @@ class TestCLI:
         output_file = tmp_path / "transcript.txt"
 
         config = MagicMock()
+        config.stt_server_url = None
         config.log_level = "WARNING"
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
@@ -73,6 +76,7 @@ class TestCLI:
         audio_file.write_bytes(b"fake")
 
         config = MagicMock()
+        config.stt_server_url = None
         config.log_level = "WARNING"
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
@@ -99,6 +103,7 @@ class TestCLI:
         audio_file.write_bytes(b"fake")
 
         config = MagicMock()
+        config.stt_server_url = None
         config.log_level = "WARNING"
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
@@ -130,6 +135,7 @@ class TestCLI:
         output_file = tmp_path / "result.txt"
 
         config = MagicMock()
+        config.stt_server_url = None
         config.log_level = "WARNING"
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
@@ -181,6 +187,7 @@ class TestCLI:
     ) -> None:
         """Should return 1 when --skip is used without --text-file."""
         config = MagicMock()
+        config.stt_server_url = None
         config.log_level = "WARNING"
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
@@ -194,6 +201,7 @@ class TestCLI:
     ) -> None:
         """Should return 1 when --text-file points to a non-existent file."""
         config = MagicMock()
+        config.stt_server_url = None
         config.log_level = "WARNING"
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
@@ -211,6 +219,7 @@ class TestCLI:
         output_file = tmp_path / "output.txt"
 
         config = MagicMock()
+        config.stt_server_url = None
         config.log_level = "WARNING"
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
@@ -232,6 +241,7 @@ class TestCLI:
         text_file.write_text("Meeting transcript", encoding="utf-8")
 
         config = MagicMock()
+        config.stt_server_url = None
         config.log_level = "WARNING"
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
@@ -259,6 +269,7 @@ class TestCLI:
         text_file.write_text("Speaker text here", encoding="utf-8")
 
         config = MagicMock()
+        config.stt_server_url = None
         config.log_level = "WARNING"
         config.audio_input_dir = tmp_path
         mock_config.return_value = config

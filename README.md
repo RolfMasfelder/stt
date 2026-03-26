@@ -6,10 +6,34 @@ Dieses Projekt zeigt eine minimalistische Pipeline:
 3. Sprechererkennung mit [pyannote.audio](https://github.com/pyannote/pyannote-audio) (direkt auf Audio).
 4. Zusammenfassung mit einem lokalen LLM über [LM Studio](https://lmstudio.ai/).
 
+## Architektur
+
+```
+Lokaler Rechner                     Remote-Rechner 192.168.178.80
+──────────────                      ─────────────────────────────
+python -m stt meeting.wav           Docker: stt-server (:8001)
+  └── client.py                       └── server.py (FastAPI)
+      POST /v1/process ──────────►        ├── faster-whisper (Transkription)
+      (Audio-Datei)                       ├── pyannote.audio (Diarization)
+                                          └──► LM Studio :1234 (Zusammenfassung)
+      ◄── JSON Response ─────────
+  └── Anzeige / Speicherung
+```
+
+Das Projekt besteht aus zwei Varianten in einer `docker-compose.yml`:
+
+- **`stt-server`** (Remote): FastAPI-Server auf Port 8001. Empfängt Audio-Dateien
+  via REST-API, führt Transkription, Sprechererkennung und Zusammenfassung durch.
+  Kommuniziert mit LM Studio auf dem gleichen Host.
+- **`stt-cli`** (Lokal): CLI-Tool. Sendet Audio-Dateien an den Remote-Server und
+  zeigt/speichert die Ergebnisse. Keine lokale Whisper- oder pyannote-Installation nötig.
+
+Die API-Schnittstelle ist in [`openapi.json`](openapi.json) definiert.
+
 ## Voraussetzungen
 - Linux (getestet mit openSUSE)
 - Python 3.12+ (in venv empfohlen)
-- LM Studio installiert und laufend (API-URL via `.env` konfigurierbar)
+- LM Studio installiert und laufend auf dem Remote-Rechner
 - HuggingFace-Token für pyannote-Modelle (`HF_STT_TOKEN` in `.env`)
 
 ## Installation
@@ -20,23 +44,28 @@ pip install -r requirements.txt
 ```
 
 ## Nutzung
+
+### CLI mit Remote-Server (empfohlen)
 ```bash
-# Audio-Datei transkribieren
+# Audio-Datei transkribieren (via Remote-Server)
 python -m stt meeting.wav
 
-# Mit audio-basierter Sprechererkennung (benötigt HF_STT_TOKEN in .env)
+# Mit audio-basierter Sprechererkennung
 python -m stt meeting.wav --diarize
 
 # Volle Pipeline: Sprechererkennung + Strukturierung + Zusammenfassung
 python -m stt meeting.wav --diarize --process -o output/result.txt
 
-# Mit Zusammenfassung via LM Studio (ohne Sprechererkennung)
+# Nur Zusammenfassung (ohne Sprechererkennung)
 python -m stt meeting.wav --summarize
+```
 
+### Lokale Verarbeitung (ohne Server)
+```bash
 # Ausgabe in Datei
 python -m stt meeting.wav -o output/transcript.txt
 
-# Überspringen von SpeechToText (nur LLM-Verarbeitung auf bestehendem Text)
+# LLM-Verarbeitung auf bestehendem Text (kein Audio nötig)
 python -m stt --skip --text-file output/transcript.txt --diarize -o output/result.txt
 python -m stt --skip --text-file output/transcript.txt --process --diarize -o output/result.txt
 python -m stt --skip --text-file output/transcript.txt --summarize -o output/result.txt
@@ -45,7 +74,11 @@ python -m stt --skip --text-file output/transcript.txt --summarize -o output/res
 Hinweis: `--diarize` mit `--skip` verwendet LLM-basierte Sprechererkennung (Heuristik),
 da ohne Audiodatei keine audio-basierte Diarization möglich ist.
 
-# Via Docker
-docker compose --profile dev up stt-dev
-docker compose exec stt-dev python -m stt audio/meeting.wav
+### Docker
+```bash
+# Remote: Server starten
+docker compose --profile server up -d stt-server
+
+# Lokal via CLI
+docker compose --profile cli run --rm stt-cli python -m stt meeting.wav --diarize --process
 ```

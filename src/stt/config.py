@@ -59,6 +59,7 @@ class AppConfig:
     audio_input_dir: Path = Path("./audio")
     output_dir: Path = Path("./output")
     log_level: str = "INFO"
+    stt_server_url: str | None = None
 
 
 def load_config(env_file: str | None = None) -> AppConfig:
@@ -102,6 +103,8 @@ def load_config(env_file: str | None = None) -> AppConfig:
 
     log_level = os.getenv("LOG_LEVEL", "INFO")
 
+    stt_server_url = os.getenv("STT_SERVER_URL") or None
+
     config = AppConfig(
         whisper=whisper,
         lm_studio=lm_studio,
@@ -109,6 +112,7 @@ def load_config(env_file: str | None = None) -> AppConfig:
         audio_input_dir=Path(os.getenv("AUDIO_INPUT_DIR", "./audio")),
         output_dir=Path(os.getenv("OUTPUT_DIR", "./output")),
         log_level=log_level,
+        stt_server_url=stt_server_url,
     )
 
     logger.debug("Configuration loaded: %s", config)

@@ -1,16 +1,16 @@
 services:
-  stt:
+  stt-server:
     build:
       context: .
       args:
         - HF_STT_TOKEN=${HF_STT_TOKEN}
-    container_name: stt-app
+    container_name: stt-server
     env_file:
       - .env
+    ports:
+      - "8001:8001"
     volumes:
       - .:/app
-      - ${AUDIO_INPUT_DIR}:/app/audio  # Mount for audio files
-      - ${OUTPUT_DIR}:/app/output  # Mount for output files
     environment:
       - PYTHONPATH=/app
       - LM_STUDIO_HOST=${LM_STUDIO_HOST}
@@ -27,8 +27,31 @@ services:
       - lmstudio
     profiles:
       - production
+    command: ["python", "-m", "uvicorn", "stt.server:app", "--host", "0.0.0.0", "--port", "8001"]
 
-  # Development service with more development-friendly settings
+  # CLI service for one-off commands via docker-compose exec/run
+  stt-cli:
+    build:
+      context: .
+      args:
+        - HF_STT_TOKEN=${HF_STT_TOKEN}
+    container_name: stt-cli
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - ${AUDIO_INPUT_DIR}:/app/audio
+      - ${OUTPUT_DIR}:/app/output
+    environment:
+      - PYTHONPATH=/app
+      - STT_SERVER_URL=${STT_SERVER_URL}
+      - LOG_LEVEL=${LOG_LEVEL}
+    network_mode: host
+    profiles:
+      - cli
+    command: ["python", "-m", "stt"]
+
+  # Development service with host networking
   stt-dev:
     build:
       context: .
@@ -53,10 +76,10 @@ services:
       - LOG_LEVEL=${LOG_LEVEL}
       - DEVELOPMENT_MODE=${DEVELOPMENT_MODE}
       - DEBUG=${DEBUG}
-    network_mode: host  # Use host networking for easier development
+    network_mode: host
     profiles:
       - dev
-    command: bash  # Override to keep container running for development
+    command: bash
 
   # Remote Whisper transcription server (faster-whisper-server)
   # Run on a more powerful machine for faster transcription

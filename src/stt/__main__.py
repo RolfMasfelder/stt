@@ -5,6 +5,7 @@ import logging
 import sys
 from pathlib import Path
 
+from stt.client import ClientError, STTClient
 from stt.config import load_config
 from stt.diarize import DiarizationError, diarize_audio, format_diarized_segments
 from stt.logging_setup import setup_logging
@@ -77,6 +78,98 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def _run_remote(args: argparse.Namespace, config) -> int:
+    """Run processing via the remote STT server."""
+    client = STTClient(config.stt_server_url, timeout=config.whisper.timeout)
+
+    if not args.audio_file:
+        audio_dir = config.audio_input_dir
+        wav_files = sorted(audio_dir.glob("*.wav"))
+        if not wav_files:
+            logger.error(
+                "No audio file specified and no .wav files found in %s", audio_dir
+            )
+            return 1
+        audio_path = wav_files[0]
+        logger.info("No audio file specified, using: %s", audio_path)
+    else:
+        audio_path = Path(args.audio_file)
+
+    try:
+        if args.process:
+            result = client.process(audio_path, diarize=args.diarize)
+            transcript = result.text
+            if args.output:
+                args.output.parent.mkdir(parents=True, exist_ok=True)
+                args.output.write_text(transcript, encoding="utf-8")
+                logger.info("Transcript written to %s", args.output)
+            else:
+                print(transcript)
+
+            if result.diarized_text:
+                print("\n--- Sprecherzuordnung ---")
+                print(result.diarized_text)
+            print("\n--- Strukturierung ---")
+            print(result.structured_text)
+            print("\n--- Zusammenfassung ---")
+            print(result.summary)
+
+            if args.output:
+                stem = args.output.stem
+                out_dir = args.output.parent
+                if result.diarized_text:
+                    (out_dir / f"{stem}_sprecher.md").write_text(
+                        result.diarized_text, encoding="utf-8"
+                    )
+                (out_dir / f"{stem}_struktur.md").write_text(
+                    result.structured_text, encoding="utf-8"
+                )
+                (out_dir / f"{stem}_zusammenfassung.md").write_text(
+                    result.summary, encoding="utf-8"
+                )
+
+        elif args.diarize:
+            result = client.diarize(audio_path)
+            transcript = result.text
+            if args.output:
+                args.output.parent.mkdir(parents=True, exist_ok=True)
+                args.output.write_text(transcript, encoding="utf-8")
+                logger.info("Transcript written to %s", args.output)
+            else:
+                print(transcript)
+            print("\n--- Sprecherzuordnung ---")
+            print(result.diarized_text)
+            if args.output:
+                stem = args.output.stem
+                out_dir = args.output.parent
+                (out_dir / f"{stem}_sprecher.md").write_text(
+                    result.diarized_text, encoding="utf-8"
+                )
+
+        else:
+            transcript = client.transcribe(audio_path)
+            if args.output:
+                args.output.parent.mkdir(parents=True, exist_ok=True)
+                args.output.write_text(transcript, encoding="utf-8")
+                logger.info("Transcript written to %s", args.output)
+            else:
+                print(transcript)
+
+            if args.summarize:
+                result = client.process(audio_path, diarize=False)
+                print("\n--- Zusammenfassung ---")
+                print(result.summary)
+
+    except FileNotFoundError as e:
+        logger.error("%s", e)
+        return 1
+    except ClientError as e:
+        logger.error("Server request failed: %s", e)
+        return 1
+
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """Main entry point.
 
@@ -122,6 +215,11 @@ def main(argv: list[str] | None = None) -> int:
             text_path,
             len(transcript),
         )
+
+    # Remote server mode: delegate to STT server via HTTP
+    elif config.stt_server_url:
+        return _run_remote(args, config)
+
     else:
         # Determine audio file path
         if args.audio_file:
