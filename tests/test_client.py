@@ -6,6 +6,9 @@ import pytest
 
 from stt.client import ClientError, DiarizedResult, ProcessResult, STTClient
 
+# All tests that use _post_file need convert_to_whisper_format to be a no-op
+_PATCH_CONVERT = patch("stt.client.convert_to_whisper_format", side_effect=lambda p: p)
+
 
 class TestSTTClientHealth:
     """Tests for the health check method."""
@@ -34,8 +37,9 @@ class TestSTTClientHealth:
 class TestSTTClientTranscribe:
     """Tests for the transcribe method."""
 
+    @_PATCH_CONVERT
     @patch("stt.client.requests.post")
-    def test_transcribe_success(self, mock_post, tmp_path) -> None:
+    def test_transcribe_success(self, mock_post, _mock_convert, tmp_path) -> None:
         audio = tmp_path / "test.wav"
         audio.write_bytes(b"fake audio")
 
@@ -53,8 +57,9 @@ class TestSTTClientTranscribe:
         with pytest.raises(FileNotFoundError):
             client.transcribe(tmp_path / "missing.wav")
 
+    @_PATCH_CONVERT
     @patch("stt.client.requests.post")
-    def test_transcribe_server_error(self, mock_post, tmp_path) -> None:
+    def test_transcribe_server_error(self, mock_post, _mock_convert, tmp_path) -> None:
         audio = tmp_path / "test.wav"
         audio.write_bytes(b"fake")
 
@@ -65,8 +70,11 @@ class TestSTTClientTranscribe:
         with pytest.raises(ClientError, match="HTTP 500"):
             client.transcribe(audio)
 
+    @_PATCH_CONVERT
     @patch("stt.client.requests.post")
-    def test_transcribe_connection_error(self, mock_post, tmp_path) -> None:
+    def test_transcribe_connection_error(
+        self, mock_post, _mock_convert, tmp_path
+    ) -> None:
         import requests
 
         audio = tmp_path / "test.wav"
@@ -81,8 +89,9 @@ class TestSTTClientTranscribe:
 class TestSTTClientDiarize:
     """Tests for the diarize method."""
 
+    @_PATCH_CONVERT
     @patch("stt.client.requests.post")
-    def test_diarize_success(self, mock_post, tmp_path) -> None:
+    def test_diarize_success(self, mock_post, _mock_convert, tmp_path) -> None:
         audio = tmp_path / "test.wav"
         audio.write_bytes(b"fake")
 
@@ -112,8 +121,9 @@ class TestSTTClientDiarize:
 class TestSTTClientProcess:
     """Tests for the process method."""
 
+    @_PATCH_CONVERT
     @patch("stt.client.requests.post")
-    def test_process_success(self, mock_post, tmp_path) -> None:
+    def test_process_success(self, mock_post, _mock_convert, tmp_path) -> None:
         audio = tmp_path / "test.wav"
         audio.write_bytes(b"fake")
 
@@ -134,8 +144,9 @@ class TestSTTClientProcess:
         assert result.summary == "Zusammenfassung"
         assert result.diarized_text is not None
 
+    @_PATCH_CONVERT
     @patch("stt.client.requests.post")
-    def test_process_without_diarize(self, mock_post, tmp_path) -> None:
+    def test_process_without_diarize(self, mock_post, _mock_convert, tmp_path) -> None:
         audio = tmp_path / "test.wav"
         audio.write_bytes(b"fake")
 
@@ -157,8 +168,9 @@ class TestSTTClientProcess:
         with pytest.raises(FileNotFoundError):
             client.process(tmp_path / "missing.wav")
 
+    @_PATCH_CONVERT
     @patch("stt.client.requests.post")
-    def test_process_server_error(self, mock_post, tmp_path) -> None:
+    def test_process_server_error(self, mock_post, _mock_convert, tmp_path) -> None:
         audio = tmp_path / "test.wav"
         audio.write_bytes(b"fake")
 

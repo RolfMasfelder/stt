@@ -6,6 +6,8 @@ from pathlib import Path
 
 import requests
 
+from stt.whisper_common import convert_to_whisper_format
+
 logger = logging.getLogger(__name__)
 
 
@@ -42,6 +44,9 @@ class STTClient:
     def _post_file(self, endpoint: str, audio_file: Path, data: dict) -> dict:
         """Send an audio file to a server endpoint and return the JSON response.
 
+        Converts audio to whisper-native format (16kHz mono) before upload
+        to reduce transfer size and processing time.
+
         Raises:
             FileNotFoundError: If the audio file does not exist.
             ClientError: If the server request fails.
@@ -49,15 +54,24 @@ class STTClient:
         if not audio_file.exists():
             raise FileNotFoundError(f"Audio file not found: {audio_file}")
 
+        converted = convert_to_whisper_format(audio_file)
+        cleanup = converted != audio_file
+
         url = f"{self.base_url}{endpoint}"
         logger.info("Sending request to %s", url)
 
-        with open(audio_file, "rb") as f:
-            files = {"file": (audio_file.name, f)}
-            try:
-                resp = requests.post(url, files=files, data=data, timeout=self.timeout)
-            except requests.RequestException as e:
-                raise ClientError(f"Request to {url} failed: {e}") from e
+        try:
+            with open(converted, "rb") as f:
+                files = {"file": (audio_file.name, f)}
+                try:
+                    resp = requests.post(
+                        url, files=files, data=data, timeout=self.timeout
+                    )
+                except requests.RequestException as e:
+                    raise ClientError(f"Request to {url} failed: {e}") from e
+        finally:
+            if cleanup:
+                converted.unlink(missing_ok=True)
 
         if resp.status_code != 200:
             raise ClientError(f"Server returned HTTP {resp.status_code}: {resp.text}")
