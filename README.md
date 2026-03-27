@@ -12,7 +12,7 @@ Dieses Projekt zeigt eine minimalistische Pipeline:
 ```txt
 Lokaler Rechner                     Remote-Rechner 192.168.178.80
 ──────────────                      ─────────────────────────────
-python -m stt meeting.wav           Docker: stt-server (:8001)
+python -m stt meeting.wav           Docker: stt-server (:8090)
   └── client.py                       └── server.py (FastAPI)
       POST /v1/process ──────────►        ├── faster-whisper (Transkription)
       (Audio-Datei)                       ├── pyannote.audio (Diarization)
@@ -23,7 +23,7 @@ python -m stt meeting.wav           Docker: stt-server (:8001)
 
 Das Projekt besteht aus zwei Varianten in einer `docker-compose.yml`:
 
-- **`stt-server`** (Remote): FastAPI-Server auf Port 8001. Empfängt Audio-Dateien
+- **`stt-server`** (Remote): FastAPI-Server auf Port 8090. Empfängt Audio-Dateien
   via REST-API, führt Transkription, Sprechererkennung und Zusammenfassung durch.
   Kommuniziert mit LM Studio auf dem gleichen Host.
 - **`stt-cli`** (Lokal): CLI-Tool. Sendet Audio-Dateien an den Remote-Server und
@@ -83,7 +83,7 @@ da ohne Audiodatei keine audio-basierte Diarization möglich ist.
 
 ```bash
 # Remote: Server starten
-docker compose --profile server up -d stt-server
+docker compose --profile production up -d stt-server
 
 # Lokal via CLI
 docker compose --profile cli run --rm stt-cli python -m stt meeting.wav --diarize --process
