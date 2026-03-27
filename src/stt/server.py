@@ -19,7 +19,7 @@ from stt.transcribe import TranscriptionError, transcribe_audio
 
 logger = logging.getLogger(__name__)
 
-_MAX_UPLOAD_BYTES = 500 * 1024 * 1024  # 500 MB
+_MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024  # 2 GB
 _ALLOWED_AUDIO_EXTENSIONS = {
     ".wav",
     ".mp3",
