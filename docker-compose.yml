@@ -85,7 +85,7 @@ services:
     image: fedirz/faster-whisper-server:latest-cpu
     container_name: whisper-server
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
       - WHISPER__MODEL=${WHISPER_MODEL:-small}
       - WHISPER__DEVICE=${WHISPER_DEVICE:-cpu}

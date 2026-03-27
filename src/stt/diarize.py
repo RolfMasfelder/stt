@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import torch
+import torchaudio
 from pyannote.audio import Pipeline
 from pyannote.core import Annotation
 
@@ -74,7 +75,10 @@ def _run_diarization(audio_path: Path, config: DiarizeConfig) -> Annotation:
     if config.device != "cpu":
         pipeline.to(torch.device(config.device))
 
-    result = pipeline(str(audio_path))
+    # Preload audio and pass in-memory waveform so pyannote does not rely on
+    # torchcodec's file-based AudioDecoder path.
+    waveform, sample_rate = torchaudio.load(str(audio_path))
+    result = pipeline({"waveform": waveform, "sample_rate": sample_rate})
 
     # pyannote v4 returns DiarizeOutput, extract the Annotation
     if hasattr(result, "speaker_diarization"):

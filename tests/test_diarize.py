@@ -267,10 +267,16 @@ class TestRemoteWhisperSegments:
 class TestRunDiarization:
     """Tests for _run_diarization unwrapping pyannote v4 DiarizeOutput."""
 
+    @patch("stt.diarize.torchaudio.load")
     @patch("stt.diarize.Pipeline.from_pretrained")
-    def test_unwraps_diarize_output(self, mock_from_pretrained: MagicMock) -> None:
+    def test_unwraps_diarize_output(
+        self, mock_from_pretrained: MagicMock, mock_torchaudio_load: MagicMock
+    ) -> None:
         """When pyannote v4 returns DiarizeOutput, extract speaker_diarization."""
         from stt.diarize import _run_diarization
+
+        waveform = MagicMock(name="waveform")
+        mock_torchaudio_load.return_value = (waveform, 16000)
 
         annotation = MagicMock(name="Annotation")
         diarize_output = MagicMock(name="DiarizeOutput")
@@ -283,12 +289,21 @@ class TestRunDiarization:
         config = DiarizeConfig(hf_token="fake-token")
         result = _run_diarization(Path("/tmp/test.wav"), config)
 
+        mock_pipeline.assert_called_once_with(
+            {"waveform": waveform, "sample_rate": 16000}
+        )
         assert result is annotation
 
+    @patch("stt.diarize.torchaudio.load")
     @patch("stt.diarize.Pipeline.from_pretrained")
-    def test_returns_annotation_directly(self, mock_from_pretrained: MagicMock) -> None:
+    def test_returns_annotation_directly(
+        self, mock_from_pretrained: MagicMock, mock_torchaudio_load: MagicMock
+    ) -> None:
         """When pyannote v3 returns Annotation directly, pass it through."""
         from stt.diarize import _run_diarization
+
+        waveform = MagicMock(name="waveform")
+        mock_torchaudio_load.return_value = (waveform, 16000)
 
         annotation = MagicMock(name="Annotation", spec=[])
         mock_pipeline = MagicMock()
@@ -298,4 +313,7 @@ class TestRunDiarization:
         config = DiarizeConfig(hf_token="fake-token")
         result = _run_diarization(Path("/tmp/test.wav"), config)
 
+        mock_pipeline.assert_called_once_with(
+            {"waveform": waveform, "sample_rate": 16000}
+        )
         assert result is annotation
