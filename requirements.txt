@@ -1,3 +1,6 @@
+# -- PyTorch CPU-only (must be installed before pyannote) --
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 fastapi==0.115.12
 faster-whisper==1.2.1
 numpy==2.4.2         # wird von sounddevice gebraucht
@@ -6,4 +9,7 @@ python-dotenv==1.2.1 # for loading .env files
 python-multipart==0.0.20 # for file uploads in FastAPI
 requests==2.32.5
 sounddevice==0.5.5   # falls du selbst Audio aufzeichnen willst
+torch==2.11.0+cpu
+torchaudio==2.11.0+cpu
+torchcodec==0.11.0
 uvicorn==0.34.3      # ASGI server for FastAPI

@@ -262,3 +262,40 @@ class TestRemoteWhisperSegments:
         config = WhisperConfig(api_url=None)
         with pytest.raises(DiarizationError, match="requires api_url"):
             _get_whisper_segments_remote(audio_file, config)
+
+
+class TestRunDiarization:
+    """Tests for _run_diarization unwrapping pyannote v4 DiarizeOutput."""
+
+    @patch("stt.diarize.Pipeline.from_pretrained")
+    def test_unwraps_diarize_output(self, mock_from_pretrained: MagicMock) -> None:
+        """When pyannote v4 returns DiarizeOutput, extract speaker_diarization."""
+        from stt.diarize import _run_diarization
+
+        annotation = MagicMock(name="Annotation")
+        diarize_output = MagicMock(name="DiarizeOutput")
+        diarize_output.speaker_diarization = annotation
+
+        mock_pipeline = MagicMock()
+        mock_pipeline.return_value = diarize_output
+        mock_from_pretrained.return_value = mock_pipeline
+
+        config = DiarizeConfig(hf_token="fake-token")
+        result = _run_diarization(Path("/tmp/test.wav"), config)
+
+        assert result is annotation
+
+    @patch("stt.diarize.Pipeline.from_pretrained")
+    def test_returns_annotation_directly(self, mock_from_pretrained: MagicMock) -> None:
+        """When pyannote v3 returns Annotation directly, pass it through."""
+        from stt.diarize import _run_diarization
+
+        annotation = MagicMock(name="Annotation", spec=[])
+        mock_pipeline = MagicMock()
+        mock_pipeline.return_value = annotation
+        mock_from_pretrained.return_value = mock_pipeline
+
+        config = DiarizeConfig(hf_token="fake-token")
+        result = _run_diarization(Path("/tmp/test.wav"), config)
+
+        assert result is annotation

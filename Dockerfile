@@ -13,8 +13,12 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install PyTorch CPU first, then remaining dependencies
+# (prevents pyannote.audio from pulling CUDA torch variants)
+RUN pip install --no-cache-dir \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    torch==2.11.0+cpu torchaudio==2.11.0+cpu torchcodec==0.11.0 && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .

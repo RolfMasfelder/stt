@@ -6,6 +6,7 @@ from pathlib import Path
 
 import torch
 from pyannote.audio import Pipeline
+from pyannote.core import Annotation
 
 from stt.config import DiarizeConfig, WhisperConfig
 from stt.whisper_common import post_whisper_remote, run_whisper_local
@@ -62,17 +63,26 @@ def _get_whisper_segments_remote(
     return segments
 
 
-def _run_diarization(audio_path: Path, config: DiarizeConfig):
-    """Run pyannote speaker diarization on audio."""
+def _run_diarization(audio_path: Path, config: DiarizeConfig) -> Annotation:
+    """Run pyannote speaker diarization on audio.
+
+    Returns an Annotation object with .itertracks() support.
+    pyannote v4 returns a DiarizeOutput dataclass; we unwrap it.
+    """
     pipeline = Pipeline.from_pretrained(config.model_name, token=config.hf_token)
 
     if config.device != "cpu":
         pipeline.to(torch.device(config.device))
 
-    return pipeline(str(audio_path))
+    result = pipeline(str(audio_path))
+
+    # pyannote v4 returns DiarizeOutput, extract the Annotation
+    if hasattr(result, "speaker_diarization"):
+        return result.speaker_diarization
+    return result
 
 
-def _assign_speaker(start: float, end: float, diarization) -> str:
+def _assign_speaker(start: float, end: float, diarization: Annotation) -> str:
     """Find the speaker that covers most of a given time range."""
     speakers: dict[str, float] = {}
     for turn, _, speaker in diarization.itertracks(yield_label=True):
