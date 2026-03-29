@@ -30,6 +30,7 @@ services:
     environment:
       - PYTHONPATH=/app
       - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
+      - DJANGO_SETTINGS_MODULE=stt.settings
       - LM_STUDIO_HOST=${LM_STUDIO_HOST}
       - LM_STUDIO_PORT=${LM_STUDIO_PORT}
       - LM_STUDIO_MODEL=${LM_STUDIO_MODEL}
@@ -44,6 +45,38 @@ services:
     profiles:
       - production
     command: ["python", "-m", "gunicorn", "stt.wsgi:application", "--bind", "0.0.0.0:8090", "--workers", "2", "--timeout", "600"]
+
+  # django-q2 worker for async task processing
+  stt-worker:
+    build:
+      context: .
+      secrets:
+        - hf_token
+    container_name: stt-worker
+    depends_on:
+      - db
+    env_file:
+      - .env
+    volumes:
+      - .:/app:z
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
+      - DJANGO_SETTINGS_MODULE=stt.settings
+      - LM_STUDIO_HOST=${LM_STUDIO_HOST}
+      - LM_STUDIO_PORT=${LM_STUDIO_PORT}
+      - LM_STUDIO_MODEL=${LM_STUDIO_MODEL}
+      - WHISPER_MODEL=${WHISPER_MODEL}
+      - WHISPER_DEVICE=${WHISPER_DEVICE}
+      - WHISPER_API_URL=${WHISPER_API_URL}
+      - HF_STT_TOKEN=${HF_STT_TOKEN}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-insecure-dev-key-change-in-production}
+    networks:
+      - stt-network
+    profiles:
+      - production
+    command: ["python", "manage.py", "qcluster"]
 
   # CLI service for one-off commands via docker-compose exec/run
   stt-cli:
@@ -94,7 +127,8 @@ services:
       - LOG_LEVEL=${LOG_LEVEL}
       - DEVELOPMENT_MODE=${DEVELOPMENT_MODE}
       - DEBUG=${DEBUG}
-      - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
+      - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@127.0.0.1:5432/stt
+      - DJANGO_SETTINGS_MODULE=stt.settings
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-insecure-dev-key-change-in-production}
     network_mode: host
     profiles:

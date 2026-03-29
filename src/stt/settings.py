@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "drf_spectacular",
+    "django_q",
     "stt.api",
 ]
 
@@ -82,3 +83,15 @@ CORS_ALLOW_ALL_ORIGINS = env.bool("CORS_ALLOW_ALL_ORIGINS", default=True)
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024 * 1024
+
+# --- django-q2 Task Queue ---
+
+Q_CLUSTER = {
+    "name": "stt",
+    "workers": int(env("Q_WORKERS", default="2")),
+    "timeout": int(env("Q_TIMEOUT", default="1800")),  # 30 min per task
+    "retry": int(env("Q_RETRY", default="2100")),  # retry after 35 min
+    "queue_limit": int(env("Q_QUEUE_LIMIT", default="50")),
+    "orm": "default",  # Use PostgreSQL as broker
+    "catch_up": False,  # Don't process missed schedules
+}

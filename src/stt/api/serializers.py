@@ -62,3 +62,25 @@ class ProcessResponseSerializer(serializers.Serializer):
 
 class ErrorResponseSerializer(serializers.Serializer):
     detail = serializers.CharField()
+
+
+# --- Job serializers (async task queue) ---
+
+
+class JobResponseSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    job_type = serializers.CharField()
+    status = serializers.CharField()
+    original_filename = serializers.CharField()
+    whisper_model = serializers.CharField()
+    created_at = serializers.DateTimeField()
+    updated_at = serializers.DateTimeField()
+
+
+class JobDetailSerializer(JobResponseSerializer):
+    result_text = serializers.CharField()
+    result_diarized_text = serializers.CharField()
+    result_structured_text = serializers.CharField()
+    result_summary = serializers.CharField()
+    result_segments_json = serializers.JSONField(allow_null=True)
+    error_message = serializers.CharField()

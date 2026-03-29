@@ -6,6 +6,8 @@ import tempfile
 from dataclasses import replace
 from pathlib import Path
 
+from django.core.exceptions import ValidationError
+from django_q.tasks import async_task
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -19,11 +21,14 @@ from stt.logging_setup import setup_logging
 from stt.summarize import SummarizationError, process_transcript
 from stt.transcribe import TranscriptionError, transcribe_audio
 
+from .models import AuditAction, AuditLog, Job, JobType
 from .serializers import (
     AudioUploadSerializer,
     DiarizeResponseSerializer,
     ErrorResponseSerializer,
     HealthResponseSerializer,
+    JobDetailSerializer,
+    JobResponseSerializer,
     ProcessResponseSerializer,
     ProcessUploadSerializer,
     TranscribeResponseSerializer,
@@ -293,3 +298,97 @@ class ProcessView(APIView):
             )
         finally:
             audio_path.unlink(missing_ok=True)
+
+
+# --- Async Job endpoints ---
+
+_JOB_TYPE_TASK_MAP = {
+    JobType.TRANSCRIBE: "stt.api.tasks.run_transcribe",
+    JobType.DIARIZE: "stt.api.tasks.run_diarize",
+    JobType.PROCESS: "stt.api.tasks.run_process",
+}
+
+
+class JobCreateView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+
+    @extend_schema(
+        request=ProcessUploadSerializer,
+        responses={
+            202: JobResponseSerializer,
+            400: ErrorResponseSerializer,
+            413: ErrorResponseSerializer,
+        },
+        summary="Create async processing job",
+        description=(
+            "Upload an audio file and create an async job. "
+            "Poll GET /v1/jobs/{id} for status and results."
+        ),
+    )
+    def post(self, request: Request) -> Response:
+        file = request.FILES.get("file")
+        if not file:
+            return Response(
+                {"detail": "No file provided"},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        # Determine job type from query param (default: process).
+        raw_type = request.data.get("job_type", JobType.PROCESS)
+        if raw_type not in JobType.values:
+            return Response(
+                {"detail": f"Invalid job_type: {raw_type}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        model = request.data.get("model", "small")
+        do_diarize = str(request.data.get("diarize", "true")).lower() in (
+            "true",
+            "1",
+            "yes",
+        )
+
+        try:
+            audio_path = _save_upload(file)
+        except _AudioUploadError as e:
+            return Response({"detail": e.detail}, status=e.status_code)
+
+        job = Job.objects.create(
+            job_type=raw_type,
+            original_filename=str(audio_path),
+            whisper_model=model,
+            enable_diarize=do_diarize,
+        )
+
+        AuditLog.objects.create(
+            action=AuditAction.JOB_CREATED,
+            resource_type="job",
+            resource_id=str(job.id),
+        )
+
+        task_func = _JOB_TYPE_TASK_MAP[raw_type]
+        async_task(task_func, str(job.id))
+
+        return Response(
+            JobResponseSerializer(job).data,
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class JobDetailView(APIView):
+    @extend_schema(
+        responses={
+            200: JobDetailSerializer,
+            404: ErrorResponseSerializer,
+        },
+        summary="Get job status and results",
+    )
+    def get(self, request: Request, job_id: str) -> Response:
+        try:
+            job = Job.objects.get(id=job_id)
+        except (Job.DoesNotExist, ValueError, ValidationError):
+            return Response(
+                {"detail": "Job not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response(JobDetailSerializer(job).data)
