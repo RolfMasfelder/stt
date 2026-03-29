@@ -224,7 +224,7 @@
 | 2a.6 | OAuth2-Provider mit django-oauth-toolkit einrichten | 2a.0 | ADR-07 | ✅ Fertig |
 | 2a.7 | JWT-Validierung über DRF-Permissions | 2a.6 | ADR-07 | ✅ Fertig |
 | 2a.8 | Security-Header und Rate Limiting (DRF Throttling) | 2a.4 | ADR-14 | ✅ Fertig |
-| 2a.9 | Audit-Logging implementieren | 2a.7 | FA-16 | |
+| 2a.9 | Audit-Logging implementieren | 2a.7 | FA-16 | ✅ Fertig |
 | 2a.10 | CLI-Client auf OAuth2 umstellen | 2a.6 | ADR-07 | |
 
 **Erledigt in 2a.0:** Django-Projektstruktur (`settings.py`, `urls.py`, `wsgi.py`), DRF-API-App (`stt.api`) mit 4 Endpoints (Health, Transcribe, Diarize, Process), Serializer für OpenAPI-Doku, PostgreSQL in `docker-compose.yml`, Gunicorn als WSGI-Server, `pyproject.toml` auf Django-Stack aktualisiert, alle 107 Tests portiert und bestanden. FastAPI/uvicorn entfernt.
@@ -238,6 +238,8 @@
 **Erledigt in 2a.7:** Scope-basierte Berechtigungen mit `TokenHasReadWriteScope` — GET-Requests benötigen `read`-Scope, POST-Requests `write`-Scope. `READ_SCOPE`/`WRITE_SCOPE` in DOT-Konfiguration. OpenAPI-Schema mit OAuth2-Flows (clientCredentials + authorizationCode) via drf-spectacular. 4 neue Tests (171 gesamt).
 
 **Erledigt in 2a.8:** DRF Throttling mit drei Stufen: `AnonRateThrottle` (20/min), `UserRateThrottle` (60/min), custom `UploadRateThrottle` (10/min) für Upload-Endpoints. Throttle-Klasse in `stt/api/throttles.py`, angewendet auf TranscribeView, DiarizeView, ProcessView, JobCreateView. Security-Headers via SecurityMiddleware (Django) + Caddy Caddyfile. 4 neue Tests (175 gesamt).
+
+**Erledigt in 2a.9:** Audit-Logging mit `log_audit()`-Helper (`stt/api/audit.py`) — extrahiert automatisch Actor (Username) und Client-IP (X-Forwarded-For / REMOTE_ADDR) aus Request. `AuditMiddleware` (`stt/api/middleware.py`) loggt Security-Events: AUTH_FAILED (401) und RATE_LIMITED (429). Alle bestehenden `AuditLog.objects.create()`-Aufrufe in `views.py` und `tasks.py` auf `log_audit()` migriert. Migration für neue AuditAction-Choices. 13 neue Tests (188 gesamt).
 
 ### Phase 2b: Konfigurations-Infrastruktur
 
@@ -347,7 +349,7 @@ Die folgenden Punkte müssen vor oder während der Umsetzung geklärt werden:
 
 ## 6. Nächste Schritte
 
-1. **Phase 2a fortsetzen** — Nächster Schritt: 2a.9 (Audit-Logging)
+1. **Phase 2a fortsetzen** — Nächster Schritt: 2a.10 (CLI-Client auf OAuth2 umstellen)
 2. **Iteration über Anforderungen** — Offene Entscheidungen (Abschnitt 5) klären
 3. **Deployment-Szenario für Erstentwicklung festlegen** — Empfehlung: zuerst InHouse/Dedicated entwickeln, SaaS/K8s als spätere Phase
 4. **Technologie-Prototypen** — PoC für kritische Komponenten (OAuth2-Flow, Storage-Backend, Mobile Audio)
