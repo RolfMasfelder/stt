@@ -154,3 +154,77 @@ class TestOAuth2ProviderSettings:
 
         perm_classes = settings.REST_FRAMEWORK["DEFAULT_PERMISSION_CLASSES"]
         assert "rest_framework.permissions.IsAuthenticated" in perm_classes
+
+    def test_drf_enforces_scope_permissions(self) -> None:
+        from django.conf import settings
+
+        perm_classes = settings.REST_FRAMEWORK["DEFAULT_PERMISSION_CLASSES"]
+        assert (
+            "oauth2_provider.contrib.rest_framework.TokenHasReadWriteScope"
+            in perm_classes
+        )
+
+    def test_read_write_scopes_configured(self) -> None:
+        from django.conf import settings
+
+        assert settings.OAUTH2_PROVIDER["READ_SCOPE"] == "read"
+        assert settings.OAUTH2_PROVIDER["WRITE_SCOPE"] == "write"
+
+
+@pytest.mark.django_db
+class TestScopePermissions:
+    """Verify scope-based access control."""
+
+    def test_read_only_token_cannot_post(self, test_user) -> None:
+        """A token with only 'read' scope should be denied on POST endpoints."""
+        from datetime import timedelta
+
+        from django.utils import timezone
+        from oauth2_provider.models import AccessToken, Application
+
+        app = Application.objects.create(
+            name="test-readonly",
+            client_type=Application.CLIENT_CONFIDENTIAL,
+            authorization_grant_type=Application.GRANT_CLIENT_CREDENTIALS,
+            user=test_user,
+        )
+        token = AccessToken.objects.create(
+            user=test_user,
+            token="read-only-token-12345",
+            application=app,
+            expires=timezone.now() + timedelta(hours=1),
+            scope="read",
+        )
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+        with patch("stt.api.views._get_config", return_value=_mock_config()):
+            response = client.post("/v1/transcribe")
+        assert response.status_code == 403
+
+    def test_read_only_token_can_get_job(self, test_user) -> None:
+        """A token with 'read' scope should be allowed on GET endpoints."""
+        from datetime import timedelta
+
+        from django.utils import timezone
+        from oauth2_provider.models import AccessToken, Application
+
+        from stt.api.models import Job, JobType
+
+        app = Application.objects.create(
+            name="test-readonly-get",
+            client_type=Application.CLIENT_CONFIDENTIAL,
+            authorization_grant_type=Application.GRANT_CLIENT_CREDENTIALS,
+            user=test_user,
+        )
+        token = AccessToken.objects.create(
+            user=test_user,
+            token="read-only-get-token",
+            application=app,
+            expires=timezone.now() + timedelta(hours=1),
+            scope="read",
+        )
+        job = Job.objects.create(job_type=JobType.TRANSCRIBE)
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+        response = client.get(f"/v1/jobs/{job.id}")
+        assert response.status_code == 200

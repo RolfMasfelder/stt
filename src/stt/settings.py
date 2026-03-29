@@ -78,6 +78,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
+        "oauth2_provider.contrib.rest_framework.TokenHasReadWriteScope",
     ],
     "DEFAULT_PARSER_CLASSES": [
         "rest_framework.parsers.MultiPartParser",
@@ -96,6 +97,9 @@ SPECTACULAR_SETTINGS = {
     ),
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "OAUTH2_FLOWS": ["clientCredentials", "authorizationCode"],
+    "OAUTH2_TOKEN_URL": "/o/token/",
+    "OAUTH2_AUTHORIZATION_URL": "/o/authorize/",
 }
 
 # --- CORS ---
@@ -154,5 +158,7 @@ OAUTH2_PROVIDER = {
         "write": "Write access (upload, process)",
     },
     "DEFAULT_SCOPES": ["read", "write"],
+    "READ_SCOPE": "read",  # Used by TokenHasReadWriteScope for GET
+    "WRITE_SCOPE": "write",  # Used by TokenHasReadWriteScope for POST
     "OAUTH2_BACKEND_CLASS": "oauth2_provider.oauth2_backends.OAuthLibCore",
 }
