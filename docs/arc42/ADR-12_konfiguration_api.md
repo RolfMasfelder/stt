@@ -1,27 +1,27 @@
 # ADR-12: Konfigurations-API für Frontend-gesteuerte Einstellungen
 
-**Status:** Vorgeschlagen
-**Datum:** 2026-03-28
-**Bezug:** FA-12, FA-13, FA-14
+**Status:** Aktualisiert
+**Datum:** 2026-03-28 (aktualisiert nach ADR-15)
+**Bezug:** FA-12, FA-13, FA-14, ADR-15
 
 ## Kontext
 
-Konfigurationen (Server-Verbindung, Storage Backends) sollen im Frontend erstellt und an den Server übertragen werden. Der Server benötigt entsprechende API-Endpoints zum Empfang, Speichern und Testen von Konfigurationen.
+Konfigurationen (Server-Verbindung, Storage Backends) sollen im Frontend erstellt und an den Server übertragen werden. Durch die Entscheidung für Django/DRF (ADR-15) werden die Endpoints als DRF ViewSets mit Django ORM realisiert.
 
 ## Entscheidung
 
-Neue REST-API-Endpoints für Konfigurationsverwaltung:
+DRF ViewSets für Konfigurationsverwaltung mit PostgreSQL als Datenbank für alle Szenarien.
 
 ### API-Endpoints
 
 ```
-# Storage-Konfiguration
-POST   /v1/config/storage          — Storage-Backend anlegen
-GET    /v1/config/storage           — Alle Storage-Backends auflisten
-GET    /v1/config/storage/{id}      — Ein Storage-Backend abrufen
-PUT    /v1/config/storage/{id}      — Storage-Backend aktualisieren
-DELETE /v1/config/storage/{id}      — Storage-Backend entfernen
-POST   /v1/config/storage/{id}/test — Storage-Backend testen
+# Storage-Konfiguration (DRF ViewSet + Custom Action)
+POST   /api/v1/config/storage/          — Storage-Backend anlegen
+GET    /api/v1/config/storage/          — Alle Storage-Backends auflisten
+GET    /api/v1/config/storage/{id}/     — Ein Storage-Backend abrufen
+PUT    /api/v1/config/storage/{id}/     — Storage-Backend aktualisieren
+DELETE /api/v1/config/storage/{id}/     — Storage-Backend entfernen
+POST   /api/v1/config/storage/{id}/test/ — Storage-Backend testen
 
 # Test-Response-Format
 {
@@ -39,38 +39,38 @@ POST   /v1/config/storage/{id}/test — Storage-Backend testen
 
 ### Autorisierung
 
-- Alle Config-Endpoints erfordern die Rolle `admin`
+- Alle Config-Endpoints erfordern `DjangoModelPermissions` (Rolle `admin`)
 - Standard-Nutzer können nur ihre eigenen Verarbeitungsaufträge steuern
-- Storage-Credentials werden nie im Klartext zurückgegeben (nur `*****`-Maskierung)
+- Storage-Credentials werden per DRF Serializer mit `write_only=True` geschützt (kein Klartext-Rückgabe)
 
 ### Persistierung
 
-Konfigurationen werden serverseitig in einer leichtgewichtigen Datenbank gespeichert:
+PostgreSQL für alle Deployment-Szenarien (siehe ADR-15):
 
-| Option | Bewertung |
-|--------|-----------|
-| SQLite | Einfach, kein separater Dienst, gut für Einzelinstanzen |
-| PostgreSQL | Für Multi-Instanz-Betrieb, EU-Hosting möglich |
-
-**Empfehlung:** SQLite für v1, Migration auf PostgreSQL bei Bedarf.
+| Szenario | Datenbank |
+|----------|-----------|
+| InHouse | PostgreSQL (Docker-Container) |
+| Dedicated | PostgreSQL (Managed oder Container) |
+| SaaS | PostgreSQL (Managed, Schema-Isolation pro Mandant) |
 
 ## Begründung
 
-- RESTful CRUD-Endpoints sind der Standard für Konfigurationsverwaltung
-- Test-Endpoint gibt dem Frontend sofortiges Feedback
-- Admin-Rolle verhindert unbefugte Konfigurationsänderungen
-- Maskierung von Credentials verhindert Leak über die API
+- DRF ViewSets generieren CRUD-Endpoints automatisch mit konsistenter API
+- Django ORM bietet Migrations, Validierung und Query-Abstraktion
+- `write_only=True` in DRF Serializers verhindert Credential-Leaks elegant
+- PostgreSQL für alle Szenarien eliminiert die SQLite→PostgreSQL-Migrationsproblematik
+- `drf-spectacular` generiert OpenAPI-Dokumentation automatisch aus den ViewSets
 
 ## Konsequenzen
 
-- Neue Server-Endpoints implementieren
-- Datenbank-Schema für Konfigurationsspeicherung
-- OpenAPI-Spezifikation erweitern
+- DRF ViewSets und Serializers implementieren
+- Django-Modelle für Storage-Konfiguration mit Migrations
+- OpenAPI-Spezifikation wird automatisch via `drf-spectacular` generiert
 - Frontend muss Config-Formulare bereitstellen
 - Test-Endpoint muss tatsächlich gegen den Storage-Dienst prüfen (nicht nur Syntax)
 
 ## Offene Fragen
 
 - [ ] Sollen Konfigurationen versioniert werden (Changelog)?
-- [ ] Wie werden Konfigurationen zwischen Instanzen synchronisiert?
+- [x] ~~Wie werden Konfigurationen zwischen Instanzen synchronisiert?~~ → PostgreSQL als Single Source of Truth
 - [ ] Braucht der CLI-Client ebenfalls Zugriff auf die Config-API?

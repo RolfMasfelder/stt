@@ -277,3 +277,20 @@
 3. Versionierung der Zwischenergebnisse (Original vs. korrigierte Fassung) ermöglichen
 
 **Status:** Teilweise umgesetzt (CLI), Geplant (API, Frontend)
+
+---
+
+## FA-19: Asynchrone Job-Verarbeitung mit Status-Abfrage
+
+**Beschreibung:** Audio-Verarbeitung (Transkription, Diarization, Summarization) ist langläufig (Sekunden bis Minuten). Clients müssen Jobs einreichen und deren Status asynchron abfragen können, um bei Verbindungsabbrüchen das Ergebnis später abzuholen.
+
+**Akzeptanzkriterien:**
+
+- Audio-Upload erzeugt einen Job mit eindeutiger ID und gibt diese sofort zurück
+- Job-Status ist über `GET /api/v1/jobs/{id}` abrufbar (pending, running, completed, failed)
+- Ergebnis ist nach Abschluss über den Job-Endpoint abrufbar
+- Jobs werden über django-q2 als Task-Queue verarbeitet (ADR-15)
+- Fehlgeschlagene Jobs enthalten eine Fehlerbeschreibung im Status
+- Jobs werden nach konfigurierbarer Aufbewahrungsfrist automatisch gelöscht (siehe ADR-13)
+
+**Status:** Geplant

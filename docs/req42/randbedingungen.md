@@ -5,7 +5,7 @@
 | ID | Randbedingung | Begründung |
 |----|---------------|------------|
 | RB-1 | Python 3.13 | Server-Backend, aktuelle Python-Version |
-| RB-2 | Linux (openSUSE) | Entwicklungs- und Server-Zielplattform |
+| RB-2 | Django 5.x + Django REST Framework | Web-Framework mit eingebautem ORM, Auth, Admin, Migrations — ersetzt FastAPI (ADR-15) |
 | RB-3 | Docker / Docker Compose | Container-basiertes Deployment auf Remote-Server |
 | RB-4 | faster-whisper | Effiziente lokale Whisper-Implementierung (CTranslate2) |
 | RB-5 | pyannote.audio 4.x | State-of-the-art Speaker Diarization, läuft lokal |
@@ -15,6 +15,8 @@
 | RB-9 | TLS 1.3 | Verschlüsselte Kommunikation zwischen allen Komponenten (Zero-Trust) |
 | RB-10 | OAuth2 / OIDC | Standardisierte Authentifizierung und Autorisierung |
 | RB-11 | EU-Hosting | Alle Dienste und Daten ausschließlich bei europäischen Anbietern |
+| RB-12 | PostgreSQL | Datenbank für alle Szenarien (Jobs, Config, Audit-Log, User); eliminiert SQLite→PostgreSQL-Migration |
+| RB-13 | Linux (openSUSE) | Entwicklungs- und Server-Zielplattform |
 
 ## Organisatorisch
 

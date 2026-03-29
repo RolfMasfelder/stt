@@ -62,3 +62,12 @@
 | GPU | Graphics Processing Unit — Grafikprozessor, hier für ML-Modell-Inferenz genutzt |
 | CPU | Central Processing Unit — Hauptprozessor |
 | vLLM | Hochperformanter LLM-Inferenz-Server mit PagedAttention für effizienten GPU-Speicher |
+| Django | Python-Web-Framework mit integriertem ORM, Admin-Interface, Migrations und Auth-System |
+| DRF | Django REST Framework — Toolkit für REST-APIs auf Basis von Django (ViewSets, Serializers, Permissions) |
+| ORM | Object-Relational Mapping — Abstraktion zur Datenbank-Interaktion über Python-Klassen statt SQL |
+| DOT | django-oauth-toolkit — OAuth2-Provider-Implementierung für Django |
+| django-q2 | Task-Queue für Django mit ORM als Broker (kein separater Message-Broker wie Redis nötig) |
+| drf-spectacular | OpenAPI-3.0-Schema-Generator für Django REST Framework |
+| Gunicorn | WSGI-HTTP-Server für Python-Webanwendungen in Produktion |
+| WSGI | Web Server Gateway Interface — Python-Standard-Schnittstelle zwischen Webserver und Anwendung |
+| psycopg | PostgreSQL-Adapter für Python 3 (Version 3.x, asynchron-fähig) |

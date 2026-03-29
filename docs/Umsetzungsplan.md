@@ -182,7 +182,7 @@
 | **Internet** | Nein | Ja | Ja |
 | **TLS** | Self-Signed / internes CA | Let's Encrypt | Ingress + Let's Encrypt |
 | **LLM** | Ollama / LM Studio | vLLM / Ollama | vLLM (GPU-Pool) |
-| **Datenbank** | SQLite | SQLite | PostgreSQL |
+| **Datenbank** | PostgreSQL | PostgreSQL | PostgreSQL |
 | **Storage** | Lokales Dateisystem | S3 (EU) / Lokal | S3 (Bucket-per-Tenant) |
 
 ---
@@ -191,16 +191,19 @@
 
 | Komponente | Empfehlung | Alternativen | ADR |
 |------------|-----------|-------------|-----|
+| **Web-Framework** | Django 5.x + Django REST Framework | FastAPI (bisherig) | ADR-15 |
+| **Datenbank** | PostgreSQL (alle Szenarien) | — | ADR-15, RB-12 |
+| **Task-Queue** | django-q2 (DB als Broker) | Celery + Redis | ADR-15 |
 | **Mobile App** | Flutter oder Kotlin Multiplatform | React Native, PWA | ADR-10 |
-| **Identity Provider** | Keycloak (Self-Hosted) oder Zitadel | Authentik | ADR-07 |
+| **Identity Provider** | django-oauth-toolkit (eingebaut) + optional externer IdP | Keycloak, Zitadel | ADR-07 |
 | **Reverse-Proxy** | Caddy | Traefik, nginx | ADR-14 |
 | **TLS-Zertifikate** | Let's Encrypt (via Caddy) | Manuell | ADR-08 |
 | **Object Storage** | IONOS S3 oder OVH Object Storage | MinIO (Self-Hosted) | ADR-09, ADR-11 |
-| **Datenbank (Config)** | SQLite (v1), PostgreSQL (v2) | — | ADR-12 |
 | **Verschlüsselung at Rest** | LUKS + AES-256-GCM (App-Level) | Nur LUKS | ADR-08 |
 | **Hosting** | Hetzner Cloud (DE) | IONOS, Netcup, OVH | ADR-09 |
 | **Container-Orchestrierung** | Docker Compose (Szenarien 1+2), Kubernetes (Szenario 3) | — | ADR-09 |
 | **LLM (Produktion)** | vLLM oder Ollama | LM Studio (nur InHouse/Dev) | — |
+| **API-Dokumentation** | drf-spectacular (OpenAPI 3.0) | — | ADR-15 |
 
 ---
 
@@ -208,17 +211,21 @@
 
 ### Phase 2a: Sicherheits-Fundament (Priorität: Hoch)
 
-**Ziel:** Bestehende API absichern, bevor neue Features hinzukommen.
+**Ziel:** Migration auf Django/PostgreSQL und API absichern, bevor neue Features hinzukommen.
 
 | Schritt | Beschreibung | Abhängigkeiten | ADR |
 |---------|-------------|----------------|-----|
-| 2a.1 | Reverse-Proxy (Caddy) vor FastAPI schalten | — | ADR-14 |
-| 2a.2 | TLS-Terminierung einrichten | 2a.1 | ADR-08 |
-| 2a.3 | Identity Provider deployen (Keycloak/Zitadel) | 2a.1 | ADR-07 |
-| 2a.4 | JWT-Validierung in FastAPI einbauen | 2a.3 | ADR-07 |
-| 2a.5 | Security-Header und Rate Limiting | 2a.1 | ADR-14 |
-| 2a.6 | Audit-Logging implementieren | 2a.4 | FA-16 |
-| 2a.7 | CLI-Client auf OAuth2 umstellen | 2a.3 | ADR-07 |
+| 2a.0 | Django-Projekt aufsetzen, Business-Logic übernehmen, PostgreSQL-Container | — | ADR-15 |
+| 2a.1 | Django-Modelle (Job, StorageConfig, AuditLog) + Migrationen | 2a.0 | ADR-15 |
+| 2a.2 | API-Endpoints mit DRF portieren (Transcribe, Diarize, Process) | 2a.0 | ADR-15 |
+| 2a.3 | Task-Queue mit django-q2 für asynchrone Verarbeitung | 2a.1 | ADR-15 |
+| 2a.4 | Reverse-Proxy (Caddy) vor Django schalten | 2a.0 | ADR-14 |
+| 2a.5 | TLS-Terminierung einrichten | 2a.4 | ADR-08 |
+| 2a.6 | OAuth2-Provider mit django-oauth-toolkit einrichten | 2a.0 | ADR-07 |
+| 2a.7 | JWT-Validierung über DRF-Permissions | 2a.6 | ADR-07 |
+| 2a.8 | Security-Header und Rate Limiting (DRF Throttling) | 2a.4 | ADR-14 |
+| 2a.9 | Audit-Logging implementieren | 2a.7 | FA-16 |
+| 2a.10 | CLI-Client auf OAuth2 umstellen | 2a.6 | ADR-07 |
 
 ### Phase 2b: Konfigurations-Infrastruktur
 
@@ -227,11 +234,11 @@
 | Schritt | Beschreibung | Abhängigkeiten | ADR |
 |---------|-------------|----------------|-----|
 | 2b.1 | Storage-Backend-Abstraktion implementieren | — | ADR-11 |
-| 2b.2 | Config-API (CRUD + Test-Endpoints) | 2b.1 | ADR-12 |
+| 2b.2 | Config-API (DRF ViewSets + Test-Endpoints) | 2b.1, 2a.1 | ADR-12 |
 | 2b.3 | S3-Backend implementieren | 2b.1 | ADR-11 |
 | 2b.4 | Verschlüsselung at Rest einbauen | 2b.1 | ADR-08 |
 | 2b.5 | CLI konfigurierbare Server-URL (Verbesserung) | — | FA-12 |
-| 2b.6 | OpenAPI-Spezifikation aktualisieren | 2b.2 | — |
+| 2b.6 | OpenAPI-Spezifikation via drf-spectacular generieren | 2b.2 | ADR-15 |
 
 ### Phase 2c: Mobile App
 
@@ -283,6 +290,7 @@
 | 2f.4 | Horizontal Pod Autoscaler (HPA) | 2f.3 | ADR-09 |
 | 2f.5 | GPU-Workload-Scheduling (Whisper, pyannote) | 2f.3 | ADR-09 |
 | 2f.6 | Monitoring (Prometheus + Grafana) | 2f.3 | — |
+| 2f.7 | Django-Admin anpassen für Multi-Tenant-Verwaltung | 2f.1 | ADR-09 |
 
 ---
 
@@ -294,11 +302,12 @@ Die folgenden Punkte müssen vor oder während der Umsetzung geklärt werden:
 
 - [ ] **Mobile Framework:** Flutter vs. Kotlin Multiplatform vs. andere?
 - [ ] **Zielplattform:** Nur Android oder auch iOS?
-- [ ] **Identity Provider:** Keycloak vs. Zitadel vs. Authentik?
+- [x] ~~**Identity Provider:**~~ → django-oauth-toolkit als eingebauter OAuth2-Provider; externer IdP (Keycloak/Zitadel) optional für SaaS
 - [ ] **Reverse-Proxy:** Caddy vs. Traefik?
 - [ ] **Hosting-Anbieter:** Hetzner vs. IONOS vs. Netcup vs. OVH?
 - [ ] **Storage-Anbieter:** IONOS S3 vs. OVH vs. Self-Hosted MinIO?
-- [ ] **Datenbank:** SQLite (reicht für v1?) oder gleich PostgreSQL?
+- [x] ~~**Datenbank:**~~ → PostgreSQL für alle Szenarien (ADR-15)
+- [x] ~~**Web-Framework:**~~ → Django 5.x + DRF (ADR-15)
 
 ### Architektur-Entscheidungen
 
