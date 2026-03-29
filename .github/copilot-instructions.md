@@ -18,8 +18,8 @@
 
 ## Git Remotes
 - `origin` → Local mirror (always push, NO CI)
-- `github` → GitHub with Actions (always push, USE for CI/PRs)
-- Push to BOTH remotes for all commits
+- `github` → GitHub private repo (push only when explicitly requested, NOT automatic)
+- Default: push to `origin` only. Push to `github` only on user request.
 
 ## Documentation (if needed)
 - Check `TODO.md` for production-critical items if needed
