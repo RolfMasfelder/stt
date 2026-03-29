@@ -51,6 +51,6 @@ Audio-Aufnahmen und Transkripte enthalten personenbezogene Daten (Stimmen, gespr
 
 ## Offene Fragen
 
-- [ ] Welcher Reverse-Proxy? (Caddy bevorzugt wegen automatischem Let's Encrypt)
+- [x] ~~Welcher Reverse-Proxy?~~ → Caddy gewählt (automatisches Let's Encrypt, `Caddyfile` im Projekt)
 - [ ] Wie wird die Schlüsselverwaltung in der ersten Version umgesetzt?
 - [ ] Sind Audio-Aufnahmen als biometrische Daten (Art. 9) zu klassifizieren?

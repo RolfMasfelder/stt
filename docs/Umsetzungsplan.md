@@ -219,8 +219,8 @@
 | 2a.1 | Django-Modelle (Job, StorageConfig, AuditLog) + Migrationen | 2a.0 | ADR-15 | ✅ Fertig |
 | 2a.2 | ~~API-Endpoints mit DRF portieren~~ → in 2a.0 erledigt | — | — | ✅ Fertig |
 | 2a.3 | Task-Queue mit django-q2 für asynchrone Verarbeitung | 2a.1 | ADR-15 | ✅ Fertig |
-| 2a.4 | Reverse-Proxy (Caddy) vor Django schalten | 2a.0 | ADR-14 | |
-| 2a.5 | TLS-Terminierung einrichten | 2a.4 | ADR-08 | |
+| 2a.4 | Reverse-Proxy (Caddy) vor Django schalten | 2a.0 | ADR-14 | ✅ Fertig |
+| 2a.5 | TLS-Terminierung einrichten | 2a.4 | ADR-08 | ✅ Fertig |
 | 2a.6 | OAuth2-Provider mit django-oauth-toolkit einrichten | 2a.0 | ADR-07 | |
 | 2a.7 | JWT-Validierung über DRF-Permissions | 2a.6 | ADR-07 | |
 | 2a.8 | Security-Header und Rate Limiting (DRF Throttling) | 2a.4 | ADR-14 | |
@@ -230,6 +230,8 @@
 **Erledigt in 2a.0:** Django-Projektstruktur (`settings.py`, `urls.py`, `wsgi.py`), DRF-API-App (`stt.api`) mit 4 Endpoints (Health, Transcribe, Diarize, Process), Serializer für OpenAPI-Doku, PostgreSQL in `docker-compose.yml`, Gunicorn als WSGI-Server, `pyproject.toml` auf Django-Stack aktualisiert, alle 107 Tests portiert und bestanden. FastAPI/uvicorn entfernt.
 
 **Erledigt in 2a.3:** django-q2 als Task-Queue mit PostgreSQL als Broker konfiguriert (`Q_CLUSTER` in `settings.py`). Drei async Task-Funktionen (`run_transcribe`, `run_diarize`, `run_process`) in `stt/api/tasks.py`. Neue Endpoints: `POST /v1/jobs` (erstellt Job + dispatcht Task, HTTP 202) und `GET /v1/jobs/{id}` (Status + Ergebnisse). AuditLog-Integration bei Job-Erstellung/-Abschluss/-Fehler. Worker-Service `stt-worker` in `docker-compose.yml` (`manage.py qcluster`). 19 neue Tests (143 gesamt). Docker-First-Workflow etabliert.
+
+**Erledigt in 2a.4 + 2a.5:** Caddy 2 als Reverse-Proxy mit automatischem TLS in `docker-compose.yml` (Service `caddy`, Profil `production`). `Caddyfile` mit Security-Headers (HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy), Request-Size-Limit (500 MB), Health-Check auf `/health`. Django `SecurityMiddleware` aktiviert, `SECURE_PROXY_SSL_HEADER` für X-Forwarded-Proto, `USE_X_FORWARDED_HOST`. Produktions-Härtung (non-DEBUG): SSL-Redirect, Secure Cookies, HSTS 2 Jahre. Gunicorn nur intern erreichbar (expose statt ports). Caddy-Volumes für Zertifikatspersistenz. `SITE_ADDRESS` konfigurierbar (Default: self-signed, Domain = Let's Encrypt). 9 neue Tests (152 gesamt).
 
 ### Phase 2b: Konfigurations-Infrastruktur
 
@@ -307,7 +309,7 @@ Die folgenden Punkte müssen vor oder während der Umsetzung geklärt werden:
 - [ ] **Mobile Framework:** Flutter vs. Kotlin Multiplatform vs. andere?
 - [ ] **Zielplattform:** Nur Android oder auch iOS?
 - [x] ~~**Identity Provider:**~~ → django-oauth-toolkit als eingebauter OAuth2-Provider; externer IdP (Keycloak/Zitadel) optional für SaaS
-- [ ] **Reverse-Proxy:** Caddy vs. Traefik?
+- [x] ~~**Reverse-Proxy:**~~ → Caddy (automatisches TLS, einfache Konfiguration)
 - [ ] **Hosting-Anbieter:** Hetzner vs. IONOS vs. Netcup vs. OVH?
 - [ ] **Storage-Anbieter:** IONOS S3 vs. OVH vs. Self-Hosted MinIO?
 - [x] ~~**Datenbank:**~~ → PostgreSQL für alle Szenarien (ADR-15)
@@ -339,7 +341,7 @@ Die folgenden Punkte müssen vor oder während der Umsetzung geklärt werden:
 
 ## 6. Nächste Schritte
 
-1. **Phase 2a fortsetzen** — Nächster Schritt: 2a.4 (Reverse-Proxy Caddy)
+1. **Phase 2a fortsetzen** — Nächster Schritt: 2a.6 (OAuth2-Provider)
 2. **Iteration über Anforderungen** — Offene Entscheidungen (Abschnitt 5) klären
 3. **Deployment-Szenario für Erstentwicklung festlegen** — Empfehlung: zuerst InHouse/Dedicated entwickeln, SaaS/K8s als spätere Phase
 4. **Technologie-Prototypen** — PoC für kritische Komponenten (OAuth2-Flow, Storage-Backend, Mobile Audio)

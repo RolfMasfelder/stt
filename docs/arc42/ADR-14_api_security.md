@@ -70,6 +70,6 @@ Internet → Caddy/Traefik (TLS, Headers) → Gunicorn + Django (:8090)
 
 ## Offene Fragen
 
-- [ ] Caddy oder Traefik als Reverse-Proxy?
+- [x] ~~Caddy oder Traefik als Reverse-Proxy?~~ → Caddy gewählt (automatisches TLS, einfache Config)
 - [ ] Wie wird Rate Limiting konfiguriert (pro User, pro IP)?
 - [ ] Soll ein WAF (Web Application Firewall) eingesetzt werden?

@@ -35,6 +35,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
 ]
@@ -114,3 +115,21 @@ Q_CLUSTER = {
     "orm": "default",  # Use PostgreSQL as broker
     "catch_up": False,  # Don't process missed schedules
 }
+
+# --- Reverse-Proxy / TLS Security (ADR-08, ADR-14) ---
+
+# Trust X-Forwarded-Proto from Caddy reverse-proxy
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Use forwarded host header from Caddy
+USE_X_FORWARDED_HOST = True
+
+# Security settings when behind reverse-proxy (non-DEBUG only)
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 63072000  # 2 years
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True

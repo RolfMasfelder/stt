@@ -13,6 +13,27 @@ services:
     networks:
       - stt-network
 
+  # Caddy reverse-proxy with automatic TLS
+  caddy:
+    image: caddy:2-alpine
+    container_name: stt-caddy
+    depends_on:
+      - stt-server
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - SITE_ADDRESS=${SITE_ADDRESS:-:443}
+    networks:
+      - stt-network
+    profiles:
+      - production
+    restart: unless-stopped
+
   stt-server:
     build:
       context: .
@@ -23,8 +44,8 @@ services:
       - db
     env_file:
       - .env
-    ports:
-      - "8090:8090"
+    expose:
+      - "8090"
     volumes:
       - .:/app:z
     environment:
@@ -156,6 +177,8 @@ networks:
 
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:
 
 secrets:
   hf_token:
