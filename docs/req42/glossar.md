@@ -39,3 +39,26 @@
 | CORS | Cross-Origin Resource Sharing — Mechanismus für domänenübergreifende HTTP-Anfragen |
 | Bearer Token | Zugangstoken, das als HTTP-Header (`Authorization: Bearer <token>`) übertragen wird |
 | Rate Limiting | Begrenzung der Anzahl von API-Anfragen pro Zeiteinheit zum Schutz gegen Missbrauch |
+| ADR | Architecture Decision Record — dokumentierte Architekturentscheidung |
+| FA | Funktionale Anforderung (z. B. FA-10, FA-11) |
+| QA | Qualitätsanforderung (z. B. QA-6, QA-7) |
+| JWT | JSON Web Token (RFC 7519) — signiertes Token zur Übertragung von Identitäts- und Autorisierungsinformationen |
+| PKCE | Proof Key for Code Exchange (RFC 7636) — Erweiterung des OAuth2-Authorization-Code-Flows für öffentliche Clients (z. B. Mobile Apps) |
+| DSFA | Datenschutz-Folgenabschätzung (DSGVO Art. 35) — verpflichtende Risikoanalyse bei hohem Risiko für Betroffene |
+| HPA | Horizontal Pod Autoscaler — Kubernetes-Mechanismus zur automatischen horizontalen Skalierung von Pods |
+| K8s | Kurzform für Kubernetes — Container-Orchestrierungsplattform |
+| SaaS | Software as a Service — Software als Dienstleistung über das Internet bereitgestellt |
+| KMP | Kotlin Multiplatform — Framework zur plattformübergreifenden App-Entwicklung |
+| PWA | Progressive Web App — Webanwendung mit nativen App-Funktionen |
+| MVP | Minimum Viable Product — minimal funktionsfähiges Produkt |
+| PoC | Proof of Concept — Machbarkeitsnachweis |
+| OWASP | Open Web Application Security Project — Organisation für Webanwendungssicherheit (u. a. OWASP Top 10) |
+| DoS | Denial of Service — Angriff zur Überlastung eines Dienstes |
+| CRUD | Create, Read, Update, Delete — die vier grundlegenden Datenbankoperationen |
+| RLS | Row-Level Security — zeilenbasierte Zugriffskontrolle in Datenbanken (z. B. PostgreSQL) |
+| LUKS | Linux Unified Key Setup — Standard für Festplattenverschlüsselung unter Linux |
+| AES-256-GCM | Advanced Encryption Standard mit 256-Bit-Schlüssel im Galois/Counter-Modus — authentifizierte Verschlüsselung |
+| CA | Certificate Authority — Zertifizierungsstelle, die digitale Zertifikate ausstellt |
+| GPU | Graphics Processing Unit — Grafikprozessor, hier für ML-Modell-Inferenz genutzt |
+| CPU | Central Processing Unit — Hauptprozessor |
+| vLLM | Hochperformanter LLM-Inferenz-Server mit PagedAttention für effizienten GPU-Speicher |
