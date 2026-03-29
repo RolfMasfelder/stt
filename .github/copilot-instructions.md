@@ -12,7 +12,9 @@
 
 
 ## Git Remotes
-- `origin` → Local mirror (NO CI)
+- `origin` → Local mirror (always push, NO CI)
+- `github` → GitHub with Actions (always push, USE for CI/PRs)
+- Push to BOTH remotes for all commits
 
 ## Documentation (if needed)
 - Check `TODO.md` for production-critical items if needed
