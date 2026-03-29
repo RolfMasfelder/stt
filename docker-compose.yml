@@ -6,13 +6,12 @@ services:
       POSTGRES_DB: stt
       POSTGRES_USER: stt
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stt_dev}
+    ports:
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
       - stt-network
-    profiles:
-      - production
-      - dev
 
   stt-server:
     build:

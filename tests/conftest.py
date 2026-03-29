@@ -2,5 +2,5 @@
 
 import os
 
-# Use in-memory SQLite for tests (no PostgreSQL needed).
-os.environ.setdefault("DATABASE_URL", "sqlite://:memory:")
+# Use local PostgreSQL container for tests.
+os.environ.setdefault("DATABASE_URL", "postgres://stt:stt_dev@127.0.0.1:5432/stt")

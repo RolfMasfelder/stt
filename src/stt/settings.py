@@ -44,7 +44,9 @@ WSGI_APPLICATION = "stt.wsgi.application"
 # --- Database ---
 
 DATABASES = {
-    "default": env.db("DATABASE_URL", default="postgres://stt:stt_dev@db:5432/stt"),
+    "default": env.db(
+        "DATABASE_URL", default="postgres://stt:stt_dev@127.0.0.1:5432/stt"
+    ),
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
