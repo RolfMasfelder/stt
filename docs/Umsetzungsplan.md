@@ -255,7 +255,7 @@
 | 2b.2 | Config-API (DRF ViewSets + Test-Endpoints) | 2b.1, 2a.1 | ADR-12 | ✅ Done |
 | 2b.3 | S3-Backend implementieren | 2b.1 | ADR-11 | ✅ Done |
 | 2b.4 | Verschlüsselung at Rest einbauen | 2b.1 | ADR-08 | ✅ Done |
-| 2b.5 | CLI konfigurierbare Server-URL (Verbesserung) | — | FA-12 | |
+| 2b.5 | CLI konfigurierbare Server-URL (Verbesserung) | — | FA-12 | ✅ Done |
 | 2b.6 | OpenAPI-Spezifikation via drf-spectacular generieren | 2b.2 | ADR-15 | |
 
 ### Phase 2c: Mobile App
@@ -353,7 +353,7 @@ Die folgenden Punkte müssen vor oder während der Umsetzung geklärt werden:
 
 ## 6. Nächste Schritte
 
-1. **Phase 2b fortsetzen** — Nächster Schritt: 2b.3 (S3-Backend implementieren)
+1. **Phase 2b abschließen** — Nächster Schritt: 2b.6 (OpenAPI-Spezifikation via drf-spectacular)
 2. **Iteration über Anforderungen** — Offene Entscheidungen (Abschnitt 5) klären
 3. **Deployment-Szenario für Erstentwicklung festlegen** — Empfehlung: zuerst InHouse/Dedicated entwickeln, SaaS/K8s als spätere Phase
 4. **ADRs finalisieren** — Phase-2a-ADRs (06, 07, 08, 14, 15) auf "Akzeptiert" setzen
