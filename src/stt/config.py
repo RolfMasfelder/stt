@@ -60,12 +60,23 @@ class LMStudioConfig:
 
 
 @dataclass(frozen=True)
+class OAuth2ClientConfig:
+    """OAuth2 Client Credentials configuration for CLI/client access."""
+
+    client_id: str = ""
+    client_secret: str = ""
+    token_url: str = ""
+    scopes: str = "read write"
+
+
+@dataclass(frozen=True)
 class AppConfig:
     """Top-level application configuration."""
 
     whisper: WhisperConfig = field(default_factory=WhisperConfig)
     lm_studio: LMStudioConfig = field(default_factory=LMStudioConfig)
     diarize: DiarizeConfig = field(default_factory=DiarizeConfig)
+    oauth2: OAuth2ClientConfig = field(default_factory=OAuth2ClientConfig)
     audio_input_dir: Path = Path("./data/audio")
     output_dir: Path = Path("./data/output")
     log_level: str = "INFO"
@@ -115,10 +126,18 @@ def load_config(env_file: str | None = None) -> AppConfig:
 
     stt_server_url = os.getenv("STT_SERVER_URL") or None
 
+    oauth2 = OAuth2ClientConfig(
+        client_id=os.getenv("OAUTH2_CLIENT_ID", ""),
+        client_secret=os.getenv("OAUTH2_CLIENT_SECRET", ""),
+        token_url=os.getenv("OAUTH2_TOKEN_URL", ""),
+        scopes=os.getenv("OAUTH2_SCOPES", "read write"),
+    )
+
     config = AppConfig(
         whisper=whisper,
         lm_studio=lm_studio,
         diarize=diarize,
+        oauth2=oauth2,
         audio_input_dir=Path(os.getenv("AUDIO_INPUT_DIR", "./data/audio")),
         output_dir=Path(os.getenv("OUTPUT_DIR", "./data/output")),
         log_level=log_level,
@@ -134,4 +153,6 @@ def _log_config(cfg: AppConfig) -> None:
     config_str = str(cfg)
     if cfg.diarize.hf_token:
         config_str = config_str.replace(cfg.diarize.hf_token, "***")
+    if cfg.oauth2.client_secret:
+        config_str = config_str.replace(cfg.oauth2.client_secret, "***")
     logger.debug("Configuration loaded: %s", config_str)

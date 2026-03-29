@@ -5,7 +5,7 @@ import logging
 import sys
 from pathlib import Path
 
-from stt.client import ClientError, STTClient
+from stt.client import AuthenticationError, ClientError, STTClient
 from stt.config import load_config
 from stt.diarize import DiarizationError, diarize_audio, format_diarized_segments
 from stt.logging_setup import setup_logging
@@ -87,7 +87,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def _run_remote(args: argparse.Namespace, config) -> int:
     """Run processing via the remote STT server."""
-    client = STTClient(config.stt_server_url, timeout=config.whisper.timeout)
+    oauth2_cfg = config.oauth2 if config.oauth2.token_url else None
+    client = STTClient(
+        config.stt_server_url,
+        timeout=config.whisper.timeout,
+        oauth2=oauth2_cfg,
+    )
 
     if not args.audio_file:
         audio_dir = config.audio_input_dir
@@ -171,6 +176,9 @@ def _run_remote(args: argparse.Namespace, config) -> int:
 
     except FileNotFoundError as e:
         logger.error("%s", e)
+        return 1
+    except AuthenticationError as e:
+        logger.error("Authentication failed: %s", e)
         return 1
     except ClientError as e:
         logger.error("Server request failed: %s", e)
