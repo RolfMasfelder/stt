@@ -42,5 +42,5 @@ RUN useradd --create-home --shell /bin/bash stt && \
     chown -R stt:stt /app /home/stt
 USER stt
 
-# Default command: run FastAPI server
-CMD ["python", "-m", "uvicorn", "stt.server:app", "--host", "0.0.0.0", "--port", "8090"]
+# Default command: run Django via gunicorn
+CMD ["python", "-m", "gunicorn", "stt.wsgi:application", "--bind", "0.0.0.0:8090", "--workers", "2", "--timeout", "600"]

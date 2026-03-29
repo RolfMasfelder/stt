@@ -12,27 +12,34 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "django==5.2",
+    "django-cors-headers==4.7.0",
+    "django-environ==0.12.0",
+    "django-oauth-toolkit==3.0.1",
+    "django-q2==1.7.5",
+    "djangorestframework==3.16.0",
+    "drf-spectacular==0.28.0",
     "faster-whisper==1.2.1",
-    "fastapi==0.115.12",
+    "gunicorn==23.0.0",
+    "numpy==2.4.2",
+    "psycopg[binary]==3.2.6",
     "pyannote.audio==4.0.4",
-    "python-multipart==0.0.20",
+    "python-dotenv==1.2.1",
     "requests==2.32.5",
     "sounddevice==0.5.5",
-    "numpy==2.4.2",
-    "python-dotenv==1.2.1",
-    "uvicorn==0.34.3",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
     "pytest-cov",
+    "pytest-django>=4.5",
     "ruff>=0.1.0",
     "pre-commit>=3.0",
 ]
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py313"
 line-length = 88
 
 [tool.ruff.lint]
@@ -66,3 +73,4 @@ addopts = "-ra -q --strict-markers"
 testpaths = [
     "tests",
 ]
+DJANGO_SETTINGS_MODULE = "stt.settings"

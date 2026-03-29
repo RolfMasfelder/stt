@@ -1,9 +1,10 @@
-"""Tests for the STT server."""
+"""Tests for the STT Django REST API."""
 
+from io import BytesIO
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
+from rest_framework.test import APIClient
 
 from stt.config import DiarizeConfig, LMStudioConfig, WhisperConfig
 from stt.summarize import ProcessResult
@@ -11,19 +12,22 @@ from stt.summarize import ProcessResult
 
 @pytest.fixture
 def client():
-    """Create a test client with mocked config."""
-    with patch("stt.server.load_config") as mock_config:
-        config = MagicMock()
-        config.log_level = "WARNING"
-        config.whisper = WhisperConfig()
-        config.diarize = DiarizeConfig(hf_token="hf_test")
-        config.lm_studio = LMStudioConfig()
-        mock_config.return_value = config
+    """Create a DRF test client with mocked ML config."""
+    mock_config = MagicMock()
+    mock_config.log_level = "WARNING"
+    mock_config.whisper = WhisperConfig()
+    mock_config.diarize = DiarizeConfig(hf_token="hf_test")
+    mock_config.lm_studio = LMStudioConfig()
 
-        from stt.server import app
+    with patch("stt.api.views._get_config", return_value=mock_config):
+        yield APIClient()
 
-        with TestClient(app) as tc:
-            yield tc
+
+def _audio_file(name: str = "test.wav", content: bytes = b"fake audio data"):
+    """Create a simple in-memory file for upload."""
+    f = BytesIO(content)
+    f.name = name
+    return f
 
 
 class TestHealthEndpoint:
@@ -38,26 +42,27 @@ class TestHealthEndpoint:
 class TestTranscribeEndpoint:
     """Tests for POST /v1/transcribe."""
 
-    @patch("stt.server.transcribe_audio")
+    @patch("stt.api.views.transcribe_audio")
     def test_transcribe_success(self, mock_transcribe, client) -> None:
         mock_transcribe.return_value = "Hello World"
         response = client.post(
             "/v1/transcribe",
-            files={"file": ("test.wav", b"fake audio data", "audio/wav")},
-            data={"model": "small"},
+            {"file": _audio_file(), "model": "small"},
+            format="multipart",
         )
         assert response.status_code == 200
         assert response.json() == {"text": "Hello World"}
         mock_transcribe.assert_called_once()
 
-    @patch("stt.server.transcribe_audio")
+    @patch("stt.api.views.transcribe_audio")
     def test_transcribe_error(self, mock_transcribe, client) -> None:
         from stt.transcribe import TranscriptionError
 
         mock_transcribe.side_effect = TranscriptionError("fail")
         response = client.post(
             "/v1/transcribe",
-            files={"file": ("test.wav", b"fake", "audio/wav")},
+            {"file": _audio_file()},
+            format="multipart",
         )
         assert response.status_code == 500
         assert "fail" in response.json()["detail"]
@@ -70,8 +75,8 @@ class TestTranscribeEndpoint:
 class TestDiarizeEndpoint:
     """Tests for POST /v1/diarize."""
 
-    @patch("stt.server.format_diarized_segments")
-    @patch("stt.server.diarize_audio")
+    @patch("stt.api.views.format_diarized_segments")
+    @patch("stt.api.views.diarize_audio")
     def test_diarize_success(self, mock_diarize, mock_format, client) -> None:
         from stt.diarize import DiarizedSegment
 
@@ -84,7 +89,8 @@ class TestDiarizeEndpoint:
 
         response = client.post(
             "/v1/diarize",
-            files={"file": ("test.wav", b"fake", "audio/wav")},
+            {"file": _audio_file()},
+            format="multipart",
         )
         assert response.status_code == 200
         body = response.json()
@@ -93,14 +99,15 @@ class TestDiarizeEndpoint:
         assert len(body["segments"]) == 2
         assert body["segments"][0]["speaker"] == "Sprecher 1"
 
-    @patch("stt.server.diarize_audio")
+    @patch("stt.api.views.diarize_audio")
     def test_diarize_error(self, mock_diarize, client) -> None:
         from stt.diarize import DiarizationError
 
         mock_diarize.side_effect = DiarizationError("no token")
         response = client.post(
             "/v1/diarize",
-            files={"file": ("test.wav", b"fake", "audio/wav")},
+            {"file": _audio_file()},
+            format="multipart",
         )
         assert response.status_code == 500
         assert "no token" in response.json()["detail"]
@@ -109,9 +116,9 @@ class TestDiarizeEndpoint:
 class TestProcessEndpoint:
     """Tests for POST /v1/process."""
 
-    @patch("stt.server.process_transcript")
-    @patch("stt.server.format_diarized_segments")
-    @patch("stt.server.diarize_audio")
+    @patch("stt.api.views.process_transcript")
+    @patch("stt.api.views.format_diarized_segments")
+    @patch("stt.api.views.diarize_audio")
     def test_process_with_diarize(
         self, mock_diarize, mock_format, mock_process, client
     ) -> None:
@@ -130,8 +137,8 @@ class TestProcessEndpoint:
 
         response = client.post(
             "/v1/process",
-            files={"file": ("test.wav", b"fake", "audio/wav")},
-            data={"diarize": "true"},
+            {"file": _audio_file(), "diarize": "true"},
+            format="multipart",
         )
         assert response.status_code == 200
         body = response.json()
@@ -140,8 +147,8 @@ class TestProcessEndpoint:
         assert body["summary"] == "Zusammenfassung"
         assert body["diarized_text"] is not None
 
-    @patch("stt.server.process_transcript")
-    @patch("stt.server.transcribe_audio")
+    @patch("stt.api.views.process_transcript")
+    @patch("stt.api.views.transcribe_audio")
     def test_process_without_diarize(
         self, mock_transcribe, mock_process, client
     ) -> None:
@@ -154,8 +161,8 @@ class TestProcessEndpoint:
 
         response = client.post(
             "/v1/process",
-            files={"file": ("test.wav", b"fake", "audio/wav")},
-            data={"diarize": "false"},
+            {"file": _audio_file(), "diarize": "false"},
+            format="multipart",
         )
         assert response.status_code == 200
         body = response.json()
@@ -163,15 +170,15 @@ class TestProcessEndpoint:
         assert body["structured_text"] == "Strukturiert"
         assert body["summary"] == "Zusammenfassung"
 
-    @patch("stt.server.transcribe_audio")
+    @patch("stt.api.views.transcribe_audio")
     def test_process_error(self, mock_transcribe, client) -> None:
         from stt.transcribe import TranscriptionError
 
         mock_transcribe.side_effect = TranscriptionError("boom")
         response = client.post(
             "/v1/process",
-            files={"file": ("test.wav", b"fake", "audio/wav")},
-            data={"diarize": "false"},
+            {"file": _audio_file(), "diarize": "false"},
+            format="multipart",
         )
         assert response.status_code == 500
         assert "boom" in response.json()["detail"]
@@ -183,17 +190,18 @@ class TestUploadValidation:
     def test_unsupported_audio_format(self, client) -> None:
         response = client.post(
             "/v1/transcribe",
-            files={"file": ("test.txt", b"not audio", "text/plain")},
+            {"file": _audio_file("test.txt", b"not audio")},
+            format="multipart",
         )
         assert response.status_code == 400
         assert "Unsupported audio format" in response.json()["detail"]
 
     def test_file_too_large(self, client) -> None:
-        # Actual upload of 500MB+ would be slow; we patch _MAX_UPLOAD_BYTES
-        with patch("stt.server._MAX_UPLOAD_BYTES", 10):
+        with patch("stt.api.views._MAX_UPLOAD_BYTES", 10):
             response = client.post(
                 "/v1/transcribe",
-                files={"file": ("test.wav", b"x" * 20, "audio/wav")},
+                {"file": _audio_file("test.wav", b"x" * 20)},
+                format="multipart",
             )
         assert response.status_code == 413
         assert "too large" in response.json()["detail"]
@@ -203,20 +211,18 @@ class TestDiarizeNoToken:
     """Tests for missing HF token."""
 
     def test_missing_hf_token_returns_503(self) -> None:
-        with patch("stt.server.load_config") as mock_config:
-            config = MagicMock()
-            config.log_level = "WARNING"
-            config.whisper = WhisperConfig()
-            config.diarize = DiarizeConfig()  # no hf_token
-            config.lm_studio = LMStudioConfig()
-            mock_config.return_value = config
+        mock_config = MagicMock()
+        mock_config.log_level = "WARNING"
+        mock_config.whisper = WhisperConfig()
+        mock_config.diarize = DiarizeConfig()  # no hf_token
+        mock_config.lm_studio = LMStudioConfig()
 
-            from stt.server import app
-
-            with TestClient(app) as tc:
-                response = tc.post(
-                    "/v1/diarize",
-                    files={"file": ("test.wav", b"fake", "audio/wav")},
-                )
+        with patch("stt.api.views._get_config", return_value=mock_config):
+            api_client = APIClient()
+            response = api_client.post(
+                "/v1/diarize",
+                {"file": _audio_file()},
+                format="multipart",
+            )
         assert response.status_code == 503
         assert "HF_STT_TOKEN" in response.json()["detail"]

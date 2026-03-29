@@ -1,10 +1,27 @@
 services:
+  db:
+    image: postgres:17
+    container_name: stt-db
+    environment:
+      POSTGRES_DB: stt
+      POSTGRES_USER: stt
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stt_dev}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - stt-network
+    profiles:
+      - production
+      - dev
+
   stt-server:
     build:
       context: .
       secrets:
         - hf_token
     container_name: stt-server
+    depends_on:
+      - db
     env_file:
       - .env
     ports:
@@ -13,6 +30,7 @@ services:
       - .:/app:z
     environment:
       - PYTHONPATH=/app
+      - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
       - LM_STUDIO_HOST=${LM_STUDIO_HOST}
       - LM_STUDIO_PORT=${LM_STUDIO_PORT}
       - LM_STUDIO_MODEL=${LM_STUDIO_MODEL}
@@ -21,11 +39,12 @@ services:
       - WHISPER_API_URL=${WHISPER_API_URL}
       - HF_STT_TOKEN=${HF_STT_TOKEN}
       - LOG_LEVEL=${LOG_LEVEL}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-insecure-dev-key-change-in-production}
     networks:
       - stt-network
     profiles:
       - production
-    command: ["python", "-m", "uvicorn", "stt.server:app", "--host", "0.0.0.0", "--port", "8090"]
+    command: ["python", "-m", "gunicorn", "stt.wsgi:application", "--bind", "0.0.0.0:8090", "--workers", "2", "--timeout", "600"]
 
   # CLI service for one-off commands via docker-compose exec/run
   stt-cli:
@@ -56,6 +75,8 @@ services:
       secrets:
         - hf_token
     container_name: stt-dev
+    depends_on:
+      - db
     env_file:
       - .env
     volumes:
@@ -74,6 +95,8 @@ services:
       - LOG_LEVEL=${LOG_LEVEL}
       - DEVELOPMENT_MODE=${DEVELOPMENT_MODE}
       - DEBUG=${DEBUG}
+      - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-insecure-dev-key-change-in-production}
     network_mode: host
     profiles:
       - dev
@@ -97,6 +120,9 @@ services:
 networks:
   stt-network:
     driver: bridge
+
+volumes:
+  pgdata:
 
 secrets:
   hf_token:
