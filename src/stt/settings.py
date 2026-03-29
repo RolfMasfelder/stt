@@ -18,6 +18,10 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "insecure-dev-key-change-in-producti
 
 DEBUG = os.getenv("DEBUG", "false").lower() in ("true", "1", "yes")
 
+# Storage encryption key (ADR-08) — 32-byte hex-encoded AES-256 key.
+# Generate with: python -c "import secrets; print(secrets.token_hex(32))"
+STORAGE_ENCRYPTION_KEY: str = os.getenv("STORAGE_ENCRYPTION_KEY", "")
+
 # Restrict in production via ALLOWED_HOSTS env variable (comma-separated).
 _hosts = os.getenv("ALLOWED_HOSTS", "*")
 ALLOWED_HOSTS: list[str] = [h.strip() for h in _hosts.split(",") if h.strip()]

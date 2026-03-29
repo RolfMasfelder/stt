@@ -357,6 +357,83 @@ class S3Backend:
         )
 
 
+class EncryptingBackend:
+    """Decorator that adds AES-256-GCM encryption to any StorageBackend (ADR-08).
+
+    Encrypts content before storing and decrypts after retrieval.
+    Format: 12-byte nonce + 16-byte tag + ciphertext.
+    """
+
+    NONCE_SIZE = 12
+    TAG_SIZE = 16
+
+    def __init__(self, inner: StorageBackend, key_hex: str) -> None:
+        if not key_hex:
+            raise StorageError(
+                "STORAGE_ENCRYPTION_KEY not set — required when encrypt_at_rest=True"
+            )
+        try:
+            self._key = bytes.fromhex(key_hex)
+        except ValueError as e:
+            raise StorageError(
+                f"Invalid STORAGE_ENCRYPTION_KEY (must be hex): {e}"
+            ) from e
+        if len(self._key) != 32:
+            raise StorageError(
+                f"STORAGE_ENCRYPTION_KEY must be 32 bytes (64 hex chars), got {len(self._key)}"
+            )
+        self._inner = inner
+
+    @property
+    def name(self) -> str:
+        return self._inner.name
+
+    def _encrypt(self, plaintext: bytes) -> bytes:
+        """Encrypt with AES-256-GCM. Returns nonce + tag + ciphertext."""
+        import os
+
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+        nonce = os.urandom(self.NONCE_SIZE)
+        aesgcm = AESGCM(self._key)
+        ct = aesgcm.encrypt(nonce, plaintext, None)
+        # ct already includes the 16-byte tag appended by cryptography
+        return nonce + ct
+
+    def _decrypt(self, data: bytes) -> bytes:
+        """Decrypt AES-256-GCM payload (nonce + tag + ciphertext)."""
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+        if len(data) < self.NONCE_SIZE + self.TAG_SIZE:
+            raise StorageError("Encrypted data too short")
+        nonce = data[: self.NONCE_SIZE]
+        ct = data[self.NONCE_SIZE :]
+        aesgcm = AESGCM(self._key)
+        try:
+            return aesgcm.decrypt(nonce, ct, None)
+        except Exception as e:
+            raise StorageError(f"Decryption failed: {e}") from e
+
+    def store(self, content: bytes, filename: str, sub_path: str = "") -> StorageResult:
+        encrypted = self._encrypt(content)
+        result = self._inner.store(encrypted, filename, sub_path)
+        logger.info("Stored encrypted (%d -> %d bytes)", len(content), len(encrypted))
+        return result
+
+    def retrieve(self, filename: str, sub_path: str = "") -> bytes:
+        encrypted = self._inner.retrieve(filename, sub_path)
+        return self._decrypt(encrypted)
+
+    def delete(self, filename: str, sub_path: str = "") -> None:
+        self._inner.delete(filename, sub_path)
+
+    def exists(self, filename: str, sub_path: str = "") -> bool:
+        return self._inner.exists(filename, sub_path)
+
+    def test_connection(self) -> StorageTestResult:
+        return self._inner.test_connection()
+
+
 def get_backend(config: object) -> StorageBackend:
     """Create a StorageBackend instance from a StorageConfig model.
 
@@ -372,12 +449,12 @@ def get_backend(config: object) -> StorageBackend:
     from .models import StorageBackendType
 
     if config.backend_type == StorageBackendType.LOCAL:
-        return LocalFileBackend(
+        backend = LocalFileBackend(
             base_path=config.base_path,
             backend_name=config.name,
         )
-    if config.backend_type == StorageBackendType.S3:
-        return S3Backend(
+    elif config.backend_type == StorageBackendType.S3:
+        backend = S3Backend(
             endpoint_url=config.s3_endpoint_url or "",
             bucket=config.s3_bucket or "",
             access_key=config.s3_access_key or "",
@@ -385,5 +462,13 @@ def get_backend(config: object) -> StorageBackend:
             region=config.s3_region or "",
             backend_name=config.name,
         )
+    else:
+        raise StorageError(f"Unknown backend type: {config.backend_type}")
 
-    raise StorageError(f"Unknown backend type: {config.backend_type}")
+    # Wrap with encryption if enabled (ADR-08)
+    if getattr(config, "encrypt_at_rest", False):
+        from django.conf import settings
+
+        backend = EncryptingBackend(backend, settings.STORAGE_ENCRYPTION_KEY)
+
+    return backend

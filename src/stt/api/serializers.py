@@ -110,6 +110,7 @@ class StorageConfigSerializer(serializers.ModelSerializer):
             "s3_access_key",
             "s3_secret_key",
             "s3_region",
+            "encrypt_at_rest",
             "created_at",
             "updated_at",
         ]

@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from stt.api.storage import (
+    EncryptingBackend,
     LocalFileBackend,
     S3Backend,
     StorageBackend,
@@ -289,3 +290,126 @@ class TestS3Backend:
         result = backend.test_connection()
         assert result.success is False
         assert result.connection is False
+
+
+class TestEncryptingBackend:
+    """Unit tests for EncryptingBackend AES-256-GCM wrapper (ADR-08)."""
+
+    TEST_KEY_HEX = "a" * 64
+
+    @pytest.fixture
+    def inner(self, tmp_path) -> LocalFileBackend:
+        return LocalFileBackend(str(tmp_path))
+
+    @pytest.fixture
+    def backend(self, inner: LocalFileBackend) -> EncryptingBackend:
+        return EncryptingBackend(inner, self.TEST_KEY_HEX)
+
+    def test_implements_protocol(self, backend: EncryptingBackend) -> None:
+        assert isinstance(backend, StorageBackend)
+
+    def test_name_delegated(self, backend: EncryptingBackend) -> None:
+        assert backend.name == "local"
+
+    def test_roundtrip(self, backend: EncryptingBackend) -> None:
+        plaintext = b"Hello, encrypted world!"
+        backend.store(plaintext, "test.txt")
+        result = backend.retrieve("test.txt")
+        assert result == plaintext
+
+    def test_stored_data_is_encrypted(
+        self, backend: EncryptingBackend, inner: LocalFileBackend
+    ) -> None:
+        plaintext = b"sensitive data"
+        backend.store(plaintext, "secret.txt")
+        raw = inner.retrieve("secret.txt")
+        assert raw != plaintext
+        assert len(raw) > len(plaintext)
+
+    def test_delete_delegated(
+        self, backend: EncryptingBackend, inner: LocalFileBackend
+    ) -> None:
+        backend.store(b"data", "del.txt")
+        assert inner.exists("del.txt")
+        backend.delete("del.txt")
+        assert not inner.exists("del.txt")
+
+    def test_exists_delegated(self, backend: EncryptingBackend) -> None:
+        assert not backend.exists("nope.txt")
+        backend.store(b"x", "nope.txt")
+        assert backend.exists("nope.txt")
+
+    def test_test_connection_delegated(self, backend: EncryptingBackend) -> None:
+        result = backend.test_connection()
+        assert result.success is True
+
+    def test_wrong_key_fails_decrypt(self, backend: EncryptingBackend) -> None:
+        backend.store(b"secret", "file.txt")
+        wrong_key = "b" * 64
+        bad_backend = EncryptingBackend(backend._inner, wrong_key)
+        with pytest.raises(StorageError, match="Decryption failed"):
+            bad_backend.retrieve("file.txt")
+
+    def test_empty_key_raises(self, inner: LocalFileBackend) -> None:
+        with pytest.raises(StorageError, match="not set"):
+            EncryptingBackend(inner, "")
+
+    def test_short_key_raises(self, inner: LocalFileBackend) -> None:
+        with pytest.raises(StorageError, match="32 bytes"):
+            EncryptingBackend(inner, "aa" * 16)
+
+    def test_invalid_hex_raises(self, inner: LocalFileBackend) -> None:
+        with pytest.raises(StorageError, match="hex"):
+            EncryptingBackend(inner, "not-valid-hex")
+
+    def test_truncated_data_raises(self, backend: EncryptingBackend) -> None:
+        backend.store(b"data", "tampered.txt")
+        backend._inner.store(b"short", "tampered.txt")
+        with pytest.raises(StorageError, match="too short"):
+            backend.retrieve("tampered.txt")
+
+
+@pytest.mark.django_db
+class TestGetBackendEncryption:
+    """Test that get_backend wraps with EncryptingBackend when encrypt_at_rest=True."""
+
+    TEST_KEY_HEX = "a" * 64
+
+    def test_local_without_encryption(self, tmp_path) -> None:
+        from stt.api.models import StorageBackendType, StorageConfig
+
+        config = StorageConfig.objects.create(
+            name="plain",
+            backend_type=StorageBackendType.LOCAL,
+            base_path=str(tmp_path),
+            encrypt_at_rest=False,
+        )
+        backend = get_backend(config)
+        assert isinstance(backend, LocalFileBackend)
+        assert not isinstance(backend, EncryptingBackend)
+
+    def test_local_with_encryption(self, tmp_path, settings) -> None:
+        from stt.api.models import StorageBackendType, StorageConfig
+
+        settings.STORAGE_ENCRYPTION_KEY = self.TEST_KEY_HEX
+        config = StorageConfig.objects.create(
+            name="encrypted",
+            backend_type=StorageBackendType.LOCAL,
+            base_path=str(tmp_path),
+            encrypt_at_rest=True,
+        )
+        backend = get_backend(config)
+        assert isinstance(backend, EncryptingBackend)
+
+    def test_encryption_no_key_raises(self, tmp_path, settings) -> None:
+        from stt.api.models import StorageBackendType, StorageConfig
+
+        settings.STORAGE_ENCRYPTION_KEY = ""
+        config = StorageConfig.objects.create(
+            name="no-key",
+            backend_type=StorageBackendType.LOCAL,
+            base_path=str(tmp_path),
+            encrypt_at_rest=True,
+        )
+        with pytest.raises(StorageError, match="not set"):
+            get_backend(config)

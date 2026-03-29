@@ -94,6 +94,12 @@ class StorageConfig(models.Model):
     s3_secret_key = models.CharField(max_length=255, blank=True, default="")
     s3_region = models.CharField(max_length=100, blank=True, default="")
 
+    # Encryption at rest (ADR-08)
+    encrypt_at_rest = models.BooleanField(
+        default=False,
+        help_text="Encrypt stored files with AES-256-GCM before writing",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

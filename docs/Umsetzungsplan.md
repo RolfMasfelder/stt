@@ -253,7 +253,7 @@
 |---------|-------------|----------------|-----|--------|
 | 2b.1 | Storage-Backend-Abstraktion implementieren | — | ADR-11 | ✅ Done |
 | 2b.2 | Config-API (DRF ViewSets + Test-Endpoints) | 2b.1, 2a.1 | ADR-12 | ✅ Done |
-| 2b.3 | S3-Backend implementieren | 2b.1 | ADR-11 | |
+| 2b.3 | S3-Backend implementieren | 2b.1 | ADR-11 | ✅ Done |
 | 2b.4 | Verschlüsselung at Rest einbauen | 2b.1 | ADR-08 | |
 | 2b.5 | CLI konfigurierbare Server-URL (Verbesserung) | — | FA-12 | |
 | 2b.6 | OpenAPI-Spezifikation via drf-spectacular generieren | 2b.2 | ADR-15 | |
