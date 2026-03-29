@@ -11,6 +11,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
+import boto3
+from botocore.config import Config as BotoConfig
+
 logger = logging.getLogger(__name__)
 
 
@@ -220,6 +223,140 @@ class LocalFileBackend:
         )
 
 
+class S3Backend:
+    """Storage backend for S3-compatible object storage (ADR-11)."""
+
+    def __init__(
+        self,
+        endpoint_url: str,
+        bucket: str,
+        access_key: str,
+        secret_key: str,
+        region: str = "",
+        backend_name: str = "s3",
+    ) -> None:
+        self._bucket = bucket
+        self._name = backend_name
+
+        client_kwargs: dict[str, str | BotoConfig] = {}
+        if endpoint_url:
+            client_kwargs["endpoint_url"] = endpoint_url
+        if region:
+            client_kwargs["region_name"] = region
+
+        self._client = boto3.client(
+            "s3",
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            config=BotoConfig(signature_version="s3v4"),
+            **client_kwargs,
+        )
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def _key(self, filename: str, sub_path: str = "") -> str:
+        """Build an S3 object key, preventing path traversal."""
+        from pathlib import PurePosixPath
+
+        parts = (
+            PurePosixPath(sub_path) / filename if sub_path else PurePosixPath(filename)
+        )
+        # Normalise and reject traversal
+        normalised = PurePosixPath(*parts.parts)
+        if ".." in normalised.parts:
+            raise StorageError(f"Path traversal detected: {filename}")
+        return str(normalised)
+
+    def store(self, content: bytes, filename: str, sub_path: str = "") -> StorageResult:
+        key = self._key(filename, sub_path)
+        try:
+            self._client.put_object(Bucket=self._bucket, Key=key, Body=content)
+            logger.info(
+                "Stored %d bytes to s3://%s/%s", len(content), self._bucket, key
+            )
+            return StorageResult(
+                backend_name=self._name,
+                path=f"s3://{self._bucket}/{key}",
+                size_bytes=len(content),
+            )
+        except Exception as e:
+            raise StorageError(f"S3 put_object failed for {key}: {e}") from e
+
+    def retrieve(self, filename: str, sub_path: str = "") -> bytes:
+        key = self._key(filename, sub_path)
+        try:
+            resp = self._client.get_object(Bucket=self._bucket, Key=key)
+            return resp["Body"].read()
+        except self._client.exceptions.NoSuchKey as e:
+            raise StorageError(f"File not found: s3://{self._bucket}/{key}") from e
+        except Exception as e:
+            raise StorageError(f"S3 get_object failed for {key}: {e}") from e
+
+    def delete(self, filename: str, sub_path: str = "") -> None:
+        key = self._key(filename, sub_path)
+        try:
+            self._client.delete_object(Bucket=self._bucket, Key=key)
+            logger.info("Deleted s3://%s/%s", self._bucket, key)
+        except Exception as e:
+            raise StorageError(f"S3 delete_object failed for {key}: {e}") from e
+
+    def exists(self, filename: str, sub_path: str = "") -> bool:
+        key = self._key(filename, sub_path)
+        try:
+            self._client.head_object(Bucket=self._bucket, Key=key)
+            return True
+        except self._client.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] == "404":
+                return False
+            raise StorageError(f"S3 head_object failed for {key}: {e}") from e
+        except Exception as e:
+            raise StorageError(f"S3 head_object failed for {key}: {e}") from e
+
+    def test_connection(self) -> StorageTestResult:
+        import time
+
+        start = time.monotonic()
+        checks = {"connection": False, "write": False, "read": False, "delete": False}
+        test_key = "_stt_storage_test.tmp"
+        test_content = b"STT storage test"
+
+        try:
+            # Connection: verify bucket accessibility
+            self._client.head_bucket(Bucket=self._bucket)
+            checks["connection"] = True
+
+            # Write
+            self._client.put_object(
+                Bucket=self._bucket, Key=test_key, Body=test_content
+            )
+            checks["write"] = True
+
+            # Read
+            resp = self._client.get_object(Bucket=self._bucket, Key=test_key)
+            data = resp["Body"].read()
+            checks["read"] = data == test_content
+
+            # Delete
+            self._client.delete_object(Bucket=self._bucket, Key=test_key)
+            checks["delete"] = True
+
+            message = "Alle Prüfungen erfolgreich"
+        except Exception as e:
+            message = str(e)
+
+        elapsed_ms = int((time.monotonic() - start) * 1000)
+        return StorageTestResult(
+            connection=checks["connection"],
+            write=checks["write"],
+            read=checks["read"],
+            delete=checks["delete"],
+            message=message,
+            duration_ms=elapsed_ms,
+        )
+
+
 def get_backend(config: object) -> StorageBackend:
     """Create a StorageBackend instance from a StorageConfig model.
 
@@ -240,6 +377,13 @@ def get_backend(config: object) -> StorageBackend:
             backend_name=config.name,
         )
     if config.backend_type == StorageBackendType.S3:
-        raise StorageError("S3 backend not yet implemented (planned: 2b.3)")
+        return S3Backend(
+            endpoint_url=config.s3_endpoint_url or "",
+            bucket=config.s3_bucket or "",
+            access_key=config.s3_access_key or "",
+            secret_key=config.s3_secret_key or "",
+            region=config.s3_region or "",
+            backend_name=config.name,
+        )
 
     raise StorageError(f"Unknown backend type: {config.backend_type}")
