@@ -14,12 +14,12 @@ urlpatterns = [
     # Storage config (ADR-12)
     path(
         "v1/config/storage",
-        views.StorageConfigViewSet.as_view(),
+        views.StorageConfigListView.as_view(),
         name="storage-config-list",
     ),
     path(
         "v1/config/storage/<str:config_id>",
-        views.StorageConfigViewSet.as_view(),
+        views.StorageConfigDetailView.as_view(),
         name="storage-config-detail",
     ),
     path(

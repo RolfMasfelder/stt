@@ -409,28 +409,16 @@ class JobDetailView(APIView):
 # --- Storage config endpoints (ADR-11, ADR-12) ---
 
 
-class StorageConfigViewSet(APIView):
-    """CRUD + test for storage backend configurations."""
+class StorageConfigListView(APIView):
+    """List and create storage backend configurations."""
 
     @extend_schema(
         responses={200: StorageConfigSerializer(many=True)},
         summary="List all storage configurations",
     )
-    def get(self, request: Request, config_id: str | None = None) -> Response:
-        if config_id:
-            return self._get_detail(request, config_id)
+    def get(self, request: Request) -> Response:
         configs = StorageConfig.objects.all()
         return Response(StorageConfigSerializer(configs, many=True).data)
-
-    def _get_detail(self, request: Request, config_id: str) -> Response:
-        try:
-            config = StorageConfig.objects.get(id=config_id)
-        except (StorageConfig.DoesNotExist, ValueError, ValidationError):
-            return Response(
-                {"detail": "Storage config not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        return Response(StorageConfigSerializer(config).data)
 
     @extend_schema(
         request=StorageConfigSerializer,
@@ -440,7 +428,7 @@ class StorageConfigViewSet(APIView):
         },
         summary="Create a storage configuration",
     )
-    def post(self, request: Request, config_id: str | None = None) -> Response:
+    def post(self, request: Request) -> Response:
         serializer = StorageConfigSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -455,6 +443,27 @@ class StorageConfigViewSet(APIView):
             StorageConfigSerializer(config).data,
             status=status.HTTP_201_CREATED,
         )
+
+
+class StorageConfigDetailView(APIView):
+    """Retrieve, update, and delete a storage backend configuration."""
+
+    @extend_schema(
+        responses={
+            200: StorageConfigSerializer,
+            404: ErrorResponseSerializer,
+        },
+        summary="Get a storage configuration",
+    )
+    def get(self, request: Request, config_id: str) -> Response:
+        try:
+            config = StorageConfig.objects.get(id=config_id)
+        except (StorageConfig.DoesNotExist, ValueError, ValidationError):
+            return Response(
+                {"detail": "Storage config not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response(StorageConfigSerializer(config).data)
 
     @extend_schema(
         request=StorageConfigSerializer,
@@ -514,6 +523,7 @@ class StorageConfigTestView(APIView):
     """Test a storage backend configuration (ADR-12)."""
 
     @extend_schema(
+        request=None,
         responses={
             200: StorageTestResponseSerializer,
             404: ErrorResponseSerializer,

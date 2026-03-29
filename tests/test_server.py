@@ -224,3 +224,45 @@ class TestDiarizeNoToken:
             )
         assert response.status_code == 503
         assert "HF_STT_TOKEN" in response.json()["detail"]
+
+
+class TestOpenAPISchema:
+    """Tests for OpenAPI schema generation via drf-spectacular."""
+
+    def _get_schema(self, auth_client):
+        """Fetch schema using drf-spectacular's SchemaGenerator directly."""
+        from drf_spectacular.generators import SchemaGenerator
+
+        generator = SchemaGenerator()
+        return generator.get_schema(public=True)
+
+    def test_schema_endpoint_returns_200(self, auth_client) -> None:
+        schema = self._get_schema(auth_client)
+        assert "openapi" in schema
+
+    def test_schema_has_all_paths(self, auth_client) -> None:
+        schema = self._get_schema(auth_client)
+        paths = set(schema["paths"].keys())
+        expected = {
+            "/health",
+            "/v1/transcribe",
+            "/v1/diarize",
+            "/v1/process",
+            "/v1/jobs",
+            "/v1/jobs/{job_id}",
+            "/v1/config/storage",
+            "/v1/config/storage/{config_id}",
+            "/v1/config/storage/{config_id}/test",
+        }
+        assert expected == paths
+
+    def test_schema_info(self, auth_client) -> None:
+        schema = self._get_schema(auth_client)
+        assert schema["info"]["title"] == "STT Server API"
+        assert schema["info"]["version"] == "1.0.0"
+
+    def test_schema_has_oauth2_security(self, auth_client) -> None:
+        schema = self._get_schema(auth_client)
+        schemes = schema["components"]["securitySchemes"]
+        assert "oauth2" in schemes
+        assert "clientCredentials" in schemes["oauth2"]["flows"]
