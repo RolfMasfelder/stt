@@ -34,6 +34,7 @@ from .serializers import (
     ProcessUploadSerializer,
     TranscribeResponseSerializer,
 )
+from .throttles import UploadRateThrottle
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +114,7 @@ class HealthView(APIView):
 
 class TranscribeView(APIView):
     parser_classes = [MultiPartParser, FormParser]
+    throttle_classes = [UploadRateThrottle]
 
     @extend_schema(
         request=AudioUploadSerializer,
@@ -159,6 +161,7 @@ class TranscribeView(APIView):
 
 class DiarizeView(APIView):
     parser_classes = [MultiPartParser, FormParser]
+    throttle_classes = [UploadRateThrottle]
 
     @extend_schema(
         request=AudioUploadSerializer,
@@ -229,6 +232,7 @@ class DiarizeView(APIView):
 
 class ProcessView(APIView):
     parser_classes = [MultiPartParser, FormParser]
+    throttle_classes = [UploadRateThrottle]
 
     @extend_schema(
         request=ProcessUploadSerializer,
@@ -314,6 +318,7 @@ _JOB_TYPE_TASK_MAP = {
 
 class JobCreateView(APIView):
     parser_classes = [MultiPartParser, FormParser]
+    throttle_classes = [UploadRateThrottle]
 
     @extend_schema(
         request=ProcessUploadSerializer,

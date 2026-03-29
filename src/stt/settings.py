@@ -80,6 +80,15 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
         "oauth2_provider.contrib.rest_framework.TokenHasReadWriteScope",
     ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "20/minute",
+        "user": "60/minute",
+        "upload": "10/minute",  # For audio upload endpoints (ADR-14)
+    },
     "DEFAULT_PARSER_CLASSES": [
         "rest_framework.parsers.MultiPartParser",
         "rest_framework.parsers.FormParser",

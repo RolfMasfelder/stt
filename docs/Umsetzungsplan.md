@@ -223,7 +223,7 @@
 | 2a.5 | TLS-Terminierung einrichten | 2a.4 | ADR-08 | ✅ Fertig |
 | 2a.6 | OAuth2-Provider mit django-oauth-toolkit einrichten | 2a.0 | ADR-07 | ✅ Fertig |
 | 2a.7 | JWT-Validierung über DRF-Permissions | 2a.6 | ADR-07 | ✅ Fertig |
-| 2a.8 | Security-Header und Rate Limiting (DRF Throttling) | 2a.4 | ADR-14 | |
+| 2a.8 | Security-Header und Rate Limiting (DRF Throttling) | 2a.4 | ADR-14 | ✅ Fertig |
 | 2a.9 | Audit-Logging implementieren | 2a.7 | FA-16 | |
 | 2a.10 | CLI-Client auf OAuth2 umstellen | 2a.6 | ADR-07 | |
 
@@ -236,6 +236,8 @@
 **Erledigt in 2a.6:** `django-oauth-toolkit` (DOT) als OAuth2-Provider integriert. `oauth2_provider` in INSTALLED_APPS, DOT-Migrationen angewendet (12 Tabellen). OAuth2-Konfiguration: Access-Token 15 Min, Refresh-Token 7 Tage, PKCE erzwungen, Token-Rotation. DRF Default-Auth auf `OAuth2Authentication` + `IsAuthenticated` gesetzt. Health-Endpoint bleibt öffentlich (`AllowAny`). OAuth2-URLs unter `/o/` (Token, Authorize, Revoke). Shared Test-Fixtures in `conftest.py` (`test_user`, `oauth2_token`, `auth_client`). 15 neue Tests (167 gesamt).
 
 **Erledigt in 2a.7:** Scope-basierte Berechtigungen mit `TokenHasReadWriteScope` — GET-Requests benötigen `read`-Scope, POST-Requests `write`-Scope. `READ_SCOPE`/`WRITE_SCOPE` in DOT-Konfiguration. OpenAPI-Schema mit OAuth2-Flows (clientCredentials + authorizationCode) via drf-spectacular. 4 neue Tests (171 gesamt).
+
+**Erledigt in 2a.8:** DRF Throttling mit drei Stufen: `AnonRateThrottle` (20/min), `UserRateThrottle` (60/min), custom `UploadRateThrottle` (10/min) für Upload-Endpoints. Throttle-Klasse in `stt/api/throttles.py`, angewendet auf TranscribeView, DiarizeView, ProcessView, JobCreateView. Security-Headers via SecurityMiddleware (Django) + Caddy Caddyfile. 4 neue Tests (175 gesamt).
 
 ### Phase 2b: Konfigurations-Infrastruktur
 
@@ -345,7 +347,7 @@ Die folgenden Punkte müssen vor oder während der Umsetzung geklärt werden:
 
 ## 6. Nächste Schritte
 
-1. **Phase 2a fortsetzen** — Nächster Schritt: 2a.8 (Security Headers + Rate Limiting)
+1. **Phase 2a fortsetzen** — Nächster Schritt: 2a.9 (Audit-Logging)
 2. **Iteration über Anforderungen** — Offene Entscheidungen (Abschnitt 5) klären
 3. **Deployment-Szenario für Erstentwicklung festlegen** — Empfehlung: zuerst InHouse/Dedicated entwickeln, SaaS/K8s als spätere Phase
 4. **Technologie-Prototypen** — PoC für kritische Komponenten (OAuth2-Flow, Storage-Backend, Mobile Audio)
