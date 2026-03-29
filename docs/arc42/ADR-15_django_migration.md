@@ -39,7 +39,7 @@ Migration von FastAPI zu **Django 5.x + Django REST Framework (DRF)** mit **Post
 |-------|-------|
 | `django` | Web-Framework, ORM, Migrations, Admin |
 | `djangorestframework` | REST-API ViewSets, Serializers, Permissions |
-| `django-environ` | Umgebungsvariablen-Konfiguration (.env) |
+| `python-dotenv` | Umgebungsvariablen-Konfiguration (.env) — einheitlich mit config.py |
 | `django-oauth-toolkit` | OAuth2-Provider (InHouse/Dedicated), Resource Server (SaaS) |
 | `drf-spectacular` | OpenAPI 3.0 Schema-Generierung |
 | `django-q2` | Task-Queue mit ORM-Broker (kein Redis nötig) |
