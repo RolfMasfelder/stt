@@ -4,15 +4,14 @@ from io import BytesIO
 from unittest.mock import MagicMock, patch
 
 import pytest
-from rest_framework.test import APIClient
 
 from stt.config import DiarizeConfig, LMStudioConfig, WhisperConfig
 from stt.summarize import ProcessResult
 
 
 @pytest.fixture
-def client():
-    """Create a DRF test client with mocked ML config."""
+def client(auth_client):
+    """Create an authenticated DRF test client with mocked ML config."""
     mock_config = MagicMock()
     mock_config.log_level = "WARNING"
     mock_config.whisper = WhisperConfig()
@@ -20,7 +19,7 @@ def client():
     mock_config.lm_studio = LMStudioConfig()
 
     with patch("stt.api.views._get_config", return_value=mock_config):
-        yield APIClient()
+        yield auth_client
 
 
 def _audio_file(name: str = "test.wav", content: bytes = b"fake audio data"):
@@ -210,7 +209,7 @@ class TestUploadValidation:
 class TestDiarizeNoToken:
     """Tests for missing HF token."""
 
-    def test_missing_hf_token_returns_503(self) -> None:
+    def test_missing_hf_token_returns_503(self, auth_client) -> None:
         mock_config = MagicMock()
         mock_config.log_level = "WARNING"
         mock_config.whisper = WhisperConfig()
@@ -218,8 +217,7 @@ class TestDiarizeNoToken:
         mock_config.lm_studio = LMStudioConfig()
 
         with patch("stt.api.views._get_config", return_value=mock_config):
-            api_client = APIClient()
-            response = api_client.post(
+            response = auth_client.post(
                 "/v1/diarize",
                 {"file": _audio_file()},
                 format="multipart",

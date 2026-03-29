@@ -27,6 +27,7 @@ ALLOWED_HOSTS: list[str] = [h.strip() for h in _hosts.split(",") if h.strip()]
 INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",
+    "oauth2_provider",
     "rest_framework",
     "corsheaders",
     "drf_spectacular",
@@ -72,6 +73,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "oauth2_provider.contrib.rest_framework.OAuth2Authentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
     "DEFAULT_PARSER_CLASSES": [
         "rest_framework.parsers.MultiPartParser",
         "rest_framework.parsers.FormParser",
@@ -133,3 +140,19 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# --- OAuth2 Provider (django-oauth-toolkit, ADR-07) ---
+
+OAUTH2_PROVIDER = {
+    "ACCESS_TOKEN_EXPIRE_SECONDS": 900,  # 15 minutes
+    "REFRESH_TOKEN_EXPIRE_SECONDS": 604800,  # 7 days
+    "ROTATE_REFRESH_TOKEN": True,
+    "ALLOWED_REDIRECT_URI_SCHEMES": ["https", "http"],  # http for dev only
+    "PKCE_REQUIRED": True,  # Enforce PKCE for all public clients (ADR-07)
+    "SCOPES": {
+        "read": "Read access to API resources",
+        "write": "Write access (upload, process)",
+    },
+    "DEFAULT_SCOPES": ["read", "write"],
+    "OAUTH2_BACKEND_CLASS": "oauth2_provider.oauth2_backends.OAuthLibCore",
+}

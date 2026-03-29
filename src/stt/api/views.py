@@ -11,6 +11,7 @@ from django_q.tasks import async_task
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -100,6 +101,8 @@ class _AudioUploadError(Exception):
 
 
 class HealthView(APIView):
+    permission_classes = [AllowAny]
+
     @extend_schema(
         responses={200: HealthResponseSerializer},
         summary="Health check",

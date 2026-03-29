@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from rest_framework.test import APIClient
 
 from stt.api.models import AuditAction, AuditLog, Job, JobStatus, JobType
 from stt.api.tasks import run_diarize, run_process, run_transcribe
@@ -15,8 +14,8 @@ from stt.summarize import ProcessResult
 
 
 @pytest.fixture
-def client():
-    """Create a DRF test client with mocked ML config."""
+def client(auth_client):
+    """Create an authenticated DRF test client with mocked ML config."""
     mock_config = MagicMock()
     mock_config.log_level = "WARNING"
     mock_config.whisper = WhisperConfig()
@@ -24,7 +23,7 @@ def client():
     mock_config.lm_studio = LMStudioConfig()
 
     with patch("stt.api.views._get_config", return_value=mock_config):
-        yield APIClient()
+        yield auth_client
 
 
 def _audio_file(name: str = "test.wav", content: bytes = b"fake audio data"):
