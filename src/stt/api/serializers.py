@@ -2,6 +2,8 @@
 
 from rest_framework import serializers
 
+from .models import StorageConfig
+
 # --- Input serializers ---
 
 
@@ -84,3 +86,43 @@ class JobDetailSerializer(JobResponseSerializer):
     result_summary = serializers.CharField()
     result_segments_json = serializers.JSONField(allow_null=True)
     error_message = serializers.CharField()
+
+
+# --- Storage config serializers (ADR-11, ADR-12) ---
+
+
+class StorageConfigSerializer(serializers.ModelSerializer):
+    """Serializer for StorageConfig CRUD operations.
+
+    s3_secret_key is write-only — never returned in API responses.
+    """
+
+    class Meta:
+        model = StorageConfig
+        fields = [
+            "id",
+            "name",
+            "backend_type",
+            "is_default",
+            "base_path",
+            "s3_endpoint_url",
+            "s3_bucket",
+            "s3_access_key",
+            "s3_secret_key",
+            "s3_region",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+        extra_kwargs = {
+            "s3_secret_key": {"write_only": True},
+        }
+
+
+class StorageTestResponseSerializer(serializers.Serializer):
+    """Response for the storage backend test endpoint."""
+
+    status = serializers.ChoiceField(choices=["success", "error"])
+    checks = serializers.DictField(child=serializers.BooleanField())
+    message = serializers.CharField()
+    duration_ms = serializers.IntegerField()

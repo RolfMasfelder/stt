@@ -23,7 +23,7 @@ from stt.summarize import SummarizationError, process_transcript
 from stt.transcribe import TranscriptionError, transcribe_audio
 
 from .audit import log_audit
-from .models import AuditAction, Job, JobType
+from .models import AuditAction, Job, JobType, StorageConfig
 from .serializers import (
     AudioUploadSerializer,
     DiarizeResponseSerializer,
@@ -33,6 +33,8 @@ from .serializers import (
     JobResponseSerializer,
     ProcessResponseSerializer,
     ProcessUploadSerializer,
+    StorageConfigSerializer,
+    StorageTestResponseSerializer,
     TranscribeResponseSerializer,
 )
 from .throttles import UploadRateThrottle
@@ -402,3 +404,168 @@ class JobDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         return Response(JobDetailSerializer(job).data)
+
+
+# --- Storage config endpoints (ADR-11, ADR-12) ---
+
+
+class StorageConfigViewSet(APIView):
+    """CRUD + test for storage backend configurations."""
+
+    @extend_schema(
+        responses={200: StorageConfigSerializer(many=True)},
+        summary="List all storage configurations",
+    )
+    def get(self, request: Request, config_id: str | None = None) -> Response:
+        if config_id:
+            return self._get_detail(request, config_id)
+        configs = StorageConfig.objects.all()
+        return Response(StorageConfigSerializer(configs, many=True).data)
+
+    def _get_detail(self, request: Request, config_id: str) -> Response:
+        try:
+            config = StorageConfig.objects.get(id=config_id)
+        except (StorageConfig.DoesNotExist, ValueError, ValidationError):
+            return Response(
+                {"detail": "Storage config not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response(StorageConfigSerializer(config).data)
+
+    @extend_schema(
+        request=StorageConfigSerializer,
+        responses={
+            201: StorageConfigSerializer,
+            400: ErrorResponseSerializer,
+        },
+        summary="Create a storage configuration",
+    )
+    def post(self, request: Request, config_id: str | None = None) -> Response:
+        serializer = StorageConfigSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        config = serializer.save()
+        log_audit(
+            AuditAction.STORAGE_CONFIG_CREATED,
+            request=request,
+            resource_type="storage_config",
+            resource_id=str(config.id),
+        )
+        return Response(
+            StorageConfigSerializer(config).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    @extend_schema(
+        request=StorageConfigSerializer,
+        responses={
+            200: StorageConfigSerializer,
+            404: ErrorResponseSerializer,
+        },
+        summary="Update a storage configuration",
+    )
+    def put(self, request: Request, config_id: str) -> Response:
+        try:
+            config = StorageConfig.objects.get(id=config_id)
+        except (StorageConfig.DoesNotExist, ValueError, ValidationError):
+            return Response(
+                {"detail": "Storage config not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = StorageConfigSerializer(config, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        config = serializer.save()
+        log_audit(
+            AuditAction.STORAGE_CONFIG_UPDATED,
+            request=request,
+            resource_type="storage_config",
+            resource_id=str(config.id),
+        )
+        return Response(StorageConfigSerializer(config).data)
+
+    @extend_schema(
+        responses={
+            204: None,
+            404: ErrorResponseSerializer,
+        },
+        summary="Delete a storage configuration",
+    )
+    def delete(self, request: Request, config_id: str) -> Response:
+        try:
+            config = StorageConfig.objects.get(id=config_id)
+        except (StorageConfig.DoesNotExist, ValueError, ValidationError):
+            return Response(
+                {"detail": "Storage config not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        config_id_str = str(config.id)
+        config.delete()
+        log_audit(
+            AuditAction.STORAGE_CONFIG_DELETED,
+            request=request,
+            resource_type="storage_config",
+            resource_id=config_id_str,
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class StorageConfigTestView(APIView):
+    """Test a storage backend configuration (ADR-12)."""
+
+    @extend_schema(
+        responses={
+            200: StorageTestResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+        summary="Test storage backend connectivity",
+    )
+    def post(self, request: Request, config_id: str) -> Response:
+        from .storage import StorageError, get_backend
+
+        try:
+            config = StorageConfig.objects.get(id=config_id)
+        except (StorageConfig.DoesNotExist, ValueError, ValidationError):
+            return Response(
+                {"detail": "Storage config not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            backend = get_backend(config)
+        except StorageError as e:
+            return Response(
+                {
+                    "status": "error",
+                    "checks": {
+                        "connection": False,
+                        "write": False,
+                        "read": False,
+                        "delete": False,
+                    },
+                    "message": str(e),
+                    "duration_ms": 0,
+                },
+            )
+
+        result = backend.test_connection()
+        log_audit(
+            AuditAction.STORAGE_CONFIG_TESTED,
+            request=request,
+            resource_type="storage_config",
+            resource_id=str(config.id),
+            detail=f"success={result.success}",
+        )
+        return Response(
+            {
+                "status": "success" if result.success else "error",
+                "checks": {
+                    "connection": result.connection,
+                    "write": result.write,
+                    "read": result.read,
+                    "delete": result.delete,
+                },
+                "message": result.message,
+                "duration_ms": result.duration_ms,
+            },
+        )
