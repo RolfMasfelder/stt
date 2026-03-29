@@ -114,6 +114,8 @@ class AuditAction(models.TextChoices):
     STORAGE_CONFIG_UPDATED = "storage_config_updated", "Storage Config Updated"
     STORAGE_CONFIG_DELETED = "storage_config_deleted", "Storage Config Deleted"
     STORAGE_CONFIG_TESTED = "storage_config_tested", "Storage Config Tested"
+    AUTH_FAILED = "auth_failed", "Authentication Failed"
+    RATE_LIMITED = "rate_limited", "Rate Limited"
 
 
 class AuditLog(models.Model):

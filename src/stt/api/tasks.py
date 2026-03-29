@@ -13,7 +13,8 @@ from stt.diarize import diarize_audio, format_diarized_segments
 from stt.summarize import process_transcript
 from stt.transcribe import transcribe_audio
 
-from .models import AuditAction, AuditLog, Job, JobStatus
+from .audit import log_audit
+from .models import AuditAction, Job, JobStatus
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +39,8 @@ def _fail_job(job: Job, error: str) -> None:
     job.status = JobStatus.FAILED
     job.error_message = error
     job.save(update_fields=["status", "error_message", "updated_at"])
-    AuditLog.objects.create(
-        action=AuditAction.JOB_FAILED,
+    log_audit(
+        AuditAction.JOB_FAILED,
         resource_type="job",
         resource_id=str(job.id),
         detail=error[:500],
@@ -74,8 +75,8 @@ def run_transcribe(job_id: str) -> None:
                 "updated_at",
             ]
         )
-        AuditLog.objects.create(
-            action=AuditAction.JOB_COMPLETED,
+        log_audit(
+            AuditAction.JOB_COMPLETED,
             resource_type="job",
             resource_id=str(job.id),
         )
@@ -129,8 +130,8 @@ def run_diarize(job_id: str) -> None:
                 "updated_at",
             ]
         )
-        AuditLog.objects.create(
-            action=AuditAction.JOB_COMPLETED,
+        log_audit(
+            AuditAction.JOB_COMPLETED,
             resource_type="job",
             resource_id=str(job.id),
         )
@@ -191,8 +192,8 @@ def run_process(job_id: str) -> None:
                 "updated_at",
             ]
         )
-        AuditLog.objects.create(
-            action=AuditAction.JOB_COMPLETED,
+        log_audit(
+            AuditAction.JOB_COMPLETED,
             resource_type="job",
             resource_id=str(job.id),
         )

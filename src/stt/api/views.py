@@ -22,7 +22,8 @@ from stt.logging_setup import setup_logging
 from stt.summarize import SummarizationError, process_transcript
 from stt.transcribe import TranscriptionError, transcribe_audio
 
-from .models import AuditAction, AuditLog, Job, JobType
+from .audit import log_audit
+from .models import AuditAction, Job, JobType
 from .serializers import (
     AudioUploadSerializer,
     DiarizeResponseSerializer,
@@ -368,8 +369,9 @@ class JobCreateView(APIView):
             enable_diarize=do_diarize,
         )
 
-        AuditLog.objects.create(
-            action=AuditAction.JOB_CREATED,
+        log_audit(
+            AuditAction.JOB_CREATED,
+            request=request,
             resource_type="job",
             resource_id=str(job.id),
         )

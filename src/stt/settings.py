@@ -39,6 +39,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "stt.api.middleware.AuditMiddleware",
 ]
 
 ROOT_URLCONF = "stt.urls"
