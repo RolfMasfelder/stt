@@ -236,6 +236,7 @@ class TestSTTClientOAuth2:
                 "scope": "read write",
             },
             timeout=30,
+            verify=True,
         )
 
     @patch("stt.client.requests.post")
@@ -321,3 +322,42 @@ class TestSTTClientOAuth2:
         client = STTClient("http://localhost:8001")
         with pytest.raises(AuthenticationError, match="401"):
             client.transcribe(audio)
+
+
+class TestSTTClientVerify:
+    """Tests for TLS verify parameter."""
+
+    def test_default_verify_is_true(self) -> None:
+        client = STTClient("http://localhost:8000")
+        assert client._verify is True
+
+    def test_verify_with_ca_cert_path(self) -> None:
+        client = STTClient("http://localhost:8000", verify="/path/to/ca.pem")
+        assert client._verify == "/path/to/ca.pem"
+
+    def test_verify_false(self) -> None:
+        client = STTClient("http://localhost:8000", verify=False)
+        assert client._verify is False
+
+    @patch("stt.client.requests.get")
+    def test_health_passes_verify(self, mock_get) -> None:
+        mock_get.return_value = MagicMock(status_code=200)
+        client = STTClient("http://localhost:8000", verify="/my/ca.pem")
+        client.health()
+        call_kwargs = mock_get.call_args[1]
+        assert call_kwargs["verify"] == "/my/ca.pem"
+
+    @_PATCH_CONVERT
+    @patch("stt.client.requests.post")
+    def test_post_file_passes_verify(self, mock_post, _mock_convert, tmp_path) -> None:
+        audio = tmp_path / "test.wav"
+        audio.write_bytes(b"fake")
+
+        mock_resp = MagicMock(status_code=200)
+        mock_resp.json.return_value = {"text": "hello"}
+        mock_post.return_value = mock_resp
+
+        client = STTClient("http://localhost:8000", verify="/my/ca.pem")
+        client.transcribe(audio)
+        call_kwargs = mock_post.call_args[1]
+        assert call_kwargs["verify"] == "/my/ca.pem"

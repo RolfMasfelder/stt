@@ -82,16 +82,32 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="Path to an existing text file to use instead of transcription",
     )
+    parser.add_argument(
+        "--server-url",
+        type=str,
+        default=None,
+        help="STT server URL (overrides STT_SERVER_URL env var)",
+    )
+    parser.add_argument(
+        "--ca-cert",
+        type=Path,
+        default=None,
+        help="Path to custom CA certificate for TLS verification",
+    )
     return parser.parse_args(argv)
 
 
 def _run_remote(args: argparse.Namespace, config) -> int:
     """Run processing via the remote STT server."""
     oauth2_cfg = config.oauth2 if config.oauth2.token_url else None
+    verify: bool | str = True
+    if args.ca_cert:
+        verify = str(args.ca_cert)
     client = STTClient(
         config.stt_server_url,
         timeout=config.whisper.timeout,
         oauth2=oauth2_cfg,
+        verify=verify,
     )
 
     if not args.audio_file:
@@ -188,10 +204,11 @@ def _run_remote(args: argparse.Namespace, config) -> int:
 
 
 def _apply_cli_overrides(config, args):
-    """Apply CLI timeout overrides to config, return updated config."""
-    if args.timeout is None and args.whisper_timeout is None:
-        return config
+    """Apply CLI timeout and server-url overrides to config, return updated config."""
     from dataclasses import replace
+
+    if args.server_url:
+        config = replace(config, stt_server_url=args.server_url)
 
     if args.timeout is not None:
         config = replace(

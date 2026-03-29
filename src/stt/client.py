@@ -48,10 +48,12 @@ class STTClient:
         base_url: str,
         timeout: int = 600,
         oauth2: OAuth2ClientConfig | None = None,
+        verify: bool | str = True,
     ):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self._oauth2 = oauth2
+        self._verify = verify
         self._access_token: str | None = None
         self._token_expires_at: float = 0.0
 
@@ -73,6 +75,7 @@ class STTClient:
                     "scope": self._oauth2.scopes,
                 },
                 timeout=30,
+                verify=self._verify,
             )
         except requests.RequestException as e:
             raise AuthenticationError(f"Token request failed: {e}") from e
@@ -132,6 +135,7 @@ class STTClient:
                         data=data,
                         headers=self._auth_headers(),
                         timeout=self.timeout,
+                        verify=self._verify,
                     )
                 except requests.RequestException as e:
                     raise ClientError(f"Request to {url} failed: {e}") from e
@@ -154,6 +158,7 @@ class STTClient:
                 f"{self.base_url}/health",
                 headers=self._auth_headers(),
                 timeout=10,
+                verify=self._verify,
             )
             return resp.status_code == 200
         except requests.RequestException:

@@ -291,3 +291,88 @@ class TestCLI:
         result = main(["--skip", "--text-file", str(text_file), "--diarize"])
         assert result == 0
         mock_diarize.assert_called_once_with("Speaker text here", config.lm_studio)
+
+
+class TestCLIServerUrl:
+    """Tests for --server-url and --ca-cert CLI flags."""
+
+    @patch("stt.__main__.STTClient")
+    @patch("stt.__main__.load_config")
+    def test_server_url_overrides_config(
+        self,
+        mock_config: MagicMock,
+        mock_client_cls: MagicMock,
+        tmp_path: MagicMock,
+    ) -> None:
+        """--server-url should override STT_SERVER_URL from env."""
+        from stt.config import AppConfig
+
+        audio_file = tmp_path / "test.wav"
+        audio_file.write_bytes(b"fake")
+
+        config = AppConfig(
+            stt_server_url="http://old-server:8000",
+            audio_input_dir=tmp_path,
+        )
+        mock_config.return_value = config
+
+        mock_client = MagicMock()
+        mock_client.transcribe.return_value = "text"
+        mock_client_cls.return_value = mock_client
+
+        result = main([str(audio_file), "--server-url", "https://new-server:9000"])
+        assert result == 0
+        mock_client_cls.assert_called_once()
+        call_args = mock_client_cls.call_args
+        assert call_args[0][0] == "https://new-server:9000"
+
+    @patch("stt.__main__.STTClient")
+    @patch("stt.__main__.load_config")
+    def test_ca_cert_passed_to_client(
+        self,
+        mock_config: MagicMock,
+        mock_client_cls: MagicMock,
+        tmp_path: MagicMock,
+    ) -> None:
+        """--ca-cert should be passed as verify parameter to STTClient."""
+        from stt.config import AppConfig
+
+        audio_file = tmp_path / "test.wav"
+        audio_file.write_bytes(b"fake")
+        ca_file = tmp_path / "ca.pem"
+        ca_file.write_text("fake ca cert", encoding="utf-8")
+
+        config = AppConfig(
+            stt_server_url="https://server:8000",
+            audio_input_dir=tmp_path,
+        )
+        mock_config.return_value = config
+
+        mock_client = MagicMock()
+        mock_client.transcribe.return_value = "text"
+        mock_client_cls.return_value = mock_client
+
+        result = main(
+            [
+                str(audio_file),
+                "--ca-cert",
+                str(ca_file),
+            ]
+        )
+        assert result == 0
+        call_kwargs = mock_client_cls.call_args[1]
+        assert call_kwargs["verify"] == str(ca_file)
+
+    def test_parse_server_url_flag(self) -> None:
+        """parse_args should accept --server-url."""
+        from stt.__main__ import parse_args
+
+        args = parse_args(["--server-url", "https://example.com"])
+        assert args.server_url == "https://example.com"
+
+    def test_parse_ca_cert_flag(self) -> None:
+        """parse_args should accept --ca-cert."""
+        from stt.__main__ import parse_args
+
+        args = parse_args(["--ca-cert", "/path/to/ca.pem"])
+        assert str(args.ca_cert) == "/path/to/ca.pem"
