@@ -11,6 +11,11 @@
 ## Architecture Basics
 
 
+## Git Branches
+- `main` → Stable branch, receives merges from `dev` at milestone/release points
+- `dev` → Active development branch (default working branch)
+- Always work on `dev`. Merge to `main` only for stable releases.
+
 ## Git Remotes
 - `origin` → Local mirror (always push, NO CI)
 - `github` → GitHub with Actions (always push, USE for CI/PRs)
