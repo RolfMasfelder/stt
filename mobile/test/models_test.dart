@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:stt_app/models/connection_status.dart';
+import 'package:stt_app/models/recording_state.dart';
 import 'package:stt_app/models/server_config.dart';
 
 void main() {
@@ -34,6 +35,15 @@ void main() {
       expect(updated.serverUrl, 'https://new.test');
       expect(updated.verifyTls, true);
       expect(original.serverUrl, 'https://old.test');
+    });
+  });
+
+  group('RecordingState', () {
+    test('has three states', () {
+      expect(RecordingState.values.length, 3);
+      expect(RecordingState.values, contains(RecordingState.idle));
+      expect(RecordingState.values, contains(RecordingState.recording));
+      expect(RecordingState.values, contains(RecordingState.paused));
     });
   });
 }

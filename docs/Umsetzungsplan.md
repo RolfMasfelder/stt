@@ -270,8 +270,8 @@
 |---------|-------------|----------------|-------|
 | 2c.0 | ~~**Framework-Entscheidung**~~ | — | ADR-10 | ✅ Flutter |
 | 2c.1 | App-Projekt aufsetzen (Flutter/Dart) | 2c.0 | ADR-10 | ✅ Done |
-| 2c.2 | HAL-9000-Statusanzeige implementieren (grau/grün/rot mit Glow + Animation) | 2c.1 | FA-20 |
-| 2c.3 | Audio-Aufnahme implementieren (Mikrofon, Start/Stop/Pause) | 2c.1 | FA-10 |
+| 2c.2 | HAL-9000-Statusanzeige implementieren (grau/grün/rot mit Glow + Animation) | 2c.1 | FA-20 | ✅ Done |
+| 2c.3 | Audio-Aufnahme implementieren (Mikrofon, Start/Stop/Pause) | 2c.1 | FA-10 | ✅ Done |
 | 2c.4 | Server-Verbindung konfigurierbar + Health-Check (grau → grün) | 2c.1, 2c.2 | FA-12, FA-20 |
 | 2c.5 | OAuth2 PKCE-Flow + sichere Credential-Speicherung | 2c.4 | ADR-07, FA-21, RB-15 |
 | 2c.6 | Konfigurationsbildschirm (Verarbeitung, Sprache, Modell, Sprecher, Zusammenfassung) | 2c.1 | FA-21 |

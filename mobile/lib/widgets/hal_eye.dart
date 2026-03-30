@@ -6,40 +6,73 @@ import '../models/connection_status.dart';
 class HalEye extends StatefulWidget {
   final ConnectionStatus status;
   final double size;
+  final bool recording;
 
   const HalEye({
     super.key,
     required this.status,
     this.size = 200.0,
+    this.recording = false,
   });
 
   @override
   State<HalEye> createState() => _HalEyeState();
 }
 
-class _HalEyeState extends State<HalEye> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+class _HalEyeState extends State<HalEye> with TickerProviderStateMixin {
+  late AnimationController _glowController;
   late Animation<double> _glowAnimation;
+  late AnimationController _colorController;
+  late Animation<Color?> _colorAnimation;
+  Color _currentColor = Colors.grey;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _glowController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2000),
     )..repeat(reverse: true);
     _glowAnimation = Tween<double>(begin: 0.4, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
     );
+
+    _colorController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _currentColor = _targetColor();
+    _colorAnimation = AlwaysStoppedAnimation(_currentColor);
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  void didUpdateWidget(HalEye oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.status != widget.status ||
+        oldWidget.recording != widget.recording) {
+      final newColor = _targetColor();
+      _colorAnimation = ColorTween(begin: _currentColor, end: newColor)
+          .animate(CurvedAnimation(
+        parent: _colorController,
+        curve: Curves.easeInOut,
+      ));
+      _colorController.forward(from: 0.0).then((_) {
+        _currentColor = newColor;
+      });
+    }
+
+    // Faster pulsing when recording
+    if (widget.recording && !oldWidget.recording) {
+      _glowController.duration = const Duration(milliseconds: 1000);
+      _glowController.repeat(reverse: true);
+    } else if (!widget.recording && oldWidget.recording) {
+      _glowController.duration = const Duration(milliseconds: 2000);
+      _glowController.repeat(reverse: true);
+    }
   }
 
-  Color _getColor() {
+  Color _targetColor() {
+    if (widget.recording) return Colors.red;
     switch (widget.status) {
       case ConnectionStatus.disconnected:
         return Colors.grey;
@@ -51,14 +84,22 @@ class _HalEyeState extends State<HalEye> with SingleTickerProviderStateMixin {
   }
 
   @override
+  void dispose() {
+    _glowController.dispose();
+    _colorController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final color = _getColor();
-    final isActive = widget.status != ConnectionStatus.disconnected;
+    final isActive = widget.status != ConnectionStatus.disconnected ||
+        widget.recording;
 
     return AnimatedBuilder(
-      animation: _glowAnimation,
+      animation: Listenable.merge([_glowAnimation, _colorAnimation]),
       builder: (context, child) {
         final glowIntensity = isActive ? _glowAnimation.value : 0.3;
+        final color = _colorAnimation.value ?? _currentColor;
         return CustomPaint(
           size: Size(widget.size, widget.size),
           painter: _HalEyePainter(

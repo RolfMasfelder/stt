@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'services/audio_recording.dart';
 import 'services/server_connection.dart';
 import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
@@ -14,8 +15,11 @@ class STTApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ServerConnectionService(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ServerConnectionService()),
+        ChangeNotifierProvider(create: (_) => AudioRecordingService()),
+      ],
       child: MaterialApp(
         title: 'STT',
         debugShowCheckedModeBanner: false,
