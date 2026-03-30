@@ -241,6 +241,14 @@ class UploadService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Only for integration / widget tests.
+  @visibleForTesting
+  void setTestStatus(UploadStatus status, {String? error}) {
+    _status = status;
+    _errorMessage = error;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _pollTimer?.cancel();
