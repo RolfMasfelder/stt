@@ -4,7 +4,7 @@
 
 **Development with Python 3.13**: Use Python 3.13 syntax and libraries only
 **Tests required**: ALL features/bugfixes MUST have tests (unit + integration)
-**Development with venv**: Use virtual environment for local dev (python -m venv .venv)
+**Development with venv**: Use virtual environment for local dev (python -m venv .venv), always use "source venv/bin/activate" before running any commands, and in any terminal session
 **Git Commits**: Keep messages concise (feat/fix/refactor format). NO long descriptions. Only one line as commit-message
 **Docker first**: ALL commands via `docker-compose exec stt [cmd]`
 

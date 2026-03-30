@@ -17,6 +17,9 @@
 | RB-11 | EU-Hosting | Alle Dienste und Daten ausschließlich bei europäischen Anbietern |
 | RB-12 | PostgreSQL | Datenbank für alle Szenarien (Jobs, Config, Audit-Log, User); eliminiert SQLite→PostgreSQL-Migration |
 | RB-13 | Linux (openSUSE) | Entwicklungs- und Server-Zielplattform |
+| RB-14 | Cross-Platform Mobile App (Android + iOS) | Eine Codebase für beide Plattformen; Framework-Entscheidung vor Phase 2c erforderlich (ADR-10) |
+| RB-15 | Sichere Credential-Speicherung auf dem Gerät | Android Keystore / iOS Keychain für OAuth2-Tokens und Konfigurationsdaten |
+| RB-16 | iOS-Tests initial nur über Simulator/CI | Derzeit keine iOS-Testgeräte verfügbar; Android-Geräte als primäre Testplattform |
 
 ## Organisatorisch
 

@@ -61,6 +61,12 @@
 | CA | Certificate Authority — Zertifizierungsstelle, die digitale Zertifikate ausstellt |
 | GPU | Graphics Processing Unit — Grafikprozessor, hier für ML-Modell-Inferenz genutzt |
 | CPU | Central Processing Unit — Hauptprozessor |
+| HAL-9000-Auge | Visuelles Status-Element der Mobile App, inspiriert vom roten Kameraauge des Computers HAL 9000 aus Stanley Kubricks "2001: A Space Odyssey". Zeigt den Betriebszustand in drei Farben: grau (nicht verbunden), grün (bereit), rot (Aufnahme läuft) |
+| Keystore / Keychain | Sichere Credential-Speicher auf mobilen Geräten — Android Keystore bzw. iOS Keychain. Verschlüsselte Ablage von Tokens und Zugangsdaten |
+| Flutter | Cross-Platform-Framework von Google zur Entwicklung nativer Apps für Android und iOS aus einer Codebase (Programmiersprache: Dart) |
+| Dart | Programmiersprache von Google, verwendet für Flutter-App-Entwicklung |
+| Compose Multiplatform | UI-Framework von JetBrains für Kotlin Multiplatform, ermöglicht plattformübergreifende UI-Entwicklung |
+| PKCE | Proof Key for Code Exchange (RFC 7636) — Erweiterung des OAuth2-Authorization-Code-Flows für öffentliche Clients (z. B. Mobile Apps) |
 | vLLM | Hochperformanter LLM-Inferenz-Server mit PagedAttention für effizienten GPU-Speicher |
 | Django | Python-Web-Framework mit integriertem ORM, Admin-Interface, Migrations und Auth-System |
 | DRF | Django REST Framework — Toolkit für REST-APIs auf Basis von Django (ViewSets, Serializers, Permissions) |

@@ -24,7 +24,7 @@
 
 | # | Anforderung | Dokumentiert in |
 |---|-------------|-----------------|
-| 1 | Mobile App mit Audio-Aufnahme | FA-10, FA-11 |
+| 1 | Mobile App mit Audio-Aufnahme (Android + iOS) | FA-10, FA-11, RB-14 |
 | 2 | Konfigurierbare Server-Verbindung (kein Hardcoding) | FA-12 |
 | 3 | Konfigurierbare Ablageorte (Storage Backends) | FA-13, ADR-11 |
 | 4 | Storage-Konfiguration vom Frontend an Server | FA-13, ADR-12 |
@@ -38,6 +38,10 @@
 | 12 | Dedicated Hosting (Single-Tenant) bei EU-Hoster | ADR-09 |
 | 13 | SaaS Multi-Tenant mit Kubernetes + Auto-Skalierung | ADR-09 |
 | 14 | Sichtkontrolle und Korrektur von Zwischenergebnissen | FA-18 |
+| 15a | Mobile App — Statusanzeige (HAL-9000-Auge grau/grün/rot) | FA-20 |
+| 15b | Mobile App — Konfiguration & Einstellungen (Auth, Verarbeitung, Ablage) | FA-21 |
+| 15c | Mobile App — Ablageort-Auswahl (Handy / Dateisystem) | FA-22 |
+| 15d | Mobile App — Aufnahme-Historie | FA-23 |
 
 ### Abgeleitete Anforderungen (Best Practices)
 
@@ -194,13 +198,13 @@
 | **Web-Framework** | Django 5.x + Django REST Framework | FastAPI (bisherig) | ADR-15 |
 | **Datenbank** | PostgreSQL (alle Szenarien) | — | ADR-15, RB-12 |
 | **Task-Queue** | django-q2 (DB als Broker) | Celery + Redis | ADR-15 |
-| **Mobile App** | Flutter oder Kotlin Multiplatform | React Native, PWA | ADR-10 |
+| **Mobile App** | Flutter (Dart) | Kotlin Multiplatform (späterer Wechsel möglich dank API-Entkopplung) | ADR-10 |
 | **Identity Provider** | django-oauth-toolkit (eingebaut) + optional externer IdP | Keycloak, Zitadel | ADR-07 |
 | **Reverse-Proxy** | Caddy | Traefik, nginx | ADR-14 |
 | **TLS-Zertifikate** | Let's Encrypt (via Caddy) | Manuell | ADR-08 |
-| **Object Storage** | IONOS S3 oder OVH Object Storage | MinIO (Self-Hosted) | ADR-09, ADR-11 |
+| **Object Storage** | IONOS S3 | OVH Object Storage, MinIO (Self-Hosted) | ADR-09, ADR-11 |
 | **Verschlüsselung at Rest** | LUKS + AES-256-GCM (App-Level) | Nur LUKS | ADR-08 |
-| **Hosting** | Hetzner Cloud (DE) | IONOS, Netcup, OVH | ADR-09 |
+| **Hosting** | IONOS Cloud (DE) | Hetzner, Netcup, OVH | ADR-09 |
 | **Container-Orchestrierung** | Docker Compose (Szenarien 1+2), Kubernetes (Szenario 3) | — | ADR-09 |
 | **LLM (Produktion)** | vLLM oder Ollama | LM Studio (nur InHouse/Dev) | — |
 | **API-Dokumentation** | drf-spectacular (OpenAPI 3.0) | — | ADR-15 |
@@ -260,17 +264,23 @@
 
 ### Phase 2c: Mobile App
 
-**Ziel:** Erste mobile App mit Audio-Aufnahme und Server-Kommunikation.
+**Ziel:** Cross-Platform Mobile App (Android + iOS) mit Audio-Aufnahme, HAL-9000-Statusanzeige, Konfiguration und Server-Kommunikation.
 
-| Schritt | Beschreibung | Abhängigkeiten | ADR |
-|---------|-------------|----------------|-----|
-| 2c.1 | App-Projekt aufsetzen (Flutter/KMP) | — | ADR-10 |
-| 2c.2 | Audio-Aufnahme implementieren | 2c.1 | FA-10 |
-| 2c.3 | Server-Verbindung konfigurierbar | 2c.1 | FA-12 |
-| 2c.4 | OAuth2 PKCE-Flow | 2a.3, 2c.1 | ADR-07 |
-| 2c.5 | Audio-Upload und Ergebnis-Anzeige | 2c.2, 2c.3, 2c.4 | FA-11 |
-| 2c.6 | Storage-Konfiguration im Frontend | 2b.2, 2c.1 | FA-13, FA-14 |
-| 2c.7 | Offline-Fähigkeit (Aufnahme ohne Server) | 2c.2 | QA-10 |
+| Schritt | Beschreibung | Abhängigkeiten | Bezug |
+|---------|-------------|----------------|-------|
+| 2c.0 | ~~**Framework-Entscheidung**~~ | — | ADR-10 | ✅ Flutter |
+| 2c.1 | App-Projekt aufsetzen (Flutter/Dart) | 2c.0 | ADR-10 |
+| 2c.2 | HAL-9000-Statusanzeige implementieren (grau/grün/rot mit Glow + Animation) | 2c.1 | FA-20 |
+| 2c.3 | Audio-Aufnahme implementieren (Mikrofon, Start/Stop/Pause) | 2c.1 | FA-10 |
+| 2c.4 | Server-Verbindung konfigurierbar + Health-Check (grau → grün) | 2c.1, 2c.2 | FA-12, FA-20 |
+| 2c.5 | OAuth2 PKCE-Flow + sichere Credential-Speicherung | 2c.4 | ADR-07, FA-21, RB-15 |
+| 2c.6 | Konfigurationsbildschirm (Verarbeitung, Sprache, Modell, Sprecher, Zusammenfassung) | 2c.1 | FA-21 |
+| 2c.7 | Audio-Upload und Ergebnis-Anzeige | 2c.3, 2c.4, 2c.5 | FA-11 |
+| 2c.8 | Ablageort-Auswahl (Handy / Dateisystem) | 2c.6, 2b.2 | FA-22, FA-13, FA-14 |
+| 2c.9 | Aufnahme-Historie (lokale Liste, Status, Ergebnis-Zugriff) | 2c.7 | FA-23 |
+| 2c.10 | Offline-Fähigkeit (Aufnahme ohne Server, späterer Upload) | 2c.3 | QA-10 |
+| 2c.11 | Push-Benachrichtigungen bei Verarbeitungsende | 2c.7 | FA-21 |
+| 2c.12 | Netzwerk-Präferenzen (WLAN/Mobilfunk, Auto-Upload) | 2c.7 | FA-21 |
 
 ### Phase 2d: Korrektur-Workflow und API-Einzelschritte
 
@@ -318,12 +328,12 @@ Die folgenden Punkte müssen vor oder während der Umsetzung geklärt werden:
 
 ### Technologie-Entscheidungen
 
-- [ ] **Mobile Framework:** Flutter vs. Kotlin Multiplatform vs. andere?
-- [ ] **Zielplattform:** Nur Android oder auch iOS?
+- [x] ~~**Mobile Framework:** Flutter vs. Kotlin Multiplatform vs. andere?~~ → Flutter (ADR-10 akzeptiert). Späterer Wechsel möglich dank definierter Backend-API
+- [x] ~~**Zielplattform:** Nur Android oder auch iOS?~~ → Beide Plattformen: Android + iOS (RB-14)
 - [x] ~~**Identity Provider:**~~ → django-oauth-toolkit als eingebauter OAuth2-Provider; externer IdP (Keycloak/Zitadel) optional für SaaS
 - [x] ~~**Reverse-Proxy:**~~ → Caddy (automatisches TLS, einfache Konfiguration)
-- [ ] **Hosting-Anbieter:** Hetzner vs. IONOS vs. Netcup vs. OVH?
-- [ ] **Storage-Anbieter:** IONOS S3 vs. OVH vs. Self-Hosted MinIO?
+- [x] ~~**Hosting-Anbieter:** Hetzner vs. IONOS vs. Netcup vs. OVH?~~ → IONOS (bevorzugt)
+- [x] ~~**Storage-Anbieter:** IONOS S3 vs. OVH vs. Self-Hosted MinIO?~~ → IONOS S3
 - [x] ~~**Datenbank:**~~ → PostgreSQL für alle Szenarien (ADR-15)
 - [x] ~~**Web-Framework:**~~ → Django 5.x + DRF (ADR-15)
 
@@ -331,7 +341,7 @@ Die folgenden Punkte müssen vor oder während der Umsetzung geklärt werden:
 
 - [ ] **GPU-Hosting:** Braucht der Provider GPU-Instanzen (für Whisper + pyannote)?
 - [x] ~~**Multi-Tenancy:**~~ → Geklärt, siehe oben
-- [ ] **App-Store-Vertrieb:** Soll die App über Google Play / Apple App Store vertrieben werden?
+- [x] ~~**App-Store-Vertrieb:** Soll die App über Google Play / Apple App Store vertrieben werden?~~ → Ja, beide Stores. Zielgruppe sind technisch nicht versierte Anwender, Sideloading kommt nicht in Frage (ADR-10)
 - [ ] **Monitoring:** Welche Monitoring-Lösung (Prometheus, Grafana)?
 
 ### DSGVO-Entscheidungen
@@ -353,10 +363,11 @@ Die folgenden Punkte müssen vor oder während der Umsetzung geklärt werden:
 
 ## 6. Nächste Schritte
 
-1. **Phase 2c starten** — Nächster Schritt: 2c.1 (App-Projekt aufsetzen)
-2. **Iteration über Anforderungen** — Offene Entscheidungen (Abschnitt 5) klären
-3. **Deployment-Szenario für Erstentwicklung festlegen** — Empfehlung: zuerst InHouse/Dedicated entwickeln, SaaS/K8s als spätere Phase
-4. **ADRs finalisieren** — Phase-2a-ADRs (06, 07, 08, 14, 15) auf "Akzeptiert" setzen
+1. ~~**Framework-Entscheidung treffen**~~ → Erledigt: Flutter (ADR-10 akzeptiert)
+2. **Phase 2c starten** — Schritt 2c.1 (Flutter-App-Projekt aufsetzen)
+3. **Iteration über Anforderungen** — Verbleibende offene Entscheidungen (Abschnitt 5) klären (keine davon blockiert 2c)
+4. **Deployment-Szenario für Erstentwicklung festlegen** — Empfehlung: zuerst InHouse/Dedicated entwickeln, SaaS/K8s als spätere Phase
+5. **ADRs finalisieren** — Phase-2a-ADRs (06, 07, 08, 14, 15) auf "Akzeptiert" setzen
 
 ---
 
@@ -368,4 +379,5 @@ Die folgenden Punkte müssen vor oder während der Umsetzung geklärt werden:
 | LM Studio nicht server-tauglich | Mittel | Architekturänderung nötig | Alternative: vLLM, Ollama, llama.cpp Server |
 | DSGVO-Risiko biometrische Daten | Mittel | DSFA erforderlich, ggf. Einschränkungen | Juristische Bewertung einholen |
 | Einzelentwickler-Engpass | Hoch | Langsame Umsetzung | Phasenweise Umsetzung, MVP-Fokus |
+| iOS-Test nur über Simulator/CI | Hoch | Plattformspezifische Bugs erst spät entdeckt | Flutter-Cross-Platform reduziert Risiko, CI mit macOS-Runner, später Testgerät beschaffen |
 | App-Store-Freigabe | Mittel | Verzögerung bei Vertrieb | PWA als Fallback |
