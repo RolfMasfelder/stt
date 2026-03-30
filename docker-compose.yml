@@ -6,12 +6,12 @@ services:
       POSTGRES_DB: stt
       POSTGRES_USER: stt
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stt_dev}
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
       - stt-network
+    profiles:
+      - production
 
   # Caddy reverse-proxy with automatic TLS
   caddy:
@@ -44,14 +44,12 @@ services:
       - db
     env_file:
       - .env
-    expose:
-      - "8090"
+    ports:
+      - "8090:8090"
     volumes:
       - .:/app:z
     environment:
       - PYTHONPATH=/app
-      - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
-      - DJANGO_SETTINGS_MODULE=stt.settings
       - LM_STUDIO_HOST=${LM_STUDIO_HOST}
       - LM_STUDIO_PORT=${LM_STUDIO_PORT}
       - LM_STUDIO_MODEL=${LM_STUDIO_MODEL}
@@ -60,6 +58,8 @@ services:
       - WHISPER_API_URL=${WHISPER_API_URL}
       - HF_STT_TOKEN=${HF_STT_TOKEN}
       - LOG_LEVEL=${LOG_LEVEL}
+      - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
+      - DJANGO_SETTINGS_MODULE=stt.settings
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-insecure-dev-key-change-in-production}
     networks:
       - stt-network
@@ -83,7 +83,6 @@ services:
     environment:
       - PYTHONPATH=/app
       - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
-      - DJANGO_SETTINGS_MODULE=stt.settings
       - LM_STUDIO_HOST=${LM_STUDIO_HOST}
       - LM_STUDIO_PORT=${LM_STUDIO_PORT}
       - LM_STUDIO_MODEL=${LM_STUDIO_MODEL}
@@ -92,6 +91,7 @@ services:
       - WHISPER_API_URL=${WHISPER_API_URL}
       - HF_STT_TOKEN=${HF_STT_TOKEN}
       - LOG_LEVEL=${LOG_LEVEL}
+      - DJANGO_SETTINGS_MODULE=stt.settings
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-insecure-dev-key-change-in-production}
     networks:
       - stt-network
@@ -120,41 +120,6 @@ services:
     profiles:
       - cli
     command: ["python", "-m", "stt"]
-
-  # Development service with host networking
-  stt-dev:
-    build:
-      context: .
-      secrets:
-        - hf_token
-    container_name: stt-dev
-    depends_on:
-      - db
-    env_file:
-      - .env
-    volumes:
-      - .:/app:z
-      - ${AUDIO_INPUT_DIR:-./data/audio}:/app/data/audio:z
-      - ${OUTPUT_DIR:-./data/output}:/app/data/output:z
-    environment:
-      - PYTHONPATH=/app
-      - LM_STUDIO_HOST=${LM_STUDIO_HOST}
-      - LM_STUDIO_PORT=${LM_STUDIO_PORT}
-      - LM_STUDIO_MODEL=${LM_STUDIO_MODEL}
-      - WHISPER_MODEL=${WHISPER_MODEL}
-      - WHISPER_DEVICE=${WHISPER_DEVICE}
-      - WHISPER_API_URL=${WHISPER_API_URL}
-      - HF_STT_TOKEN=${HF_STT_TOKEN}
-      - LOG_LEVEL=${LOG_LEVEL}
-      - DEVELOPMENT_MODE=${DEVELOPMENT_MODE}
-      - DEBUG=${DEBUG}
-      - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@127.0.0.1:5432/stt
-      - DJANGO_SETTINGS_MODULE=stt.settings
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-insecure-dev-key-change-in-production}
-    network_mode: host
-    profiles:
-      - dev
-    command: bash
 
   # Remote Whisper transcription server (faster-whisper-server)
   # Run on a more powerful machine for faster transcription
