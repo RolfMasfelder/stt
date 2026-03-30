@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stt_app/models/connection_status.dart';
 import 'package:stt_app/models/job_result.dart';
 import 'package:stt_app/models/processing_config.dart';
+import 'package:stt_app/models/recording_entry.dart';
 import 'package:stt_app/models/recording_state.dart';
 import 'package:stt_app/models/server_config.dart';
 import 'package:stt_app/models/upload_status.dart';
@@ -62,6 +63,7 @@ void main() {
       expect(config.sampleRate, 44100);
       expect(config.wifiOnly, true);
       expect(config.autoUpload, false);
+      expect(config.storageDestination, 'device');
     });
 
     test('copyWith creates new instance', () {
@@ -84,6 +86,7 @@ void main() {
         sampleRate: 48000,
         wifiOnly: false,
         autoUpload: true,
+        storageDestination: 'server',
       );
       final json = original.toJson();
       final restored = ProcessingConfig.fromJson(json);
@@ -96,6 +99,7 @@ void main() {
       expect(restored.sampleRate, 48000);
       expect(restored.wifiOnly, false);
       expect(restored.autoUpload, true);
+      expect(restored.storageDestination, 'server');
     });
 
     test('fromJson with defaults for missing fields', () {
@@ -180,6 +184,91 @@ void main() {
       });
       expect(failed.isFailed, true);
       expect(failed.errorMessage, 'Something went wrong');
+    });
+  });
+
+  group('RecordingEntry', () {
+    final now = DateTime(2025, 1, 15, 10, 30);
+
+    test('creates with required fields', () {
+      final entry = RecordingEntry(
+        id: 'entry-1',
+        filePath: '/data/recording.m4a',
+        filename: 'recording.m4a',
+        createdAt: now,
+        duration: const Duration(minutes: 2, seconds: 30),
+      );
+      expect(entry.id, 'entry-1');
+      expect(entry.filename, 'recording.m4a');
+      expect(entry.status, 'recorded');
+      expect(entry.jobId, isNull);
+      expect(entry.resultSummary, isNull);
+    });
+
+    test('copyWith updates fields', () {
+      final entry = RecordingEntry(
+        id: 'entry-1',
+        filePath: '/data/recording.m4a',
+        filename: 'recording.m4a',
+        createdAt: now,
+        duration: const Duration(minutes: 1),
+      );
+      final updated = entry.copyWith(
+        jobId: 'job-abc',
+        status: 'uploaded',
+      );
+      expect(updated.jobId, 'job-abc');
+      expect(updated.status, 'uploaded');
+      expect(updated.id, 'entry-1');
+      expect(updated.filename, 'recording.m4a');
+    });
+
+    test('toJson/fromJson roundtrip', () {
+      final entry = RecordingEntry(
+        id: 'entry-2',
+        filePath: '/data/test.m4a',
+        filename: 'test.m4a',
+        createdAt: now,
+        duration: const Duration(seconds: 90),
+        jobId: 'job-xyz',
+        status: 'completed',
+        resultSummary: 'A test summary.',
+      );
+      final json = entry.toJson();
+      final restored = RecordingEntry.fromJson(json);
+      expect(restored.id, 'entry-2');
+      expect(restored.filePath, '/data/test.m4a');
+      expect(restored.filename, 'test.m4a');
+      expect(restored.createdAt, now);
+      expect(restored.duration.inSeconds, 90);
+      expect(restored.jobId, 'job-xyz');
+      expect(restored.status, 'completed');
+      expect(restored.resultSummary, 'A test summary.');
+    });
+
+    test('encodeList/decodeList roundtrip', () {
+      final entries = [
+        RecordingEntry(
+          id: 'a',
+          filePath: '/a.m4a',
+          filename: 'a.m4a',
+          createdAt: now,
+          duration: const Duration(seconds: 10),
+        ),
+        RecordingEntry(
+          id: 'b',
+          filePath: '/b.m4a',
+          filename: 'b.m4a',
+          createdAt: now,
+          duration: const Duration(seconds: 20),
+          status: 'uploaded',
+        ),
+      ];
+      final encoded = RecordingEntry.encodeList(entries);
+      final decoded = RecordingEntry.decodeList(encoded);
+      expect(decoded.length, 2);
+      expect(decoded[0].id, 'a');
+      expect(decoded[1].status, 'uploaded');
     });
   });
 }

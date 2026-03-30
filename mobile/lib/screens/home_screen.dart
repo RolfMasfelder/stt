@@ -45,6 +45,10 @@ class HomeScreen extends StatelessWidget {
         title: const Text('STT'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () => Navigator.pushNamed(context, '/history'),
+          ),
+          IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () => Navigator.pushNamed(context, '/settings'),
           ),

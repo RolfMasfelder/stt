@@ -8,6 +8,7 @@ class ProcessingConfig {
   final int sampleRate;
   final bool wifiOnly;
   final bool autoUpload;
+  final String storageDestination; // 'device' or storage config UUID
 
   const ProcessingConfig({
     this.language = 'auto',
@@ -19,6 +20,7 @@ class ProcessingConfig {
     this.sampleRate = 44100,
     this.wifiOnly = true,
     this.autoUpload = false,
+    this.storageDestination = 'device',
   });
 
   ProcessingConfig copyWith({
@@ -31,6 +33,7 @@ class ProcessingConfig {
     int? sampleRate,
     bool? wifiOnly,
     bool? autoUpload,
+    String? storageDestination,
   }) {
     return ProcessingConfig(
       language: language ?? this.language,
@@ -42,6 +45,7 @@ class ProcessingConfig {
       sampleRate: sampleRate ?? this.sampleRate,
       wifiOnly: wifiOnly ?? this.wifiOnly,
       autoUpload: autoUpload ?? this.autoUpload,
+      storageDestination: storageDestination ?? this.storageDestination,
     );
   }
 
@@ -55,6 +59,7 @@ class ProcessingConfig {
         'sampleRate': sampleRate,
         'wifiOnly': wifiOnly,
         'autoUpload': autoUpload,
+        'storageDestination': storageDestination,
       };
 
   factory ProcessingConfig.fromJson(Map<String, dynamic> json) {
@@ -68,6 +73,7 @@ class ProcessingConfig {
       sampleRate: json['sampleRate'] as int? ?? 44100,
       wifiOnly: json['wifiOnly'] as bool? ?? true,
       autoUpload: json['autoUpload'] as bool? ?? false,
+      storageDestination: json['storageDestination'] as String? ?? 'device',
     );
   }
 

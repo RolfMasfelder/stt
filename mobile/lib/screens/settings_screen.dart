@@ -31,6 +31,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late int _sampleRate;
   late bool _wifiOnly;
   late bool _autoUpload;
+  late String _storageDestination;
 
   @override
   void initState() {
@@ -54,6 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _sampleRate = cfg.sampleRate;
     _wifiOnly = cfg.wifiOnly;
     _autoUpload = cfg.autoUpload;
+    _storageDestination = cfg.storageDestination;
   }
 
   @override
@@ -116,6 +118,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       sampleRate: _sampleRate,
       wifiOnly: _wifiOnly,
       autoUpload: _autoUpload,
+      storageDestination: _storageDestination,
     ));
   }
 
@@ -283,6 +286,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
               setState(() => _sampleRate = v!);
               _saveProcessingConfig();
             },
+          ),
+          const Divider(height: 48),
+
+          // --- Storage Destination ---
+          _sectionHeader('Ablageort'),
+          const SizedBox(height: 8),
+          RadioGroup<String>(
+            groupValue: _storageDestination,
+            onChanged: (v) {
+              if (v == null) return;
+              setState(() => _storageDestination = v);
+              _saveProcessingConfig();
+            },
+            child: Column(
+              children: [
+                RadioListTile<String>(
+                  title: const Text('Nur auf dem Gerät'),
+                  subtitle: const Text('Aufnahmen lokal speichern'),
+                  secondary: const Icon(Icons.phone_android),
+                  value: 'device',
+                ),
+                RadioListTile<String>(
+                  title: const Text('Server (Standard-Backend)'),
+                  subtitle: const Text('Ergebnisse auf dem Server ablegen'),
+                  secondary: const Icon(Icons.cloud),
+                  value: 'server',
+                ),
+              ],
+            ),
           ),
           const Divider(height: 48),
 

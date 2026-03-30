@@ -6,6 +6,7 @@ import 'package:stt_app/screens/home_screen.dart';
 import 'package:stt_app/services/auth.dart';
 import 'package:stt_app/services/audio_recording.dart';
 import 'package:stt_app/services/processing_config.dart';
+import 'package:stt_app/services/recording_history.dart';
 import 'package:stt_app/services/server_connection.dart';
 import 'package:stt_app/services/upload.dart';
 
@@ -16,6 +17,7 @@ Widget createTestApp() {
       ChangeNotifierProvider(create: (_) => AudioRecordingService()),
       ChangeNotifierProvider(create: (_) => ProcessingConfigService()),
       ChangeNotifierProvider(create: (_) => AuthService()),
+      ChangeNotifierProvider(create: (_) => RecordingHistoryService()),
       ChangeNotifierProxyProvider<AuthService, UploadService>(
         create: (ctx) =>
             UploadService(authService: ctx.read<AuthService>()),
