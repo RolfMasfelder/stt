@@ -24,7 +24,7 @@ class NotificationService {
       iOS: darwinSettings,
     );
 
-    await _plugin.initialize(settings);
+    await _plugin.initialize(settings: settings);
     _initialized = true;
   }
 
@@ -48,10 +48,10 @@ class NotificationService {
     );
 
     await _plugin.show(
-      filename.hashCode,
-      'Transkription abgeschlossen',
-      summary ?? '$filename wurde verarbeitet',
-      details,
+      id: filename.hashCode,
+      title: 'Transkription abgeschlossen',
+      body: summary ?? '$filename wurde verarbeitet',
+      notificationDetails: details,
     );
   }
 
@@ -71,10 +71,10 @@ class NotificationService {
     const details = NotificationDetails(android: androidDetails);
 
     await _plugin.show(
-      filename.hashCode,
-      'Verarbeitung fehlgeschlagen',
-      error ?? '$filename konnte nicht verarbeitet werden',
-      details,
+      id: filename.hashCode,
+      title: 'Verarbeitung fehlgeschlagen',
+      body: error ?? '$filename konnte nicht verarbeitet werden',
+      notificationDetails: details,
     );
   }
 }
