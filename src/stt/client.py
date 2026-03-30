@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class ClientError(Exception):
-    """Raised when a request to the STT server fails."""
+    """Raised when a request to the STT server fails!"""
 
 
 class AuthenticationError(ClientError):
