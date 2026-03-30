@@ -269,7 +269,7 @@
 | Schritt | Beschreibung | Abhängigkeiten | Bezug |
 |---------|-------------|----------------|-------|
 | 2c.0 | ~~**Framework-Entscheidung**~~ | — | ADR-10 | ✅ Flutter |
-| 2c.1 | App-Projekt aufsetzen (Flutter/Dart) | 2c.0 | ADR-10 |
+| 2c.1 | App-Projekt aufsetzen (Flutter/Dart) | 2c.0 | ADR-10 | ✅ Done |
 | 2c.2 | HAL-9000-Statusanzeige implementieren (grau/grün/rot mit Glow + Animation) | 2c.1 | FA-20 |
 | 2c.3 | Audio-Aufnahme implementieren (Mikrofon, Start/Stop/Pause) | 2c.1 | FA-10 |
 | 2c.4 | Server-Verbindung konfigurierbar + Health-Check (grau → grün) | 2c.1, 2c.2 | FA-12, FA-20 |

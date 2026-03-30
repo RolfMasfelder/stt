@@ -171,6 +171,21 @@ services:
     profiles:
       - whisper-remote
 
+  # Flutter mobile app development container
+  flutter:
+    build:
+      context: ./mobile
+    container_name: stt-flutter
+    volumes:
+      - ./mobile:/app:z
+      - flutter_pub_cache:/home/appuser/.pub-cache
+      - flutter_gradle:/home/appuser/.gradle
+    networks:
+      - stt-network
+    profiles:
+      - mobile
+    command: bash
+
 networks:
   stt-network:
     driver: bridge
@@ -179,6 +194,8 @@ volumes:
   pgdata:
   caddy_data:
   caddy_config:
+  flutter_pub_cache:
+  flutter_gradle:
 
 secrets:
   hf_token:
