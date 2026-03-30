@@ -62,7 +62,7 @@
 
 ### Gemeinsame Komponenten (alle Szenarien)
 
-```
+```txt
   Clients                                          Server-Komponenten
   ─────────                                        ──────────────────
 ┌─────────────────────┐                          ┌─────────────────────────┐
@@ -87,7 +87,7 @@
 
 ### Szenario 1: InHouse (On-Premises)
 
-```
+```txt
   Kanzlei / Praxis / Behörde (LAN, kein Internet)
  ┌──────────────────────────────────────────────────────────────────────────┐
  │                                                                          │
@@ -114,7 +114,7 @@
 
 ### Szenario 2: Dedicated Hosting (Single-Tenant)
 
-```
+```txt
   Kunde (Internet)                        EU-Hoster (Hetzner/IONOS/OVH)
  ┌──────────────────┐                    ┌──────────────────────────────────────┐
  │                  │                    │  Dedizierter Server (1 Kunde)        │
@@ -138,7 +138,7 @@
 
 ### Szenario 3: SaaS (Multi-Tenant, Kubernetes)
 
-```
+```txt
   Kunden (Internet)                       EU-Hoster — Kubernetes-Cluster
  ┌──────────────────┐                    ┌────────────────────────────────────────────┐
  │  Kunde A         │                    │                                            │

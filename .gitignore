@@ -73,3 +73,6 @@ docs/tools
 *.wav
 data/udio/*
 data/output/*
+
+# static files
+/staticfiles/*

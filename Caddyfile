@@ -4,9 +4,9 @@
 # Production:  set SITE_ADDRESS to your domain for automatic Let's Encrypt
 #
 # Environment variables (set in .env or docker-compose.yml):
-#   SITE_ADDRESS  — Domain or :443 (default: :443 = self-signed)
+#   SITE_ADDRESS  — Domain or localhost (default: localhost = self-signed)
 
-{$SITE_ADDRESS::443} {
+{$SITE_ADDRESS:localhost} {
 	# --- Security Headers (OWASP Best Practices) ---
 	header {
 		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
