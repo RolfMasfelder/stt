@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/processing_config.dart';
 import '../models/server_config.dart';
 import '../models/connection_status.dart';
+import '../services/processing_config.dart';
 import '../services/server_connection.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -17,6 +19,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _verifyTls = true;
   bool _testing = false;
 
+  // Processing config state
+  late String _language;
+  late String _model;
+  late bool _diarize;
+  late bool _summarize;
+  late bool _structure;
+  late String _audioFormat;
+  late int _sampleRate;
+  late bool _wifiOnly;
+  late bool _autoUpload;
+
   @override
   void initState() {
     super.initState();
@@ -25,6 +38,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _urlController =
         TextEditingController(text: connection.config?.serverUrl ?? '');
     _verifyTls = connection.config?.verifyTls ?? true;
+
+    final processing =
+        Provider.of<ProcessingConfigService>(context, listen: false);
+    final cfg = processing.config;
+    _language = cfg.language;
+    _model = cfg.model;
+    _diarize = cfg.diarize;
+    _summarize = cfg.summarize;
+    _structure = cfg.structure;
+    _audioFormat = cfg.audioFormat;
+    _sampleRate = cfg.sampleRate;
+    _wifiOnly = cfg.wifiOnly;
+    _autoUpload = cfg.autoUpload;
   }
 
   @override
@@ -37,7 +63,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final url = _urlController.text.trim();
     if (url.isEmpty) return;
 
-    // Basic URL validation
     final uri = Uri.tryParse(url);
     if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
       if (!mounted) return;
@@ -74,6 +99,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _saveProcessingConfig() {
+    final processing =
+        Provider.of<ProcessingConfigService>(context, listen: false);
+    processing.update(ProcessingConfig(
+      language: _language,
+      model: _model,
+      diarize: _diarize,
+      summarize: _summarize,
+      structure: _structure,
+      audioFormat: _audioFormat,
+      sampleRate: _sampleRate,
+      wifiOnly: _wifiOnly,
+      autoUpload: _autoUpload,
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -83,10 +124,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(
-            'Server-Verbindung',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          // --- Server Connection ---
+          _sectionHeader('Server-Verbindung'),
           const SizedBox(height: 16),
           TextField(
             controller: _urlController,
@@ -116,10 +155,195 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.check_circle),
-            label: Text(_testing ? 'Teste Verbindung...' : 'Speichern & Testen'),
+            label:
+                Text(_testing ? 'Teste Verbindung...' : 'Speichern & Testen'),
+          ),
+          const Divider(height: 48),
+
+          // --- Transcription ---
+          _sectionHeader('Transkription'),
+          const SizedBox(height: 16),
+          _dropdownTile<String>(
+            title: 'Sprache',
+            subtitle: ProcessingConfig.languageLabels[_language] ?? _language,
+            icon: Icons.language,
+            value: _language,
+            items: ProcessingConfig.availableLanguages
+                .map((l) => DropdownMenuItem(
+                      value: l,
+                      child:
+                          Text(ProcessingConfig.languageLabels[l] ?? l),
+                    ))
+                .toList(),
+            onChanged: (v) {
+              setState(() => _language = v!);
+              _saveProcessingConfig();
+            },
+          ),
+          _dropdownTile<String>(
+            title: 'Whisper-Modell',
+            subtitle:
+                ProcessingConfig.modelDescriptions[_model] ?? _model,
+            icon: Icons.model_training,
+            value: _model,
+            items: ProcessingConfig.availableModels
+                .map((m) => DropdownMenuItem(
+                      value: m,
+                      child: Text(
+                          '$m — ${ProcessingConfig.modelDescriptions[m]}'),
+                    ))
+                .toList(),
+            onChanged: (v) {
+              setState(() => _model = v!);
+              _saveProcessingConfig();
+            },
+          ),
+          const Divider(height: 48),
+
+          // --- Processing Pipeline ---
+          _sectionHeader('Verarbeitung'),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            title: const Text('Sprechererkennung'),
+            subtitle: const Text('Sprecher automatisch zuordnen'),
+            secondary: const Icon(Icons.people),
+            value: _diarize,
+            onChanged: (v) {
+              setState(() => _diarize = v);
+              _saveProcessingConfig();
+            },
+          ),
+          SwitchListTile(
+            title: const Text('Strukturierung'),
+            subtitle: const Text('Text in Abschnitte gliedern'),
+            secondary: const Icon(Icons.format_list_bulleted),
+            value: _structure,
+            onChanged: (v) {
+              setState(() => _structure = v);
+              _saveProcessingConfig();
+            },
+          ),
+          SwitchListTile(
+            title: const Text('Zusammenfassung'),
+            subtitle: const Text('Automatische Zusammenfassung erstellen'),
+            secondary: const Icon(Icons.summarize),
+            value: _summarize,
+            onChanged: (v) {
+              setState(() => _summarize = v);
+              _saveProcessingConfig();
+            },
+          ),
+          const Divider(height: 48),
+
+          // --- Audio ---
+          _sectionHeader('Audio-Aufnahme'),
+          const SizedBox(height: 16),
+          _dropdownTile<String>(
+            title: 'Audio-Format',
+            subtitle:
+                ProcessingConfig.audioFormatLabels[_audioFormat] ??
+                    _audioFormat,
+            icon: Icons.audio_file,
+            value: _audioFormat,
+            items: ProcessingConfig.availableAudioFormats
+                .map((f) => DropdownMenuItem(
+                      value: f,
+                      child: Text(
+                          ProcessingConfig.audioFormatLabels[f] ?? f),
+                    ))
+                .toList(),
+            onChanged: (v) {
+              setState(() => _audioFormat = v!);
+              _saveProcessingConfig();
+            },
+          ),
+          _dropdownTile<int>(
+            title: 'Sample-Rate',
+            subtitle:
+                ProcessingConfig.sampleRateLabels[_sampleRate] ??
+                    '$_sampleRate Hz',
+            icon: Icons.graphic_eq,
+            value: _sampleRate,
+            items: ProcessingConfig.availableSampleRates
+                .map((r) => DropdownMenuItem(
+                      value: r,
+                      child: Text(
+                          ProcessingConfig.sampleRateLabels[r] ?? '$r Hz'),
+                    ))
+                .toList(),
+            onChanged: (v) {
+              setState(() => _sampleRate = v!);
+              _saveProcessingConfig();
+            },
+          ),
+          const Divider(height: 48),
+
+          // --- Network ---
+          _sectionHeader('Netzwerk'),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            title: const Text('Nur über WLAN'),
+            subtitle: const Text('Upload nur bei WLAN-Verbindung'),
+            secondary: const Icon(Icons.wifi),
+            value: _wifiOnly,
+            onChanged: (v) {
+              setState(() => _wifiOnly = v);
+              _saveProcessingConfig();
+            },
+          ),
+          SwitchListTile(
+            title: const Text('Automatischer Upload'),
+            subtitle:
+                const Text('Aufnahme nach Stopp automatisch hochladen'),
+            secondary: const Icon(Icons.cloud_upload),
+            value: _autoUpload,
+            onChanged: (v) {
+              setState(() => _autoUpload = v);
+              _saveProcessingConfig();
+            },
           ),
         ],
       ),
+    );
+  }
+
+  Widget _sectionHeader(String title) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleLarge,
+    );
+  }
+
+  Widget _dropdownTile<T>({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required T value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: Text(subtitle),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () async {
+        final result = await showDialog<T>(
+          context: context,
+          builder: (ctx) => SimpleDialog(
+            title: Text(title),
+            children: items
+                .map((item) => SimpleDialogOption(
+                      onPressed: () => Navigator.pop(ctx, item.value),
+                      child: item.child,
+                    ))
+                .toList(),
+          ),
+        );
+        if (result != null) {
+          onChanged(result);
+        }
+      },
     );
   }
 }

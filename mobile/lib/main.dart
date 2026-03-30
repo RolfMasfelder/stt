@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'services/audio_recording.dart';
+import 'services/processing_config.dart';
 import 'services/server_connection.dart';
 import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
@@ -19,6 +20,7 @@ class STTApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ServerConnectionService()),
         ChangeNotifierProvider(create: (_) => AudioRecordingService()),
+        ChangeNotifierProvider(create: (_) => ProcessingConfigService()),
       ],
       child: MaterialApp(
         title: 'STT',
