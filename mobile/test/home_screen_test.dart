@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:stt_app/screens/home_screen.dart';
 import 'package:stt_app/services/auth.dart';
 import 'package:stt_app/services/audio_recording.dart';
+import 'package:stt_app/services/connectivity.dart';
 import 'package:stt_app/services/processing_config.dart';
 import 'package:stt_app/services/recording_history.dart';
 import 'package:stt_app/services/server_connection.dart';
@@ -18,6 +19,7 @@ Widget createTestApp() {
       ChangeNotifierProvider(create: (_) => ProcessingConfigService()),
       ChangeNotifierProvider(create: (_) => AuthService()),
       ChangeNotifierProvider(create: (_) => RecordingHistoryService()),
+      ChangeNotifierProvider(create: (_) => ConnectivityService()),
       ChangeNotifierProxyProvider<AuthService, UploadService>(
         create: (ctx) =>
             UploadService(authService: ctx.read<AuthService>()),
@@ -55,19 +57,12 @@ void main() {
       expect(find.text('Settings'), findsOneWidget);
     });
 
-    testWidgets('shows snackbar when tapping eye while disconnected',
-        (tester) async {
+    testWidgets('allows recording tap when disconnected', (tester) async {
       await tester.pumpWidget(createTestApp());
       await tester.pump();
 
-      // Tap the GestureDetector wrapping HalEye
-      await tester.tap(find.byType(GestureDetector).first);
-      await tester.pump();
-
-      expect(
-        find.text('Bitte zuerst Server-Verbindung einrichten'),
-        findsOneWidget,
-      );
+      // GestureDetector should be present — offline recording is allowed
+      expect(find.byType(GestureDetector), findsWidgets);
     });
 
     testWidgets('does not show recording controls in idle state',

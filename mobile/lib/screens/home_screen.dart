@@ -5,6 +5,7 @@ import '../models/connection_status.dart';
 import '../models/recording_state.dart';
 import '../models/upload_status.dart';
 import '../services/audio_recording.dart';
+import '../services/connectivity.dart';
 import '../services/processing_config.dart';
 import '../services/server_connection.dart';
 import '../services/upload.dart';
@@ -159,15 +160,6 @@ class HomeScreen extends StatelessWidget {
   ) async {
     if (recorder.state != RecordingState.idle) return;
 
-    if (connection.status != ConnectionStatus.connected) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Bitte zuerst Server-Verbindung einrichten'),
-        ),
-      );
-      return;
-    }
-
     final hasPerms = await recorder.hasPermission();
     if (!hasPerms) {
       if (!context.mounted) return;
@@ -177,6 +169,16 @@ class HomeScreen extends StatelessWidget {
         ),
       );
       return;
+    }
+
+    // Show hint if offline but still allow recording
+    if (connection.status != ConnectionStatus.connected && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Offline-Aufnahme — Upload bei Verbindung'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
 
     await recorder.start();
@@ -191,20 +193,27 @@ class HomeScreen extends StatelessWidget {
       final connection = context.read<ServerConnectionService>();
       final processingConfig = context.read<ProcessingConfigService>();
       final upload = context.read<UploadService>();
+      final connectivity = context.read<ConnectivityService>();
 
-      if (processingConfig.config.autoUpload &&
-          connection.status == ConnectionStatus.connected) {
+      final canUploadNow =
+          connection.status == ConnectionStatus.connected &&
+          connectivity.canUpload(
+              wifiOnly: processingConfig.config.wifiOnly);
+
+      if (processingConfig.config.autoUpload && canUploadNow) {
         upload.uploadAndProcess(
           serverUrl: connection.config!.serverUrl,
           filePath: path,
           config: processingConfig.config,
         );
       } else {
+        final reason = !canUploadNow
+            ? 'Aufnahme gespeichert (offline — Upload später)'
+            : 'Aufnahme gespeichert: ${path.split('/').last}';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-                Text('Aufnahme gespeichert: ${path.split('/').last}'),
-            action: connection.status == ConnectionStatus.connected
+            content: Text(reason),
+            action: canUploadNow
                 ? SnackBarAction(
                     label: 'Hochladen',
                     onPressed: () {

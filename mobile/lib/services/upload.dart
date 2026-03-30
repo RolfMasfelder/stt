@@ -9,6 +9,7 @@ import '../models/job_result.dart';
 import '../models/processing_config.dart';
 import '../models/upload_status.dart';
 import '../services/auth.dart';
+import '../services/notification.dart';
 
 class UploadService extends ChangeNotifier {
   final AuthService _authService;
@@ -102,10 +103,18 @@ class UploadService extends ChangeNotifier {
         if (_currentJob!.isCompleted) {
           _status = UploadStatus.completed;
           _pollTimer?.cancel();
+          NotificationService().showProcessingComplete(
+            filename: _currentJob!.originalFilename,
+            summary: _currentJob!.resultSummary,
+          );
         } else if (_currentJob!.isFailed) {
           _status = UploadStatus.failed;
           _errorMessage = _currentJob!.errorMessage ?? 'Verarbeitung fehlgeschlagen';
           _pollTimer?.cancel();
+          NotificationService().showProcessingFailed(
+            filename: _currentJob!.originalFilename,
+            error: _errorMessage,
+          );
         }
         notifyListeners();
       }

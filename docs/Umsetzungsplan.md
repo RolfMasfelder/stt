@@ -278,9 +278,9 @@
 | 2c.7 | Audio-Upload und Ergebnis-Anzeige | 2c.3, 2c.4, 2c.5 | FA-11 | ✅ Done |
 | 2c.8 | Ablageort-Auswahl (Handy / Dateisystem) | 2c.6, 2b.2 | FA-22, FA-13, FA-14 | ✅ Done |
 | 2c.9 | Aufnahme-Historie (lokale Liste, Status, Ergebnis-Zugriff) | 2c.7 | FA-23 | ✅ Done |
-| 2c.10 | Offline-Fähigkeit (Aufnahme ohne Server, späterer Upload) | 2c.3 | QA-10 |
-| 2c.11 | Push-Benachrichtigungen bei Verarbeitungsende | 2c.7 | FA-21 |
-| 2c.12 | Netzwerk-Präferenzen (WLAN/Mobilfunk, Auto-Upload) | 2c.7 | FA-21 |
+| 2c.10 | Offline-Fähigkeit (Aufnahme ohne Server, späterer Upload) | 2c.3 | QA-10 | ✅ Done |
+| 2c.11 | Push-Benachrichtigungen bei Verarbeitungsende | 2c.7 | FA-21 | ✅ Done |
+| 2c.12 | Netzwerk-Präferenzen (WLAN/Mobilfunk, Auto-Upload) | 2c.7 | FA-21 | ✅ Done |
 
 ### Phase 2d: Korrektur-Workflow und API-Einzelschritte
 
