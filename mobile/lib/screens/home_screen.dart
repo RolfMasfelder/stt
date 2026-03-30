@@ -3,8 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../models/connection_status.dart';
 import '../models/recording_state.dart';
+import '../models/upload_status.dart';
 import '../services/audio_recording.dart';
+import '../services/processing_config.dart';
 import '../services/server_connection.dart';
+import '../services/upload.dart';
 import '../widgets/hal_eye.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -35,6 +38,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final connection = context.watch<ServerConnectionService>();
     final recorder = context.watch<AudioRecordingService>();
+    final upload = context.watch<UploadService>();
 
     return Scaffold(
       appBar: AppBar(
@@ -121,7 +125,8 @@ class HomeScreen extends StatelessWidget {
 
             // Server URL
             if (recorder.state == RecordingState.idle &&
-                connection.config != null) ...[
+                connection.config != null &&
+                upload.status == UploadStatus.idle) ...[
               const SizedBox(height: 8),
               Text(
                 connection.config!.serverUrl,
@@ -129,6 +134,13 @@ class HomeScreen extends StatelessWidget {
                       color: Colors.grey,
                     ),
               ),
+            ],
+
+            // Upload / Processing status
+            if (upload.status != UploadStatus.idle &&
+                recorder.state == RecordingState.idle) ...[
+              const SizedBox(height: 24),
+              _buildUploadStatus(context, upload),
             ],
           ],
         ),
@@ -172,9 +184,104 @@ class HomeScreen extends StatelessWidget {
   ) async {
     final path = await recorder.stop();
     if (path != null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Aufnahme gespeichert: ${path.split('/').last}')),
-      );
+      final connection = context.read<ServerConnectionService>();
+      final processingConfig = context.read<ProcessingConfigService>();
+      final upload = context.read<UploadService>();
+
+      if (processingConfig.config.autoUpload &&
+          connection.status == ConnectionStatus.connected) {
+        upload.uploadAndProcess(
+          serverUrl: connection.config!.serverUrl,
+          filePath: path,
+          config: processingConfig.config,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('Aufnahme gespeichert: ${path.split('/').last}'),
+            action: connection.status == ConnectionStatus.connected
+                ? SnackBarAction(
+                    label: 'Hochladen',
+                    onPressed: () {
+                      upload.uploadAndProcess(
+                        serverUrl: connection.config!.serverUrl,
+                        filePath: path,
+                        config: processingConfig.config,
+                      );
+                    },
+                  )
+                : null,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildUploadStatus(BuildContext context, UploadService upload) {
+    switch (upload.status) {
+      case UploadStatus.idle:
+        return const SizedBox.shrink();
+      case UploadStatus.uploading:
+        return Column(
+          children: [
+            SizedBox(
+              width: 40,
+              height: 40,
+              child: CircularProgressIndicator(
+                value: upload.progress,
+                strokeWidth: 3,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text('Wird hochgeladen...'),
+          ],
+        );
+      case UploadStatus.processing:
+        return Column(
+          children: [
+            const SizedBox(
+              width: 40,
+              height: 40,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
+            const SizedBox(height: 8),
+            const Text('Wird verarbeitet...'),
+          ],
+        );
+      case UploadStatus.completed:
+        return Column(
+          children: [
+            const Icon(Icons.check_circle, size: 48, color: Colors.green),
+            const SizedBox(height: 8),
+            const Text('Verarbeitung abgeschlossen'),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.pushNamed(context, '/result');
+              },
+              icon: const Icon(Icons.description),
+              label: const Text('Ergebnis anzeigen'),
+            ),
+          ],
+        );
+      case UploadStatus.failed:
+        return Column(
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 8),
+            Text(
+              upload.errorMessage ?? 'Fehler',
+              style: const TextStyle(color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: upload.reset,
+              child: const Text('Zurücksetzen'),
+            ),
+          ],
+        );
     }
   }
 }

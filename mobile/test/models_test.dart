@@ -1,9 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:stt_app/models/connection_status.dart';
+import 'package:stt_app/models/job_result.dart';
 import 'package:stt_app/models/processing_config.dart';
 import 'package:stt_app/models/recording_state.dart';
 import 'package:stt_app/models/server_config.dart';
+import 'package:stt_app/models/upload_status.dart';
 
 void main() {
   group('ConnectionStatus', () {
@@ -115,6 +117,69 @@ void main() {
         expect(ProcessingConfig.modelDescriptions.containsKey(model), true,
             reason: 'Missing description for model: $model');
       }
+    });
+  });
+
+  group('UploadStatus', () {
+    test('has five states', () {
+      expect(UploadStatus.values.length, 5);
+      expect(UploadStatus.values, contains(UploadStatus.idle));
+      expect(UploadStatus.values, contains(UploadStatus.uploading));
+      expect(UploadStatus.values, contains(UploadStatus.processing));
+      expect(UploadStatus.values, contains(UploadStatus.completed));
+      expect(UploadStatus.values, contains(UploadStatus.failed));
+    });
+  });
+
+  group('JobResult', () {
+    test('fromJson parses correctly', () {
+      final json = {
+        'id': '123e4567-e89b-12d3-a456-426614174000',
+        'status': 'completed',
+        'original_filename': 'test.m4a',
+        'whisper_model': 'small',
+        'created_at': '2025-01-01T12:00:00Z',
+        'updated_at': '2025-01-01T12:05:00Z',
+        'result_text': 'Hello world',
+        'result_diarized_text': 'Speaker 1: Hello world',
+        'result_structured_text': '## Section\nHello world',
+        'result_summary': 'A greeting.',
+      };
+      final job = JobResult.fromJson(json);
+      expect(job.id, '123e4567-e89b-12d3-a456-426614174000');
+      expect(job.status, 'completed');
+      expect(job.isCompleted, true);
+      expect(job.isFailed, false);
+      expect(job.isPending, false);
+      expect(job.resultText, 'Hello world');
+      expect(job.resultSummary, 'A greeting.');
+    });
+
+    test('isPending for pending and running', () {
+      final pending = JobResult.fromJson({
+        'id': 'abc',
+        'status': 'pending',
+        'created_at': '2025-01-01T12:00:00Z',
+      });
+      expect(pending.isPending, true);
+
+      final running = JobResult.fromJson({
+        'id': 'abc',
+        'status': 'running',
+        'created_at': '2025-01-01T12:00:00Z',
+      });
+      expect(running.isPending, true);
+    });
+
+    test('isFailed for failed status', () {
+      final failed = JobResult.fromJson({
+        'id': 'abc',
+        'status': 'failed',
+        'created_at': '2025-01-01T12:00:00Z',
+        'error_message': 'Something went wrong',
+      });
+      expect(failed.isFailed, true);
+      expect(failed.errorMessage, 'Something went wrong');
     });
   });
 }

@@ -5,7 +5,9 @@ import 'services/auth.dart';
 import 'services/audio_recording.dart';
 import 'services/processing_config.dart';
 import 'services/server_connection.dart';
+import 'services/upload.dart';
 import 'screens/home_screen.dart';
+import 'screens/result_screen.dart';
 import 'screens/settings_screen.dart';
 
 void main() {
@@ -23,6 +25,13 @@ class STTApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AudioRecordingService()),
         ChangeNotifierProvider(create: (_) => ProcessingConfigService()),
         ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProxyProvider<AuthService, UploadService>(
+          create: (ctx) => UploadService(
+            authService: ctx.read<AuthService>(),
+          ),
+          update: (_, auth, previous) =>
+              previous ?? UploadService(authService: auth),
+        ),
       ],
       child: MaterialApp(
         title: 'STT',
@@ -39,6 +48,7 @@ class STTApp extends StatelessWidget {
         routes: {
           '/': (context) => const HomeScreen(),
           '/settings': (context) => const SettingsScreen(),
+          '/result': (context) => const ResultScreen(),
         },
       ),
     );
