@@ -1,0 +1,42 @@
+name: Flutter CI
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - 'mobile/**'
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - 'mobile/**'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run unit tests
+        run: flutter test test/ --reporter expanded
+
+      - name: Run E2E tests
+        run: flutter test test/e2e_test.dart --reporter expanded
