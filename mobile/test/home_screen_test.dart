@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 import 'package:stt_app/screens/home_screen.dart';
+import 'package:stt_app/services/auth.dart';
 import 'package:stt_app/services/audio_recording.dart';
 import 'package:stt_app/services/processing_config.dart';
 import 'package:stt_app/services/server_connection.dart';
@@ -13,6 +14,7 @@ Widget createTestApp() {
       ChangeNotifierProvider(create: (_) => ServerConnectionService()),
       ChangeNotifierProvider(create: (_) => AudioRecordingService()),
       ChangeNotifierProvider(create: (_) => ProcessingConfigService()),
+      ChangeNotifierProvider(create: (_) => AuthService()),
     ],
     child: MaterialApp(
       home: const HomeScreen(),

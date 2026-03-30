@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/processing_config.dart';
 import '../models/server_config.dart';
 import '../models/connection_status.dart';
+import '../services/auth.dart';
 import '../services/processing_config.dart';
 import '../services/server_connection.dart';
 
@@ -16,6 +17,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _urlController;
+  late TextEditingController _clientIdController;
   bool _verifyTls = true;
   bool _testing = false;
 
@@ -37,6 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Provider.of<ServerConnectionService>(context, listen: false);
     _urlController =
         TextEditingController(text: connection.config?.serverUrl ?? '');
+    _clientIdController = TextEditingController();
     _verifyTls = connection.config?.verifyTls ?? true;
 
     final processing =
@@ -56,6 +59,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _urlController.dispose();
+    _clientIdController.dispose();
     super.dispose();
   }
 
@@ -160,7 +164,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const Divider(height: 48),
 
-          // --- Transcription ---
+          // --- Authentication ---
+          _sectionHeader('Authentifizierung'),
+          const SizedBox(height: 16),
+          _buildAuthSection(),
+          const Divider(height: 48),
           _sectionHeader('Transkription'),
           const SizedBox(height: 16),
           _dropdownTile<String>(
@@ -303,6 +311,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAuthSection() {
+    final auth = context.watch<AuthService>();
+
+    if (auth.isAuthenticated) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.check_circle, color: Colors.green),
+            title: const Text('Angemeldet'),
+            subtitle: Text(
+              auth.state.expiresAt != null
+                  ? 'Token gültig bis ${auth.state.expiresAt!.toLocal()}'
+                  : 'Token aktiv',
+            ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () async {
+              await auth.logout();
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Abgemeldet')),
+              );
+            },
+            icon: const Icon(Icons.logout),
+            label: const Text('Abmelden'),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _clientIdController,
+          decoration: const InputDecoration(
+            labelText: 'OAuth2 Client-ID',
+            hintText: 'z.B. stt-mobile-app',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.key),
+          ),
+          autocorrect: false,
+        ),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: () => _login(auth),
+          icon: const Icon(Icons.login),
+          label: const Text('Anmelden'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _login(AuthService auth) async {
+    final url = _urlController.text.trim();
+    final clientId = _clientIdController.text.trim();
+
+    if (url.isEmpty || clientId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Server-URL und Client-ID eingeben'),
+        ),
+      );
+      return;
+    }
+
+    final success = await auth.login(serverUrl: url, clientId: clientId);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success ? 'Anmeldung erfolgreich' : 'Anmeldung fehlgeschlagen',
+        ),
+        backgroundColor:
+            success ? Colors.green.shade800 : Colors.red.shade800,
       ),
     );
   }

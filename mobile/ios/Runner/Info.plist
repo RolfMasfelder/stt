@@ -66,5 +66,16 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>stt.app</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Mikrofon-Zugriff für Audio-Aufnahme und Spracherkennung</string>
 </dict>
 </plist>

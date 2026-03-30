@@ -165,7 +165,11 @@ OAUTH2_PROVIDER = {
     "ACCESS_TOKEN_EXPIRE_SECONDS": 900,  # 15 minutes
     "REFRESH_TOKEN_EXPIRE_SECONDS": 604800,  # 7 days
     "ROTATE_REFRESH_TOKEN": True,
-    "ALLOWED_REDIRECT_URI_SCHEMES": ["https", "http"],  # http for dev only
+    "ALLOWED_REDIRECT_URI_SCHEMES": [
+        "https",
+        "http",
+        "stt.app",
+    ],  # stt.app for mobile PKCE
     "PKCE_REQUIRED": True,  # Enforce PKCE for all public clients (ADR-07)
     "SCOPES": {
         "read": "Read access to API resources",

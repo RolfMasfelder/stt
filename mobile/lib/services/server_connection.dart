@@ -11,12 +11,19 @@ class ServerConnectionService extends ChangeNotifier {
   ServerConfig? _config;
   ConnectionStatus _status = ConnectionStatus.disconnected;
   Timer? _healthTimer;
+  // ignore: unused_field
+  Map<String, String> Function()? _authHeadersProvider;
 
   ServerConfig? get config => _config;
   ConnectionStatus get status => _status;
 
   ServerConnectionService() {
     _loadConfig();
+  }
+
+  /// Set a callback providing auth headers for authenticated health checks.
+  void setAuthHeadersProvider(Map<String, String> Function() provider) {
+    _authHeadersProvider = provider;
   }
 
   Future<void> _loadConfig() async {
