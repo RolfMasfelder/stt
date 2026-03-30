@@ -114,6 +114,8 @@ class AuditAction(models.TextChoices):
     JOB_CREATED = "job_created", "Job Created"
     JOB_COMPLETED = "job_completed", "Job Completed"
     JOB_FAILED = "job_failed", "Job Failed"
+    JOB_UPDATED = "job_updated", "Job Updated"
+    JOB_REPROCESSED = "job_reprocessed", "Job Reprocessed"
     RESULT_ACCESSED = "result_accessed", "Result Accessed"
     RESULT_DELETED = "result_deleted", "Result Deleted"
     STORAGE_CONFIG_CREATED = "storage_config_created", "Storage Config Created"
@@ -160,3 +162,35 @@ class AuditLog(models.Model):
 
     def __str__(self) -> str:
         return f"[{self.created_at}] {self.action} on {self.resource_type}/{self.resource_id}"
+
+
+class ResultVersion(models.Model):
+    """Versioned snapshot of job results for correction workflow (FA-18).
+
+    Created automatically when a job completes (version 0)
+    and on each correction/reprocessing step.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="versions")
+    version = models.PositiveIntegerField(default=0)
+
+    result_text = models.TextField(blank=True, default="")
+    result_diarized_text = models.TextField(blank=True, default="")
+    result_structured_text = models.TextField(blank=True, default="")
+    result_summary = models.TextField(blank=True, default="")
+
+    source = models.CharField(
+        max_length=30,
+        default="pipeline",
+        help_text="How this version was created: pipeline, correction, reprocess",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["version"]
+        unique_together = [("job", "version")]
+
+    def __str__(self) -> str:
+        return f"Job {self.job_id} v{self.version} ({self.source})"

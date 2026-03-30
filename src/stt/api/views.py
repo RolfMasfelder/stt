@@ -19,11 +19,16 @@ from rest_framework.views import APIView
 from stt.config import AppConfig, WhisperConfig, load_config
 from stt.diarize import DiarizationError, diarize_audio, format_diarized_segments
 from stt.logging_setup import setup_logging
-from stt.summarize import SummarizationError, process_transcript
+from stt.summarize import (
+    SummarizationError,
+    process_transcript,
+    structure_text,
+    summarize_text,
+)
 from stt.transcribe import TranscriptionError, transcribe_audio
 
 from .audit import log_audit
-from .models import AuditAction, Job, JobType, StorageConfig
+from .models import AuditAction, Job, JobType, ResultVersion, StorageConfig
 from .serializers import (
     AudioUploadSerializer,
     DiarizeResponseSerializer,
@@ -31,8 +36,11 @@ from .serializers import (
     HealthResponseSerializer,
     JobDetailSerializer,
     JobResponseSerializer,
+    JobUpdateSerializer,
     ProcessResponseSerializer,
     ProcessUploadSerializer,
+    ReprocessSerializer,
+    ResultVersionSerializer,
     StorageConfigSerializer,
     StorageTestResponseSerializer,
     TranscribeResponseSerializer,
@@ -404,6 +412,185 @@ class JobDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         return Response(JobDetailSerializer(job).data)
+
+
+# --- Correction workflow endpoints (2d) ---
+
+
+def _get_job_or_404(job_id: str) -> Job | None:
+    """Return a Job or None if not found."""
+    try:
+        return Job.objects.get(id=job_id)
+    except (Job.DoesNotExist, ValueError, ValidationError):
+        return None
+
+
+def _create_version_snapshot(job: Job, source: str) -> ResultVersion:
+    """Create a new ResultVersion from the current state of a Job."""
+    last_version = (
+        job.versions.order_by("-version").values_list("version", flat=True).first()
+    )
+    next_version = (last_version + 1) if last_version is not None else 0
+    return ResultVersion.objects.create(
+        job=job,
+        version=next_version,
+        result_text=job.result_text,
+        result_diarized_text=job.result_diarized_text,
+        result_structured_text=job.result_structured_text,
+        result_summary=job.result_summary,
+        source=source,
+    )
+
+
+class JobUpdateView(APIView):
+    """Correct job result fields (creates a new version)."""
+
+    @extend_schema(
+        request=JobUpdateSerializer,
+        responses={
+            200: JobDetailSerializer,
+            400: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+        summary="Correct job results",
+        description="Update result fields and create a versioned snapshot.",
+    )
+    def patch(self, request: Request, job_id: str) -> Response:
+        job = _get_job_or_404(job_id)
+        if job is None:
+            return Response(
+                {"detail": "Job not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = JobUpdateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        updated_fields: list[str] = []
+        for field in (
+            "result_text",
+            "result_diarized_text",
+            "result_structured_text",
+            "result_summary",
+        ):
+            if field in serializer.validated_data:
+                setattr(job, field, serializer.validated_data[field])
+                updated_fields.append(field)
+
+        if not updated_fields:
+            return Response(
+                {"detail": "No fields to update"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        updated_fields.append("updated_at")
+        job.save(update_fields=updated_fields)
+
+        _create_version_snapshot(job, source="correction")
+
+        log_audit(
+            AuditAction.JOB_UPDATED,
+            request=request,
+            resource_type="job",
+            resource_id=str(job.id),
+            detail=f"fields={','.join(f for f in updated_fields if f != 'updated_at')}",
+        )
+
+        return Response(JobDetailSerializer(job).data)
+
+
+class JobReprocessView(APIView):
+    """Re-run pipeline steps on existing job results."""
+
+    @extend_schema(
+        request=ReprocessSerializer,
+        responses={
+            200: JobDetailSerializer,
+            400: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+            500: ErrorResponseSerializer,
+        },
+        summary="Re-run pipeline steps",
+        description=(
+            "Re-run structure and/or summarize on the current result text. "
+            "Creates a versioned snapshot of the new results."
+        ),
+    )
+    def post(self, request: Request, job_id: str) -> Response:
+        job = _get_job_or_404(job_id)
+        if job is None:
+            return Response(
+                {"detail": "Job not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = ReprocessSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        steps = serializer.validated_data["steps"]
+        source_text = job.result_text
+        if not source_text:
+            return Response(
+                {"detail": "Job has no result text to reprocess"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        cfg = _get_config()
+        updated_fields: list[str] = []
+
+        try:
+            if "structure" in steps:
+                job.result_structured_text = structure_text(source_text, cfg.lm_studio)
+                updated_fields.append("result_structured_text")
+
+            if "summarize" in steps:
+                text_to_summarize = job.result_structured_text or source_text
+                job.result_summary = summarize_text(text_to_summarize, cfg.lm_studio)
+                updated_fields.append("result_summary")
+        except SummarizationError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        updated_fields.append("updated_at")
+        job.save(update_fields=updated_fields)
+
+        _create_version_snapshot(job, source="reprocess")
+
+        log_audit(
+            AuditAction.JOB_REPROCESSED,
+            request=request,
+            resource_type="job",
+            resource_id=str(job.id),
+            detail=f"steps={','.join(steps)}",
+        )
+
+        return Response(JobDetailSerializer(job).data)
+
+
+class JobVersionListView(APIView):
+    """List all versioned snapshots of a job's results."""
+
+    @extend_schema(
+        responses={
+            200: ResultVersionSerializer(many=True),
+            404: ErrorResponseSerializer,
+        },
+        summary="List result versions",
+    )
+    def get(self, request: Request, job_id: str) -> Response:
+        job = _get_job_or_404(job_id)
+        if job is None:
+            return Response(
+                {"detail": "Job not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        versions = job.versions.all()
+        return Response(ResultVersionSerializer(versions, many=True).data)
 
 
 # --- Storage config endpoints (ADR-11, ADR-12) ---

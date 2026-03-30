@@ -14,7 +14,7 @@ from stt.summarize import process_transcript
 from stt.transcribe import transcribe_audio
 
 from .audit import log_audit
-from .models import AuditAction, Job, JobStatus
+from .models import AuditAction, Job, JobStatus, ResultVersion
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +47,19 @@ def _fail_job(job: Job, error: str) -> None:
     )
 
 
+def _create_initial_version(job: Job) -> None:
+    """Create version 0 snapshot after pipeline completion."""
+    ResultVersion.objects.create(
+        job=job,
+        version=0,
+        result_text=job.result_text,
+        result_diarized_text=job.result_diarized_text,
+        result_structured_text=job.result_structured_text,
+        result_summary=job.result_summary,
+        source="pipeline",
+    )
+
+
 def run_transcribe(job_id: str) -> None:
     """Transcribe audio for the given Job."""
     try:
@@ -75,6 +88,7 @@ def run_transcribe(job_id: str) -> None:
                 "updated_at",
             ]
         )
+        _create_initial_version(job)
         log_audit(
             AuditAction.JOB_COMPLETED,
             resource_type="job",
@@ -130,6 +144,7 @@ def run_diarize(job_id: str) -> None:
                 "updated_at",
             ]
         )
+        _create_initial_version(job)
         log_audit(
             AuditAction.JOB_COMPLETED,
             resource_type="job",
@@ -192,6 +207,7 @@ def run_process(job_id: str) -> None:
                 "updated_at",
             ]
         )
+        _create_initial_version(job)
         log_audit(
             AuditAction.JOB_COMPLETED,
             resource_type="job",

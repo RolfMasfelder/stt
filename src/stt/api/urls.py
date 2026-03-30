@@ -11,6 +11,22 @@ urlpatterns = [
     path("v1/process", views.ProcessView.as_view(), name="process"),
     path("v1/jobs", views.JobCreateView.as_view(), name="job-create"),
     path("v1/jobs/<str:job_id>", views.JobDetailView.as_view(), name="job-detail"),
+    # Correction workflow (2d)
+    path(
+        "v1/jobs/<str:job_id>/correct",
+        views.JobUpdateView.as_view(),
+        name="job-correct",
+    ),
+    path(
+        "v1/jobs/<str:job_id>/reprocess",
+        views.JobReprocessView.as_view(),
+        name="job-reprocess",
+    ),
+    path(
+        "v1/jobs/<str:job_id>/versions",
+        views.JobVersionListView.as_view(),
+        name="job-versions",
+    ),
     # Storage config (ADR-12)
     path(
         "v1/config/storage",

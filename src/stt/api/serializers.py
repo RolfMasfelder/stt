@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 
-from .models import StorageConfig
+from .models import ResultVersion, StorageConfig
 
 # --- Input serializers ---
 
@@ -118,6 +118,44 @@ class StorageConfigSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "s3_secret_key": {"write_only": True},
         }
+
+
+# --- Correction workflow serializers (2d) ---
+
+
+class JobUpdateSerializer(serializers.Serializer):
+    """Input for correcting job result fields."""
+
+    result_text = serializers.CharField(required=False, allow_blank=True)
+    result_diarized_text = serializers.CharField(required=False, allow_blank=True)
+    result_structured_text = serializers.CharField(required=False, allow_blank=True)
+    result_summary = serializers.CharField(required=False, allow_blank=True)
+
+
+class ReprocessSerializer(serializers.Serializer):
+    """Input for selecting which steps to re-run."""
+
+    steps = serializers.ListField(
+        child=serializers.ChoiceField(choices=["structure", "summarize"]),
+        min_length=1,
+        help_text="Pipeline steps to re-run on current result text",
+    )
+
+
+class ResultVersionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResultVersion
+        fields = [
+            "id",
+            "version",
+            "result_text",
+            "result_diarized_text",
+            "result_structured_text",
+            "result_summary",
+            "source",
+            "created_at",
+        ]
+        read_only_fields = fields
 
 
 class StorageTestResponseSerializer(serializers.Serializer):

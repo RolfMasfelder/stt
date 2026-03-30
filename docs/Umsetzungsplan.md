@@ -266,8 +266,8 @@
 
 **Ziel:** Cross-Platform Mobile App (Android + iOS) mit Audio-Aufnahme, HAL-9000-Statusanzeige, Konfiguration und Server-Kommunikation.
 
-| Schritt | Beschreibung | Abhängigkeiten | Bezug |
-|---------|-------------|----------------|-------|
+| Schritt | Beschreibung | Abhängigkeiten | Bezug | Status |
+|---------|-------------|----------------|-------|--------|
 | 2c.0 | ~~**Framework-Entscheidung**~~ | — | ADR-10 | ✅ Flutter |
 | 2c.1 | App-Projekt aufsetzen (Flutter/Dart) | 2c.0 | ADR-10 | ✅ Done |
 | 2c.2 | HAL-9000-Statusanzeige implementieren (grau/grün/rot mit Glow + Animation) | 2c.1 | FA-20 | ✅ Done |
@@ -286,11 +286,11 @@
 
 **Ziel:** Sichtkontrolle und Korrektur von Zwischenergebnissen ermöglichen.
 
-| Schritt | Beschreibung | Abhängigkeiten | Bezug |
-|---------|-------------|----------------|-------|
-| 2d.1 | REST-API für Einzelschritte (Struktur, Zusammenfassung separat aufrufbar) | — | FA-18 |
-| 2d.2 | Versionierung von Zwischenergebnissen (Original + korrigiert) | 2d.1 | FA-18 |
-| 2d.3 | Korrektur-Workflow im Frontend (Anzeige → Editieren → Weiterverarbeiten) | 2c.5, 2d.1 | FA-18 |
+| Schritt | Beschreibung | Abhängigkeiten | Bezug | Status |
+|---------|-------------|----------------|-------|--------|
+| 2d.1 | REST-API für Einzelschritte (Struktur, Zusammenfassung separat aufrufbar) | — | FA-18 | ✅ |
+| 2d.2 | Versionierung von Zwischenergebnissen (Original + korrigiert) | 2d.1 | FA-18 | ✅ |
+| 2d.3 | Korrektur-Workflow im Frontend (Anzeige → Editieren → Weiterverarbeiten) | 2c.5, 2d.1 | FA-18 | ⬜ |
 
 ### Phase 2e: DSGVO-Konformität und Betrieb
 
