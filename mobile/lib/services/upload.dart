@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/job_result.dart';
 import '../models/processing_config.dart';
+import '../models/result_version.dart';
 import '../models/upload_status.dart';
 import '../services/auth.dart';
 import '../services/notification.dart';
@@ -133,6 +134,102 @@ class UploadService extends ChangeNotifier {
       debugPrint('Save failed: $e');
       return null;
     }
+  }
+
+  /// Fetch full job details from the server.
+  Future<JobResult?> fetchJob({
+    required String serverUrl,
+    required String jobId,
+  }) async {
+    try {
+      final headers = await _authService.getAuthHeaders();
+      final uri = Uri.parse('$serverUrl/v1/jobs/$jobId');
+      final response = await http.get(uri, headers: headers).timeout(
+        const Duration(seconds: 10),
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        return JobResult.fromJson(body);
+      }
+    } catch (e) {
+      debugPrint('Fetch job error: $e');
+    }
+    return null;
+  }
+
+  /// Correct job result fields via PATCH /v1/jobs/{id}/correct.
+  Future<JobResult?> correctJob({
+    required String serverUrl,
+    required String jobId,
+    required Map<String, String> fields,
+  }) async {
+    try {
+      final headers = await _authService.getAuthHeaders();
+      headers['Content-Type'] = 'application/json';
+      final uri = Uri.parse('$serverUrl/v1/jobs/$jobId/correct');
+      final response = await http.patch(
+        uri,
+        headers: headers,
+        body: jsonEncode(fields),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        return JobResult.fromJson(body);
+      }
+    } catch (e) {
+      debugPrint('Correct job error: $e');
+    }
+    return null;
+  }
+
+  /// Re-run pipeline steps via POST /v1/jobs/{id}/reprocess.
+  Future<JobResult?> reprocessJob({
+    required String serverUrl,
+    required String jobId,
+    required List<String> steps,
+  }) async {
+    try {
+      final headers = await _authService.getAuthHeaders();
+      headers['Content-Type'] = 'application/json';
+      final uri = Uri.parse('$serverUrl/v1/jobs/$jobId/reprocess');
+      final response = await http.post(
+        uri,
+        headers: headers,
+        body: jsonEncode({'steps': steps}),
+      ).timeout(const Duration(seconds: 120));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        return JobResult.fromJson(body);
+      }
+    } catch (e) {
+      debugPrint('Reprocess job error: $e');
+    }
+    return null;
+  }
+
+  /// Fetch version history via GET /v1/jobs/{id}/versions.
+  Future<List<ResultVersion>> fetchVersions({
+    required String serverUrl,
+    required String jobId,
+  }) async {
+    try {
+      final headers = await _authService.getAuthHeaders();
+      final uri = Uri.parse('$serverUrl/v1/jobs/$jobId/versions');
+      final response = await http.get(uri, headers: headers).timeout(
+        const Duration(seconds: 10),
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as List<dynamic>;
+        return ResultVersion.fromJsonList(body);
+      }
+    } catch (e) {
+      debugPrint('Fetch versions error: $e');
+    }
+    return [];
   }
 
   void reset() {

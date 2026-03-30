@@ -290,7 +290,7 @@
 |---------|-------------|----------------|-------|--------|
 | 2d.1 | REST-API für Einzelschritte (Struktur, Zusammenfassung separat aufrufbar) | — | FA-18 | ✅ |
 | 2d.2 | Versionierung von Zwischenergebnissen (Original + korrigiert) | 2d.1 | FA-18 | ✅ |
-| 2d.3 | Korrektur-Workflow im Frontend (Anzeige → Editieren → Weiterverarbeiten) | 2c.5, 2d.1 | FA-18 | ⬜ |
+| 2d.3 | Korrektur-Workflow im Frontend (Anzeige → Editieren → Weiterverarbeiten) | 2c.5, 2d.1 | FA-18 | ✅ |
 
 ### Phase 2e: DSGVO-Konformität und Betrieb
 

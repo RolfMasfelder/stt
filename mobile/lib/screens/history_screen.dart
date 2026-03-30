@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../models/recording_entry.dart';
 import '../services/recording_history.dart';
+import 'job_detail_screen.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
@@ -54,8 +55,12 @@ class _EntryTile extends StatelessWidget {
         '${dateFormat.format(entry.createdAt.toLocal())} · $duration',
       ),
       trailing: _buildTrailing(context),
-      onTap: entry.status == 'completed'
-          ? () => _showResult(context)
+      onTap: entry.status == 'completed' && entry.jobId != null
+          ? () => Navigator.pushNamed(
+                context,
+                '/job/detail',
+                arguments: JobDetailArgs(jobId: entry.jobId!),
+              )
           : null,
     );
   }
@@ -87,26 +92,6 @@ class _EntryTile extends StatelessWidget {
             ),
           ],
         );
-    }
-  }
-
-  void _showResult(BuildContext context) {
-    if (entry.resultSummary != null) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(entry.filename),
-          content: SingleChildScrollView(
-            child: SelectableText(entry.resultSummary!),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Schließen'),
-            ),
-          ],
-        ),
-      );
     }
   }
 

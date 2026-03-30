@@ -11,6 +11,8 @@ import 'services/server_connection.dart';
 import 'services/upload.dart';
 import 'screens/history_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/job_detail_screen.dart';
+import 'screens/job_edit_screen.dart';
 import 'screens/result_screen.dart';
 import 'screens/settings_screen.dart';
 
@@ -58,6 +60,8 @@ class STTApp extends StatelessWidget {
           '/settings': (context) => const SettingsScreen(),
           '/result': (context) => const ResultScreen(),
           '/history': (context) => const HistoryScreen(),
+          '/job/detail': (context) => const JobDetailScreen(),
+          '/job/edit': (context) => const JobEditScreen(),
         },
       ),
     );
