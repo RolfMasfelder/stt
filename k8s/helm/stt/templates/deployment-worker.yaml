@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "stt.fullname" . }}-worker
+  labels:
+    {{- include "stt.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  replicas: {{ .Values.worker.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "stt.workerLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "stt.workerLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: worker
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "manage.py", "qcluster"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "stt.fullname" . }}-env
+            - secretRef:
+                name: {{ include "stt.fullname" . }}-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.existingSecret }}
+                  key: {{ .Values.database.passwordKey }}
+            - name: DATABASE_URL
+              value: "postgres://{{ .Values.database.user }}:$(POSTGRES_PASSWORD)@{{ .Values.database.host }}:{{ .Values.database.port }}/{{ .Values.database.name }}"
+          resources:
+            {{- toYaml .Values.resources.worker | nindent 12 }}

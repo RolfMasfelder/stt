@@ -50,6 +50,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "stt.api.middleware.TenantMiddleware",
     "stt.api.middleware.AuditMiddleware",
 ]
 
@@ -155,6 +156,12 @@ CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "true").lower() in 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024 * 1024
 
+# --- GDPR / Data Retention (ADR-13, 2e.2) ---
+
+# Number of days to retain completed/failed jobs before auto-deletion.
+# Set to 0 to disable auto-deletion.
+DATA_RETENTION_DAYS: int = int(os.getenv("DATA_RETENTION_DAYS", "90"))
+
 # --- django-q2 Task Queue ---
 
 Q_CLUSTER = {
@@ -165,6 +172,13 @@ Q_CLUSTER = {
     "queue_limit": int(os.getenv("Q_QUEUE_LIMIT", "50")),
     "orm": "default",  # Use PostgreSQL as broker
     "catch_up": False,  # Don't process missed schedules
+    "schedules": [
+        {
+            "func": "stt.api.tasks.auto_delete_expired_jobs",
+            "schedule_type": "D",  # Daily
+            "name": "gdpr-auto-delete",
+        },
+    ],
 }
 
 # --- Reverse-Proxy / TLS Security (ADR-08, ADR-14) ---

@@ -28,9 +28,21 @@ from stt.summarize import (
 from stt.transcribe import TranscriptionError, transcribe_audio
 
 from .audit import log_audit
-from .models import AuditAction, Job, JobType, ResultVersion, StorageConfig
+from .models import (
+    AuditAction,
+    AuditLog,
+    Job,
+    JobType,
+    ResultVersion,
+    StorageConfig,
+    Tenant,
+)
 from .serializers import (
     AudioUploadSerializer,
+    DataExportJobSerializer,
+    DataExportSerializer,
+    DataExportVersionSerializer,
+    DeleteResponseSerializer,
     DiarizeResponseSerializer,
     ErrorResponseSerializer,
     HealthResponseSerializer,
@@ -377,6 +389,8 @@ class JobCreateView(APIView):
             original_filename=str(audio_path),
             whisper_model=model,
             enable_diarize=do_diarize,
+            owner=request.user if request.user.is_authenticated else None,
+            tenant=getattr(request, "tenant", None),
         )
 
         log_audit(
@@ -405,7 +419,11 @@ class JobDetailView(APIView):
     )
     def get(self, request: Request, job_id: str) -> Response:
         try:
-            job = Job.objects.get(id=job_id)
+            qs = Job.objects.all()
+            tenant = getattr(request, "tenant", None)
+            if tenant:
+                qs = qs.filter(tenant=tenant)
+            job = qs.get(id=job_id)
         except (Job.DoesNotExist, ValueError, ValidationError):
             return Response(
                 {"detail": "Job not found"},
@@ -417,10 +435,13 @@ class JobDetailView(APIView):
 # --- Correction workflow endpoints (2d) ---
 
 
-def _get_job_or_404(job_id: str) -> Job | None:
-    """Return a Job or None if not found."""
+def _get_job_or_404(job_id: str, tenant: Tenant | None = None) -> Job | None:
+    """Return a Job or None if not found.  Filters by tenant if given."""
     try:
-        return Job.objects.get(id=job_id)
+        qs = Job.objects.all()
+        if tenant:
+            qs = qs.filter(tenant=tenant)
+        return qs.get(id=job_id)
     except (Job.DoesNotExist, ValueError, ValidationError):
         return None
 
@@ -456,7 +477,7 @@ class JobUpdateView(APIView):
         description="Update result fields and create a versioned snapshot.",
     )
     def patch(self, request: Request, job_id: str) -> Response:
-        job = _get_job_or_404(job_id)
+        job = _get_job_or_404(job_id, getattr(request, "tenant", None))
         if job is None:
             return Response(
                 {"detail": "Job not found"},
@@ -518,7 +539,7 @@ class JobReprocessView(APIView):
         ),
     )
     def post(self, request: Request, job_id: str) -> Response:
-        job = _get_job_or_404(job_id)
+        job = _get_job_or_404(job_id, getattr(request, "tenant", None))
         if job is None:
             return Response(
                 {"detail": "Job not found"},
@@ -582,7 +603,7 @@ class JobVersionListView(APIView):
         summary="List result versions",
     )
     def get(self, request: Request, job_id: str) -> Response:
-        job = _get_job_or_404(job_id)
+        job = _get_job_or_404(job_id, getattr(request, "tenant", None))
         if job is None:
             return Response(
                 {"detail": "Job not found"},
@@ -604,8 +625,11 @@ class StorageConfigListView(APIView):
         summary="List all storage configurations",
     )
     def get(self, request: Request) -> Response:
-        configs = StorageConfig.objects.all()
-        return Response(StorageConfigSerializer(configs, many=True).data)
+        qs = StorageConfig.objects.all()
+        tenant = getattr(request, "tenant", None)
+        if tenant:
+            qs = qs.filter(tenant=tenant)
+        return Response(StorageConfigSerializer(qs, many=True).data)
 
     @extend_schema(
         request=StorageConfigSerializer,
@@ -619,7 +643,7 @@ class StorageConfigListView(APIView):
         serializer = StorageConfigSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        config = serializer.save()
+        config = serializer.save(tenant=getattr(request, "tenant", None))
         log_audit(
             AuditAction.STORAGE_CONFIG_CREATED,
             request=request,
@@ -635,6 +659,16 @@ class StorageConfigListView(APIView):
 class StorageConfigDetailView(APIView):
     """Retrieve, update, and delete a storage backend configuration."""
 
+    @staticmethod
+    def _get_config(config_id: str, tenant: Tenant | None) -> StorageConfig | None:
+        try:
+            qs = StorageConfig.objects.all()
+            if tenant:
+                qs = qs.filter(tenant=tenant)
+            return qs.get(id=config_id)
+        except (StorageConfig.DoesNotExist, ValueError, ValidationError):
+            return None
+
     @extend_schema(
         responses={
             200: StorageConfigSerializer,
@@ -643,9 +677,8 @@ class StorageConfigDetailView(APIView):
         summary="Get a storage configuration",
     )
     def get(self, request: Request, config_id: str) -> Response:
-        try:
-            config = StorageConfig.objects.get(id=config_id)
-        except (StorageConfig.DoesNotExist, ValueError, ValidationError):
+        config = self._get_config(config_id, getattr(request, "tenant", None))
+        if config is None:
             return Response(
                 {"detail": "Storage config not found"},
                 status=status.HTTP_404_NOT_FOUND,
@@ -661,9 +694,8 @@ class StorageConfigDetailView(APIView):
         summary="Update a storage configuration",
     )
     def put(self, request: Request, config_id: str) -> Response:
-        try:
-            config = StorageConfig.objects.get(id=config_id)
-        except (StorageConfig.DoesNotExist, ValueError, ValidationError):
+        config = self._get_config(config_id, getattr(request, "tenant", None))
+        if config is None:
             return Response(
                 {"detail": "Storage config not found"},
                 status=status.HTTP_404_NOT_FOUND,
@@ -688,9 +720,8 @@ class StorageConfigDetailView(APIView):
         summary="Delete a storage configuration",
     )
     def delete(self, request: Request, config_id: str) -> Response:
-        try:
-            config = StorageConfig.objects.get(id=config_id)
-        except (StorageConfig.DoesNotExist, ValueError, ValidationError):
+        config = self._get_config(config_id, getattr(request, "tenant", None))
+        if config is None:
             return Response(
                 {"detail": "Storage config not found"},
                 status=status.HTTP_404_NOT_FOUND,
@@ -720,8 +751,12 @@ class StorageConfigTestView(APIView):
     def post(self, request: Request, config_id: str) -> Response:
         from .storage import StorageError, get_backend
 
+        tenant = getattr(request, "tenant", None)
         try:
-            config = StorageConfig.objects.get(id=config_id)
+            qs = StorageConfig.objects.all()
+            if tenant:
+                qs = qs.filter(tenant=tenant)
+            config = qs.get(id=config_id)
         except (StorageConfig.DoesNotExist, ValueError, ValidationError):
             return Response(
                 {"detail": "Storage config not found"},
@@ -764,5 +799,201 @@ class StorageConfigTestView(APIView):
                 },
                 "message": result.message,
                 "duration_ms": result.duration_ms,
+            },
+        )
+
+
+# --- GDPR endpoints (2e) ---
+
+
+class JobDeleteView(APIView):
+    """Delete a single job and all associated data (DSGVO Art. 17)."""
+
+    @extend_schema(
+        responses={
+            200: DeleteResponseSerializer,
+            403: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+        summary="Delete a job (DSGVO Art. 17)",
+        description="Permanently deletes a job, its versions, and related audit logs.",
+    )
+    def delete(self, request: Request, job_id: str) -> Response:
+        tenant = getattr(request, "tenant", None)
+        try:
+            qs = Job.objects.all()
+            if tenant:
+                qs = qs.filter(tenant=tenant)
+            job = qs.get(id=job_id)
+        except (Job.DoesNotExist, ValueError, ValidationError):
+            return Response(
+                {"detail": "Job not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Only the owner (or staff) may delete.
+        if job.owner != request.user and not request.user.is_staff:
+            return Response(
+                {"detail": "Not allowed to delete this job"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        job_id_str = str(job.id)
+        deleted_versions = job.versions.count()
+        job.versions.all().delete()
+
+        deleted_audit = AuditLog.objects.filter(
+            resource_type="job",
+            resource_id=job_id_str,
+        ).count()
+        AuditLog.objects.filter(
+            resource_type="job",
+            resource_id=job_id_str,
+        ).delete()
+
+        job.delete()
+
+        log_audit(
+            AuditAction.DATA_DELETED,
+            request=request,
+            resource_type="job",
+            resource_id=job_id_str,
+            detail=f"versions={deleted_versions},audit_logs={deleted_audit}",
+        )
+
+        return Response(
+            {
+                "deleted_jobs": 1,
+                "deleted_versions": deleted_versions,
+                "deleted_audit_logs": deleted_audit,
+            },
+        )
+
+
+class UserDataDeleteView(APIView):
+    """Delete ALL data for the authenticated user (DSGVO Art. 17)."""
+
+    @extend_schema(
+        responses={
+            200: DeleteResponseSerializer,
+            400: ErrorResponseSerializer,
+        },
+        summary="Delete all user data (DSGVO Art. 17)",
+        description=(
+            "Permanently deletes all jobs, versions, and audit logs "
+            "belonging to the authenticated user."
+        ),
+    )
+    def delete(self, request: Request) -> Response:
+        user = request.user
+        actor = user.username or str(user.pk)
+        tenant = getattr(request, "tenant", None)
+
+        jobs = Job.objects.filter(owner=user)
+        if tenant:
+            jobs = jobs.filter(tenant=tenant)
+        job_ids = list(jobs.values_list("id", flat=True))
+        job_id_strs = [str(jid) for jid in job_ids]
+
+        deleted_versions = ResultVersion.objects.filter(job_id__in=job_ids).count()
+        ResultVersion.objects.filter(job_id__in=job_ids).delete()
+
+        deleted_audit = AuditLog.objects.filter(
+            resource_type="job",
+            resource_id__in=job_id_strs,
+        ).count()
+        # Also delete user-level audit logs (by actor name).
+        deleted_audit += (
+            AuditLog.objects.filter(actor=actor)
+            .exclude(
+                resource_type="job",
+                resource_id__in=job_id_strs,
+            )
+            .count()
+        )
+        AuditLog.objects.filter(
+            resource_type="job",
+            resource_id__in=job_id_strs,
+        ).delete()
+        AuditLog.objects.filter(actor=actor).delete()
+
+        deleted_jobs = jobs.count()
+        jobs.delete()
+
+        # Log the deletion itself (this entry is the only trace left).
+        log_audit(
+            AuditAction.USER_DATA_DELETED,
+            request=request,
+            resource_type="user",
+            resource_id=actor,
+            detail=f"jobs={deleted_jobs},versions={deleted_versions},audit_logs={deleted_audit}",
+        )
+
+        return Response(
+            {
+                "deleted_jobs": deleted_jobs,
+                "deleted_versions": deleted_versions,
+                "deleted_audit_logs": deleted_audit,
+            },
+        )
+
+
+class UserDataExportView(APIView):
+    """Export all user data as JSON (DSGVO Art. 20 — Datenportabilität)."""
+
+    @extend_schema(
+        responses={
+            200: DataExportSerializer,
+        },
+        summary="Export all user data (DSGVO Art. 20)",
+        description=(
+            "Returns all jobs, result versions, and audit log entries "
+            "belonging to the authenticated user in a portable JSON format."
+        ),
+    )
+    def get(self, request: Request) -> Response:
+        from django.utils import timezone
+
+        user = request.user
+        actor = user.username or str(user.pk)
+        tenant = getattr(request, "tenant", None)
+
+        jobs = Job.objects.filter(owner=user)
+        if tenant:
+            jobs = jobs.filter(tenant=tenant)
+        job_ids = list(jobs.values_list("id", flat=True))
+        job_id_strs = [str(jid) for jid in job_ids]
+
+        versions = ResultVersion.objects.filter(job_id__in=job_ids)
+
+        audit_logs = AuditLog.objects.filter(
+            resource_type="job",
+            resource_id__in=job_id_strs,
+        ) | AuditLog.objects.filter(actor=actor)
+        audit_data = list(
+            audit_logs.order_by("created_at").values(
+                "action",
+                "resource_type",
+                "resource_id",
+                "detail",
+                "created_at",
+            )
+        )
+
+        log_audit(
+            AuditAction.DATA_EXPORTED,
+            request=request,
+            resource_type="user",
+            resource_id=actor,
+            detail=f"jobs={jobs.count()},versions={versions.count()}",
+        )
+
+        return Response(
+            {
+                "user": actor,
+                "exported_at": timezone.now(),
+                "jobs": DataExportJobSerializer(jobs, many=True).data,
+                "versions": DataExportVersionSerializer(versions, many=True).data,
+                "audit_logs": audit_data,
             },
         )

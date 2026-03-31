@@ -2,7 +2,31 @@
 
 import uuid
 
+from django.conf import settings
 from django.db import models
+
+
+class Tenant(models.Model):
+    """SaaS tenant for multi-tenancy with RLS (FA-25).
+
+    Each tenant represents a customer organisation.
+    All data-bearing models reference a tenant via ForeignKey.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=200, unique=True)
+    slug = models.SlugField(
+        max_length=100, unique=True, help_text="URL-safe identifier"
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name
 
 
 class JobStatus(models.TextChoices):
@@ -48,6 +72,25 @@ class Job(models.Model):
 
     # Error details for failed jobs.
     error_message = models.TextField(blank=True, default="")
+
+    # Owner — set from request.user on creation (DSGVO Art. 17/20).
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="jobs",
+    )
+
+    # Multi-tenancy (FA-25): isolates data per customer organisation.
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="jobs",
+        db_index=True,
+    )
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -100,6 +143,16 @@ class StorageConfig(models.Model):
         help_text="Encrypt stored files with AES-256-GCM before writing",
     )
 
+    # Multi-tenancy (FA-25)
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="storage_configs",
+        db_index=True,
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -118,6 +171,10 @@ class AuditAction(models.TextChoices):
     JOB_REPROCESSED = "job_reprocessed", "Job Reprocessed"
     RESULT_ACCESSED = "result_accessed", "Result Accessed"
     RESULT_DELETED = "result_deleted", "Result Deleted"
+    DATA_DELETED = "data_deleted", "Data Deleted"
+    DATA_AUTO_DELETED = "data_auto_deleted", "Data Auto-Deleted"
+    DATA_EXPORTED = "data_exported", "Data Exported"
+    USER_DATA_DELETED = "user_data_deleted", "User Data Deleted"
     STORAGE_CONFIG_CREATED = "storage_config_created", "Storage Config Created"
     STORAGE_CONFIG_UPDATED = "storage_config_updated", "Storage Config Updated"
     STORAGE_CONFIG_DELETED = "storage_config_deleted", "Storage Config Deleted"
@@ -153,6 +210,16 @@ class AuditLog(models.Model):
         blank=True,
         default="",
         help_text="Short machine-readable detail (no content data)",
+    )
+
+    # Multi-tenancy (FA-25)
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
+        db_index=True,
     )
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)

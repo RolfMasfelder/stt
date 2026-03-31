@@ -1,0 +1,6 @@
+apiVersion: v2
+name: stt
+description: Speech-to-Text Server — Django/DRF with multi-tenancy, PostgreSQL RLS, and async ML pipeline
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

@@ -29,3 +29,10 @@
 # AI Coding Agent Instructions
 
 **Type-Hints**: Always use Type-Hints
+
+# STT Docker Setup
+
+- Docker service names: `stt-server`, `stt-worker`, `db`, `caddy`
+- Commands: `docker compose exec stt-server python manage.py ...`
+- App label for migrations: `api` (not `stt_api`)
+- DB: PostgreSQL 17 in `stt-db` container

@@ -1,0 +1,95 @@
+# -- STT Helm chart values --
+
+replicaCount: 1
+
+image:
+  repository: stt-server
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# -- Worker (django-q2) --
+worker:
+  replicaCount: 1
+
+# -- PostgreSQL (uses the existing k8s/base deployment) --
+database:
+  # Set to the in-cluster service name of the PostgreSQL instance.
+  host: postgres
+  port: 5432
+  name: stt
+  user: stt
+  # Reference an existing secret for the password.
+  existingSecret: postgres-credentials
+  passwordKey: POSTGRES_PASSWORD
+
+# -- MinIO / S3 storage --
+minio:
+  endpoint: http://minio:9000
+  # Reference an existing secret for credentials.
+  existingSecret: minio-credentials
+  accessKeyKey: MINIO_ROOT_USER
+  secretKeyKey: MINIO_ROOT_PASSWORD
+  audioBucket: stt-audio
+  resultsBucket: stt-results
+
+# -- Django settings --
+django:
+  secretKey: ""  # Set in a secret; DO NOT commit real values.
+  debug: false
+  allowedHosts: "*"
+  dataRetentionDays: 90
+
+# -- Gunicorn --
+gunicorn:
+  workers: 2
+  timeout: 600
+
+# -- ML / Whisper config --
+whisper:
+  model: small
+  device: cpu
+  apiUrl: ""
+
+lmStudio:
+  host: ""
+  port: ""
+  model: ""
+
+hfToken: ""  # HuggingFace token for pyannote models
+
+# -- Service --
+service:
+  type: ClusterIP
+  port: 8090
+
+# -- Ingress --
+ingress:
+  enabled: true
+  className: nginx
+  host: stt.local
+  annotations: {}
+  tls: []
+
+# -- Resources --
+resources:
+  server:
+    requests:
+      memory: 512Mi
+      cpu: 250m
+    limits:
+      memory: 2Gi
+      cpu: "2"
+  worker:
+    requests:
+      memory: 1Gi
+      cpu: 500m
+    limits:
+      memory: 4Gi
+      cpu: "4"
+
+# -- Autoscaling --
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70

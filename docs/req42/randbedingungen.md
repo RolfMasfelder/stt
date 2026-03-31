@@ -19,7 +19,8 @@
 | RB-13 | Linux (openSUSE) | Entwicklungs- und Server-Zielplattform |
 | RB-14 | Cross-Platform Mobile App (Android + iOS) | Eine Codebase für beide Plattformen; Framework-Entscheidung vor Phase 2c erforderlich (ADR-10) |
 | RB-15 | Sichere Credential-Speicherung auf dem Gerät | Android Keystore / iOS Keychain für OAuth2-Tokens und Konfigurationsdaten |
-| RB-16 | iOS-Tests initial nur über Simulator/CI | Derzeit keine iOS-Testgeräte verfügbar; Android-Geräte als primäre Testplattform |
+| RB-16 | iOS-Tests initial über Simulator/CI | Derzeit keine iOS-Testgeräte verfügbar; Android-Geräte als primäre Testplattform |
+| RB-17 | Lokales k3s-Cluster für SaaS-Entwicklung | k3s auf 192.168.178.80 als Kubernetes-Dev/Test-Umgebung; S3-kompatibler Storage via MinIO-Pod; ermöglicht SaaS-Entwicklung ohne Cloud-Kosten |
 
 ## Organisatorisch
 

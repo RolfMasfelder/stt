@@ -296,11 +296,11 @@
 
 **Ziel:** Regulatorische Anforderungen erfüllen, Produktionsbetrieb.
 
-| Schritt | Beschreibung | Abhängigkeiten | ADR |
-|---------|-------------|----------------|-----|
-| 2e.1 | Lösch-API implementieren (Art. 17) | 2b.1 | FA-17 |
-| 2e.2 | Auto-Delete-Mechanismus (Aufbewahrungsfrist) | 2e.1 | ADR-13 |
-| 2e.3 | Datenexport-API (Art. 20) | 2b.1 | ADR-13 |
+| Schritt | Beschreibung | Abhängigkeiten | ADR | Status |
+|---------|-------------|----------------|-----|--------|
+| 2e.1 | Lösch-API implementieren (Art. 17) | 2b.1 | FA-17 | ✅ Done |
+| 2e.2 | Auto-Delete-Mechanismus (Aufbewahrungsfrist) | 2e.1 | ADR-13 | ✅ Done |
+| 2e.3 | Datenexport-API (Art. 20) | 2b.1 | ADR-13 | ✅ Done |
 | 2e.4 | AV-Vertrag-Template erstellen | — | ADR-13 |
 | 2e.5 | Datenschutzhinweise für App | — | ADR-13 |
 | 2e.6 | Hosting einrichten (EU-Provider, Szenario 2) | — | ADR-09 |
@@ -308,17 +308,34 @@
 
 ### Phase 2f: SaaS und Kubernetes
 
-**Ziel:** Multi-Tenant SaaS-Betrieb mit horizontaler Skalierung.
+**Ziel:** Multi-Tenant SaaS-Betrieb mit horizontaler Skalierung und sicherer Audio-Aufbewahrung.
 
-| Schritt | Beschreibung | Abhängigkeiten | ADR |
-|---------|-------------|----------------|-----|
-| 2f.1 | Multi-Tenancy-Architektur (Daten-Isolation, Tenant-Kontext) | 2a.*, 2b.* | ADR-09 |
-| 2f.2 | PostgreSQL mit Tenant-Isolation (Schema-per-Tenant oder RLS) | 2f.1 | ADR-09, ADR-12 |
-| 2f.3 | Kubernetes-Deployment (Helm Charts) | 2f.1 | ADR-09 |
+**Entscheidung Multi-Tenancy:** Row-Level Security (RLS) mit `tenant_id`-Spalte. Pro Mandant fallen nur minimale Datenmengen an (Konfiguration, Job-Metadaten, Ergebnistexte). Audio-Dateien sind transient und werden nach Ergebnisauslieferung gelöscht. Die Datenmenge rechtfertigt keine physische Trennung (Schema-per-Tenant/DB-per-Tenant). Siehe FA-25.
+
+| Schritt | Beschreibung | Abhängigkeiten | Bezug | Status |
+|---------|-------------|----------------|-------|--------|
+| 2f.0 | Dev/Test-Infrastruktur: k3s auf 192.168.178.80, MinIO-Pod für S3-kompatiblen Storage, lokale Kubernetes-Umgebung | — | RB-17 | ✅ Done |
+| 2f.1 | Multi-Tenancy-Architektur: `tenant_id` auf Job, StorageConfig, AuditLog; Tenant-Middleware (aus JWT/Header) | 2a.*, 2b.* | FA-25, ADR-09 | ✅ Done |
+| 2f.2 | PostgreSQL Row-Level Security Policies aktivieren | 2f.1 | FA-25, ADR-09 | ✅ Done |
+| 2f.3 | Kubernetes-Deployment (Helm Charts) | 2f.1 | ADR-09 | ✅ Done |
 | 2f.4 | Horizontal Pod Autoscaler (HPA) | 2f.3 | ADR-09 |
 | 2f.5 | GPU-Workload-Scheduling (Whisper, pyannote) | 2f.3 | ADR-09 |
 | 2f.6 | Monitoring (Prometheus + Grafana) | 2f.3 | — |
 | 2f.7 | Django-Admin anpassen für Multi-Tenant-Verwaltung | 2f.1 | ADR-09 |
+| 2f.8 | Audio-Upload persistent im Storage-Backend speichern (statt Temp-File), Pfad im Job-Model verwalten | 2b.1 | FA-24, ADR-08 |
+| 2f.9 | Ergebnis-Auslieferung tracken (`results_delivered`-Flag am Job) | 2f.8 | FA-24 |
+| 2f.10 | Audio-Löschung erst nach bestätigter Auslieferung oder via Auto-Delete | 2f.9, 2e.2 | FA-24, FA-28 |
+| 2f.11 | SaaS-Kundenverwaltung: separater Service für Registrierung, Mandanten-Provisionierung, IdP, Abrechnung | 2f.1 | FA-29 |
+
+**Erledigt in 2f.0:** k3s-Cluster auf 192.168.178.80 geprüft (v1.34.3+k3s3, ingress-nginx, MetalLB, cert-manager, Monitoring-Stack bereits vorhanden). Namespace `stt` erstellt. MinIO-Deployment mit PVC (10 GiB), Buckets `stt-audio` und `stt-results` angelegt. PostgreSQL 17 Deployment mit PVC (5 GiB). Beide Services als ClusterIP erreichbar. MinIO-Console via Ingress unter `minio.stt.local`.
+
+**Erledigt in 2f.1:** Tenant-Model (UUID PK, name, slug, is_active). `tenant`-ForeignKey auf Job, StorageConfig und AuditLog (nullable für Abwärtskompatibilität/Single-Tenant). TenantMiddleware: extrahiert Tenant aus `X-Tenant-ID` Header oder OAuth2-Token-Claim, setzt `request.tenant` und PostgreSQL-Session-Variable `app.current_tenant_id` für RLS. Alle Views aktualisiert: Job-Erstellung, Job-Abfrage, StorageConfig CRUD, GDPR-Endpoints filtern nach `request.tenant`. `log_audit()` schreibt Tenant automatisch mit. Migration 0006.
+
+**Erledigt in 2f.2:** Drei RLS-Policies (`tenant_isolation`) auf api_job, api_storageconfig, api_auditlog. Policy: Zeilen sichtbar wenn `tenant_id` mit `app.current_tenant_id` übereinstimmt ODER `tenant_id IS NULL` ODER Session-Variable leer (Abwärtskompatibilität). `FORCE ROW LEVEL SECURITY` auf allen drei Tabellen. 19 neue Tests (337 gesamt), davon 5 RLS-Tests mit separater `stt_app`-Rolle (Superuser umgeht RLS). Migration 0007.
+
+**Erledigt in 2f.3:** Helm Chart unter `k8s/helm/stt/` mit Templates für: Server-Deployment (Gunicorn, initContainer für Migrationen), Worker-Deployment (django-q2 qcluster), Service, Ingress (nginx IngressClass), ConfigMap, Secret, HPA (optional). Values konfigurierbar für Replicas, Ressourcen, DB-Credentials, MinIO-Endpoints, Whisper/LM-Studio-Settings.
+
+**Hinweis zu 2f.11:** Die Kundenverwaltung ist ein eigenständiges System mit separater Datenbank, das STT nur über Token-basierte Authentifizierung und `tenant_id` koppelt. Implementierungsoptionen (externer IdP vs. Eigenentwicklung) sind noch zu klären. Nur für Szenario 3 (SaaS) relevant.
 
 ---
 
@@ -340,9 +357,9 @@ Die folgenden Punkte müssen vor oder während der Umsetzung geklärt werden:
 ### Architektur-Entscheidungen
 
 - [ ] **GPU-Hosting:** Braucht der Provider GPU-Instanzen (für Whisper + pyannote)?
-- [x] ~~**Multi-Tenancy:**~~ → Geklärt, siehe oben
+- [x] ~~**Multi-Tenancy:**~~ → RLS mit `tenant_id`-Spalte (FA-25). Pro Mandant minimale Datenmengen, keine physische Trennung nötig.
 - [x] ~~**App-Store-Vertrieb:** Soll die App über Google Play / Apple App Store vertrieben werden?~~ → Ja, beide Stores. Zielgruppe sind technisch nicht versierte Anwender, Sideloading kommt nicht in Frage (ADR-10)
-- [ ] **Monitoring:** Welche Monitoring-Lösung (Prometheus, Grafana)?
+- [x] ~~**Monitoring:** Welche Monitoring-Lösung (Prometheus, Grafana)?~~ → Prometheus + Grafana + Loki bereits auf k3s-Cluster vorhanden (Namespace `monitoring`)
 
 ### DSGVO-Entscheidungen
 

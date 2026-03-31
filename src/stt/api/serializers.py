@@ -165,3 +165,52 @@ class StorageTestResponseSerializer(serializers.Serializer):
     checks = serializers.DictField(child=serializers.BooleanField())
     message = serializers.CharField()
     duration_ms = serializers.IntegerField()
+
+
+# --- GDPR serializers (2e) ---
+
+
+class DeleteResponseSerializer(serializers.Serializer):
+    """Response for deletion operations (DSGVO Art. 17)."""
+
+    deleted_jobs = serializers.IntegerField()
+    deleted_versions = serializers.IntegerField()
+    deleted_audit_logs = serializers.IntegerField()
+
+
+class DataExportJobSerializer(serializers.Serializer):
+    """Job data included in GDPR data export."""
+
+    id = serializers.UUIDField()
+    job_type = serializers.CharField()
+    status = serializers.CharField()
+    whisper_model = serializers.CharField()
+    created_at = serializers.DateTimeField()
+    updated_at = serializers.DateTimeField()
+    result_text = serializers.CharField()
+    result_diarized_text = serializers.CharField()
+    result_structured_text = serializers.CharField()
+    result_summary = serializers.CharField()
+
+
+class DataExportVersionSerializer(serializers.Serializer):
+    """Version data included in GDPR data export."""
+
+    job_id = serializers.UUIDField(source="job.id")
+    version = serializers.IntegerField()
+    source = serializers.CharField()
+    created_at = serializers.DateTimeField()
+    result_text = serializers.CharField()
+    result_diarized_text = serializers.CharField()
+    result_structured_text = serializers.CharField()
+    result_summary = serializers.CharField()
+
+
+class DataExportSerializer(serializers.Serializer):
+    """Full GDPR data export response (Art. 20)."""
+
+    user = serializers.CharField()
+    exported_at = serializers.DateTimeField()
+    jobs = DataExportJobSerializer(many=True)
+    versions = DataExportVersionSerializer(many=True)
+    audit_logs = serializers.ListField(child=serializers.DictField())

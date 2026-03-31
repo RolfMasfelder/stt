@@ -420,3 +420,126 @@
 **Hinweis:** Die Details der API-Endpoints werden bei der Umsetzung spezifiziert. Die lokale Historie synchronisiert sich mit dem Backend-Job-Status (Polling oder Push-Notification).
 
 **Status:** Geplant
+
+---
+
+## FA-24: Audio-Aufbewahrung bis Ergebnisauslieferung
+
+**Beschreibung:** Hochgeladene Audio-Dateien werden sicher aufbewahrt, bis die Ergebnisdateien (Transkription, Struktur, Zusammenfassung) erfolgreich an den Client ausgeliefert oder am konfigurierten Ablageort gespeichert wurden. Der Verlust eines Besprechungsprotokolls durch vorzeitige Löschung der Quelldatei muss verhindert werden.
+
+**Akzeptanzkriterien:**
+
+- Audio-Datei wird nach dem Upload persistent gespeichert (nicht nur als Temp-Datei)
+- Löschung der Audio-Datei erst nach bestätigter Ergebnisauslieferung (Status COMPLETED + Ergebnisse abgerufen/gespeichert)
+- Bei fehlgeschlagener Verarbeitung (Status FAILED) bleibt die Audio-Datei erhalten, um einen erneuten Verarbeitungsversuch zu ermöglichen
+- Audio-Dateien unterliegen dem Auto-Delete-Mechanismus (FA-17, DATA_RETENTION_DAYS)
+- Verschlüsselung at Rest gemäß ADR-08
+
+**Abhängigkeit:** FA-19, ADR-08, ADR-11
+
+**Status:** Geplant
+
+---
+
+## FA-25: Multi-Tenancy (SaaS-Betrieb)
+
+**Beschreibung:** Das System unterstützt den gleichzeitigen Betrieb für mehrere Mandanten (Tenants) mit logischer Datentrennung. Jeder Mandant sieht ausschließlich seine eigenen Daten.
+
+**Akzeptanzkriterien:**
+
+- Tenant-Isolation via PostgreSQL Row-Level Security (RLS) mit `tenant_id`-Spalte
+- Tenant-Kontext wird aus dem authentifizierten User/JWT abgeleitet (Middleware)
+- Alle mandantenrelevanten Tabellen (Job, StorageConfig, AuditLog) enthalten `tenant_id`
+- Kein Mandant kann auf Daten eines anderen Mandanten zugreifen
+- Administrations-Zugriff (Staff) kann mandantenübergreifend operieren
+- Provisionierung neuer Mandanten ohne DB-Schema-Änderungen
+
+**Designentscheidung:** RLS statt Schema-per-Tenant, da pro Mandant nur minimale Datenmengen anfallen (Konfiguration, Job-Metadaten, Ergebnistexte). Audio-Dateien sind transient und werden nach Ergebnisauslieferung gelöscht. Die Datenmenge rechtfertigt keine physische Trennung.
+
+**Abhängigkeit:** FA-15 (Authentifizierung), ADR-09
+
+**Status:** Geplant
+
+---
+
+## FA-26: Datenexport (DSGVO Art. 20)
+
+**Beschreibung:** Authentifizierte Nutzer können alle ihre gespeicherten Daten als portables JSON exportieren.
+
+**Akzeptanzkriterien:**
+
+- `GET /v1/user/data/export` liefert alle Jobs, Ergebnisversionen und Audit-Logs des Users
+- Format: JSON (maschinenlesbar, portabel)
+- Export wird im Audit-Log protokolliert
+
+**Abhängigkeit:** FA-15
+
+**Status:** Umgesetzt (Phase 2e.3)
+
+---
+
+## FA-27: Lösch-API (DSGVO Art. 17)
+
+**Beschreibung:** Authentifizierte Nutzer können einzelne Jobs oder alle ihre Daten dauerhaft löschen.
+
+**Akzeptanzkriterien:**
+
+- `DELETE /v1/jobs/<id>/delete` — Löscht einen einzelnen Job inkl. Versionen und Audit-Logs (nur Owner oder Staff)
+- `DELETE /v1/user/data` — Löscht alle Daten des authentifizierten Users
+- Löschung wird im Audit-Log protokolliert (einzige verbleibende Spur)
+
+**Abhängigkeit:** FA-15
+
+**Status:** Umgesetzt (Phase 2e.1)
+
+---
+
+## FA-28: Automatische Datenlöschung (Aufbewahrungsfrist)
+
+**Beschreibung:** Abgeschlossene und fehlgeschlagene Jobs werden nach Ablauf einer konfigurierbaren Aufbewahrungsfrist automatisch gelöscht.
+
+**Akzeptanzkriterien:**
+
+- Konfigurierbar via `DATA_RETENTION_DAYS` (Default: 90, 0 = deaktiviert)
+- Täglicher Scheduled Task via django-q2
+- Nur Jobs mit Status COMPLETED oder FAILED werden gelöscht
+- Zugehörige Versionen und Audit-Logs werden mitgelöscht
+- Auto-Delete wird im Audit-Log protokolliert
+
+**Abhängigkeit:** FA-27, ADR-13
+
+**Status:** Umgesetzt (Phase 2e.2)
+
+---
+
+## FA-29: SaaS-Kundenverwaltung (separater Service)
+
+**Beschreibung:** Für den SaaS-Betrieb (Szenario 3) wird eine separate Verwaltungskomponente benötigt, die Kundenregistrierung, Mandantenverwaltung und Session-Authentifizierung übernimmt. Diese Funktionalität ist bewusst von der STT-Fachlogik getrennt, da sie keine inhaltliche Verbindung zur Sprach-zu-Text-Verarbeitung hat.
+
+**Umfang:**
+
+- Kundenregistrierung und Self-Service-Onboarding
+- Mandanten-Provisionierung (Tenant-Anlage in der STT-Datenbank)
+- Benutzerverwaltung pro Mandant (Einladung, Rollen, Deaktivierung)
+- Authentifizierung und Session-Management (OAuth2/OIDC-Provider für STT)
+- Abrechnungsrelevante Metadaten (Nutzungsstatistiken, Kontingente)
+- Separate Verwaltungsdatenbank (nicht die STT-Fachdatenbank)
+
+**Abgrenzung:**
+
+- Die STT-Fachdatenbank speichert Jobs, Ergebnisse, StorageConfig und AuditLogs
+- Die Verwaltungsdatenbank speichert Kunden, Mandanten, Abonnements, Nutzungsquoten
+- STT authentifiziert Requests über Token, die vom Verwaltungs-IdP ausgestellt werden
+- STT kennt nur den `tenant_id` — nicht die Kunden-/Abrechnungsdetails
+
+**Implementierungsoptionen (noch zu entscheiden):**
+
+- Externer IdP (Keycloak/Zitadel) + eigenes Verwaltungs-Backend
+- Eigenentwicklung mit Django (separates Projekt)
+- Managed Service (Auth0, aber nur EU-Region)
+
+**Abhängigkeit:** FA-25 (Multi-Tenancy), ADR-07 (Authentifizierung), ADR-09 (Deployment-Szenarien)
+
+**Hinweis:** Nur für Szenario 3 (SaaS) relevant. Szenarien 1 (InHouse) und 2 (Dedicated) benötigen keine zentrale Kundenverwaltung.
+
+**Status:** Geplant

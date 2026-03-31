@@ -2,6 +2,7 @@
 
 Each task receives a Job UUID, loads the Job from the database,
 runs the ML pipeline, and writes back the results.
+Also contains the GDPR auto-delete scheduled task (2e.2).
 """
 
 import logging
@@ -14,7 +15,7 @@ from stt.summarize import process_transcript
 from stt.transcribe import transcribe_audio
 
 from .audit import log_audit
-from .models import AuditAction, Job, JobStatus, ResultVersion
+from .models import AuditAction, AuditLog, Job, JobStatus, ResultVersion
 
 logger = logging.getLogger(__name__)
 
@@ -217,3 +218,61 @@ def run_process(job_id: str) -> None:
         _fail_job(job, str(exc))
     finally:
         audio_path.unlink(missing_ok=True)
+
+
+# --- GDPR auto-delete (2e.2, ADR-13) ---
+
+
+def auto_delete_expired_jobs() -> int:
+    """Delete jobs older than DATA_RETENTION_DAYS.
+
+    Designed to be called as a django-q2 scheduled task.
+    Returns the number of deleted jobs.
+    """
+    from datetime import timedelta
+
+    from django.conf import settings
+    from django.utils import timezone
+
+    retention_days = getattr(settings, "DATA_RETENTION_DAYS", 0)
+    if retention_days <= 0:
+        logger.info("Auto-delete disabled (DATA_RETENTION_DAYS=%s)", retention_days)
+        return 0
+
+    cutoff = timezone.now() - timedelta(days=retention_days)
+    expired_jobs = Job.objects.filter(
+        created_at__lt=cutoff,
+        status__in=[JobStatus.COMPLETED, JobStatus.FAILED],
+    )
+
+    total = expired_jobs.count()
+    if total == 0:
+        logger.info("Auto-delete: no expired jobs found (cutoff=%s)", cutoff)
+        return 0
+
+    # Delete associated versions and audit logs first.
+    job_ids = list(expired_jobs.values_list("id", flat=True))
+    job_id_strs = [str(jid) for jid in job_ids]
+
+    deleted_versions = ResultVersion.objects.filter(job_id__in=job_ids).delete()[0]
+    deleted_audit = AuditLog.objects.filter(
+        resource_type="job",
+        resource_id__in=job_id_strs,
+    ).delete()[0]
+
+    expired_jobs.delete()
+
+    log_audit(
+        AuditAction.DATA_AUTO_DELETED,
+        resource_type="system",
+        detail=f"jobs={total},versions={deleted_versions},audit_logs={deleted_audit},cutoff={cutoff.isoformat()}",
+        actor="system",
+    )
+
+    logger.info(
+        "Auto-delete: removed %d expired jobs (%d versions, %d audit logs)",
+        total,
+        deleted_versions,
+        deleted_audit,
+    )
+    return total

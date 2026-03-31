@@ -20,6 +20,8 @@ repos:
       - id: check-docstring-first
       - id: check-toml
       - id: check-yaml
+        args: [--allow-multiple-documents]
+        exclude: ^k8s/helm/
       - id: check-json
       - id: check-added-large-files
       - id: detect-private-key

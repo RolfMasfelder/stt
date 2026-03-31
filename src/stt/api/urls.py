@@ -43,4 +43,20 @@ urlpatterns = [
         views.StorageConfigTestView.as_view(),
         name="storage-config-test",
     ),
+    # GDPR endpoints (2e)
+    path(
+        "v1/jobs/<str:job_id>/delete",
+        views.JobDeleteView.as_view(),
+        name="job-delete",
+    ),
+    path(
+        "v1/user/data",
+        views.UserDataDeleteView.as_view(),
+        name="user-data-delete",
+    ),
+    path(
+        "v1/user/data/export",
+        views.UserDataExportView.as_view(),
+        name="user-data-export",
+    ),
 ]

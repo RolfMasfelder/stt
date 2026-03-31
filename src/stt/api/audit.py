@@ -10,6 +10,8 @@ from .models import AuditAction, AuditLog
 if TYPE_CHECKING:
     from rest_framework.request import Request
 
+    from .models import Tenant
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,6 +39,7 @@ def log_audit(
     detail: str = "",
     actor: str = "",
     ip_address: str | None = None,
+    tenant: Tenant | None = None,
 ) -> AuditLog:
     """Create an audit log entry with actor and IP from request."""
     if request is not None:
@@ -44,6 +47,8 @@ def log_audit(
             actor = _get_actor(request)
         if ip_address is None:
             ip_address = _get_client_ip(request)
+        if tenant is None:
+            tenant = getattr(request, "tenant", None)
 
     entry = AuditLog.objects.create(
         action=action,
@@ -52,6 +57,7 @@ def log_audit(
         actor=actor,
         ip_address=ip_address,
         detail=detail[:500],
+        tenant=tenant,
     )
     logger.info(
         "AUDIT: %s by=%s resource=%s/%s",
