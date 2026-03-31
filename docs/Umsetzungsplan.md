@@ -318,7 +318,7 @@
 | 2f.1 | Multi-Tenancy-Architektur: `tenant_id` auf Job, StorageConfig, AuditLog; Tenant-Middleware (aus JWT/Header) | 2a.*, 2b.* | FA-25, ADR-09 | ✅ Done |
 | 2f.2 | PostgreSQL Row-Level Security Policies aktivieren | 2f.1 | FA-25, ADR-09 | ✅ Done |
 | 2f.3 | Kubernetes-Deployment (Helm Charts) | 2f.1 | ADR-09 | ✅ Done |
-| 2f.4 | Horizontal Pod Autoscaler (HPA) | 2f.3 | ADR-09 |
+| 2f.4 | Horizontal Pod Autoscaler (HPA) | 2f.3 | ADR-09 | ✅ Done |
 | 2f.5 | GPU-Workload-Scheduling (Whisper, pyannote) | 2f.3 | ADR-09 |
 | 2f.6 | Monitoring (Prometheus + Grafana) | 2f.3 | — |
 | 2f.7 | Django-Admin anpassen für Multi-Tenant-Verwaltung | 2f.1 | ADR-09 |
@@ -334,6 +334,8 @@
 **Erledigt in 2f.2:** Drei RLS-Policies (`tenant_isolation`) auf api_job, api_storageconfig, api_auditlog. Policy: Zeilen sichtbar wenn `tenant_id` mit `app.current_tenant_id` übereinstimmt ODER `tenant_id IS NULL` ODER Session-Variable leer (Abwärtskompatibilität). `FORCE ROW LEVEL SECURITY` auf allen drei Tabellen. 19 neue Tests (337 gesamt), davon 5 RLS-Tests mit separater `stt_app`-Rolle (Superuser umgeht RLS). Migration 0007.
 
 **Erledigt in 2f.3:** Helm Chart unter `k8s/helm/stt/` mit Templates für: Server-Deployment (Gunicorn, initContainer für Migrationen), Worker-Deployment (django-q2 qcluster), Service, Ingress (nginx IngressClass), ConfigMap, Secret, HPA (optional). Values konfigurierbar für Replicas, Ressourcen, DB-Credentials, MinIO-Endpoints, Whisper/LM-Studio-Settings.
+
+**Erledigt in 2f.4:** HPA für Server- und Worker-Deployment konfiguriert und auf k3s getestet. Docker-Image gebaut und via `k3s ctr images import` in k3s importiert. STT-App via `helm install` deployed (Server + Worker Pods). Server-HPA: min 1 / max 3 Replicas, Target 50% CPU. Worker-HPA: min 1 / max 2 Replicas, Target 60% CPU, konservative Scale-Up-Policy (1 Pod/60s, Stabilisierung 30s). Beide HPAs mit `scaleDown.stabilizationWindowSeconds: 300`. Load-Test verifiziert: 6 busybox-Pods → Server-CPU 728% → HPA skaliert auf 3 Replicas → nach Lastabfall automatisch auf 1 zurück. `values-k3s.yaml` mit angepassten Resource-Requests für Single-Node (CPU-only). Kustomize (`kustomization.yaml`) für Base-Manifeste hinzugefügt.
 
 **Hinweis zu 2f.11:** Die Kundenverwaltung ist ein eigenständiges System mit separater Datenbank, das STT nur über Token-basierte Authentifizierung und `tenant_id` koppelt. Implementierungsoptionen (externer IdP vs. Eigenentwicklung) sind noch zu klären. Nur für Szenario 3 (SaaS) relevant.
 
