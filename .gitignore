@@ -71,7 +71,7 @@ docs/tools
 
 # wav
 *.wav
-data/udio/*
+data/audio/*
 data/output/*
 
 # static files
