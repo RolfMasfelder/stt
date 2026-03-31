@@ -57,3 +57,36 @@ spec:
           value: 1
           periodSeconds: 60
 {{- end }}
+---
+{{- if .Values.autoscaling.mlWorker.enabled -}}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "stt.fullname" . }}-ml-worker
+  labels:
+    {{- include "stt.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ml-worker
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "stt.fullname" . }}-ml-worker
+  minReplicas: {{ .Values.autoscaling.mlWorker.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.mlWorker.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.mlWorker.targetCPUUtilizationPercentage }}
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120
+{{- end }}

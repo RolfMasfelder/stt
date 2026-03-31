@@ -401,7 +401,7 @@ class JobCreateView(APIView):
         )
 
         task_func = _JOB_TYPE_TASK_MAP[raw_type]
-        async_task(task_func, str(job.id))
+        async_task(task_func, str(job.id), cluster="ml")
 
         return Response(
             JobResponseSerializer(job).data,

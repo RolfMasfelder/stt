@@ -27,6 +27,15 @@ app.kubernetes.io/component: worker
 {{- end -}}
 
 {{/*
+Selector labels for ML worker
+*/}}
+{{- define "stt.mlWorkerLabels" -}}
+app.kubernetes.io/name: stt
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: ml-worker
+{{- end -}}
+
+{{/*
 Full name
 */}}
 {{- define "stt.fullname" -}}

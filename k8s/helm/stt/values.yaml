@@ -7,9 +7,22 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
-# -- Worker (django-q2) --
+# -- Worker (django-q2, lightweight tasks: GDPR, scheduling) --
 worker:
   replicaCount: 1
+
+# -- ML Worker (GPU/CPU-intensive: Whisper, pyannote, LLM) --
+mlWorker:
+  replicaCount: 1
+  # For GPU nodes, set nodeSelector and tolerations:
+  # nodeSelector:
+  #   nvidia.com/gpu.present: "true"
+  # tolerations:
+  #   - key: nvidia.com/gpu
+  #     operator: Exists
+  #     effect: NoSchedule
+  nodeSelector: {}
+  tolerations: []
 
 # -- PostgreSQL (uses the existing k8s/base deployment) --
 database:
@@ -81,11 +94,20 @@ resources:
       cpu: "2"
   worker:
     requests:
-      memory: 1Gi
-      cpu: 500m
+      memory: 256Mi
+      cpu: 100m
     limits:
-      memory: 4Gi
+      memory: 512Mi
+      cpu: 500m
+  mlWorker:
+    requests:
+      memory: 2Gi
+      cpu: "1"
+    limits:
+      memory: 8Gi
       cpu: "4"
+      # For GPU nodes, add:
+      # nvidia.com/gpu: "1"
 
 # -- Autoscaling --
 autoscaling:
@@ -99,3 +121,8 @@ autoscaling:
     minReplicas: 1
     maxReplicas: 3
     targetCPUUtilizationPercentage: 60
+  mlWorker:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70

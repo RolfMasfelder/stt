@@ -65,7 +65,7 @@ class TestJobCreateEndpoint:
         assert data["job_type"] == "transcribe"
         assert data["whisper_model"] == "large-v3"
         mock_async.assert_called_once_with(
-            "stt.api.tasks.run_transcribe", str(data["id"])
+            "stt.api.tasks.run_transcribe", str(data["id"]), cluster="ml"
         )
 
     @patch("stt.api.views.async_task")

@@ -164,6 +164,7 @@ DATA_RETENTION_DAYS: int = int(os.getenv("DATA_RETENTION_DAYS", "90"))
 
 # --- django-q2 Task Queue ---
 
+# Default cluster: lightweight tasks (GDPR auto-delete, scheduled jobs)
 Q_CLUSTER = {
     "name": "stt",
     "workers": int(os.getenv("Q_WORKERS", "2")),
@@ -180,6 +181,23 @@ Q_CLUSTER = {
         },
     ],
 }
+
+# ML cluster: GPU/CPU-intensive tasks (Whisper, pyannote, LLM summarization).
+# ML workers run as separate pods with GPU node affinity in Kubernetes.
+# Env var Q_CLUSTER_NAME controls which cluster a qcluster process joins.
+Q_CLUSTER_ML = {
+    "name": "ml",
+    "workers": int(os.getenv("Q_ML_WORKERS", "1")),
+    "timeout": int(os.getenv("Q_ML_TIMEOUT", "3600")),  # 60 min per ML task
+    "retry": int(os.getenv("Q_ML_RETRY", "4200")),  # retry after 70 min
+    "queue_limit": int(os.getenv("Q_ML_QUEUE_LIMIT", "20")),
+    "orm": "default",
+    "catch_up": False,
+}
+
+# When a worker starts with Q_CLUSTER_NAME=ml, switch to the ML cluster config.
+if os.getenv("Q_CLUSTER_NAME") == "ml":
+    Q_CLUSTER = Q_CLUSTER_ML
 
 # --- Reverse-Proxy / TLS Security (ADR-08, ADR-14) ---
 

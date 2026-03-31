@@ -319,7 +319,7 @@
 | 2f.2 | PostgreSQL Row-Level Security Policies aktivieren | 2f.1 | FA-25, ADR-09 | ✅ Done |
 | 2f.3 | Kubernetes-Deployment (Helm Charts) | 2f.1 | ADR-09 | ✅ Done |
 | 2f.4 | Horizontal Pod Autoscaler (HPA) | 2f.3 | ADR-09 | ✅ Done |
-| 2f.5 | GPU-Workload-Scheduling (Whisper, pyannote) | 2f.3 | ADR-09 |
+| 2f.5 | GPU-Workload-Scheduling (Whisper, pyannote) | 2f.3 | ADR-09 | ✅ Done |
 | 2f.6 | Monitoring (Prometheus + Grafana) | 2f.3 | — |
 | 2f.7 | Django-Admin anpassen für Multi-Tenant-Verwaltung | 2f.1 | ADR-09 |
 | 2f.8 | Audio-Upload persistent im Storage-Backend speichern (statt Temp-File), Pfad im Job-Model verwalten | 2b.1 | FA-24, ADR-08 |
@@ -336,6 +336,8 @@
 **Erledigt in 2f.3:** Helm Chart unter `k8s/helm/stt/` mit Templates für: Server-Deployment (Gunicorn, initContainer für Migrationen), Worker-Deployment (django-q2 qcluster), Service, Ingress (nginx IngressClass), ConfigMap, Secret, HPA (optional). Values konfigurierbar für Replicas, Ressourcen, DB-Credentials, MinIO-Endpoints, Whisper/LM-Studio-Settings.
 
 **Erledigt in 2f.4:** HPA für Server- und Worker-Deployment konfiguriert und auf k3s getestet. Docker-Image gebaut und via `k3s ctr images import` in k3s importiert. STT-App via `helm install` deployed (Server + Worker Pods). Server-HPA: min 1 / max 3 Replicas, Target 50% CPU. Worker-HPA: min 1 / max 2 Replicas, Target 60% CPU, konservative Scale-Up-Policy (1 Pod/60s, Stabilisierung 30s). Beide HPAs mit `scaleDown.stabilizationWindowSeconds: 300`. Load-Test verifiziert: 6 busybox-Pods → Server-CPU 728% → HPA skaliert auf 3 Replicas → nach Lastabfall automatisch auf 1 zurück. `values-k3s.yaml` mit angepassten Resource-Requests für Single-Node (CPU-only). Kustomize (`kustomization.yaml`) für Base-Manifeste hinzugefügt.
+
+**Erledigt in 2f.5:** GPU-Workload-Scheduling durch Queue-Separation in django-q2 umgesetzt. Zwei getrennte Cluster: `stt` (leichte Tasks: GDPR auto-delete, Scheduling) und `ml` (GPU/CPU-intensive Tasks: Whisper, pyannote, LLM). ML-Tasks werden via `async_task(..., cluster="ml")` an den ML-Cluster geroutet. `Q_CLUSTER_ML` in `settings.py` mit eigenem Timeout (60 Min), Retry (70 Min) und Worker-Count. Env-Variable `Q_CLUSTER_NAME=ml` schaltet einen qcluster-Prozess auf den ML-Cluster um. Separates Helm-Deployment `deployment-ml-worker.yaml` mit `nodeSelector` und `tolerations` (vorbereitet für `nvidia.com/gpu`-Label). Eigener HPA für ML-Worker (min 1 / max 2, Target 50% CPU, konservative Scale-Up-Policy 1 Pod/120s). Auf k3s mit CPU-only getestet: 3 Worker-Pods (stt, ml-worker, server), alle mit eigenem HPA. 337 Tests bestanden.
 
 **Hinweis zu 2f.11:** Die Kundenverwaltung ist ein eigenständiges System mit separater Datenbank, das STT nur über Token-basierte Authentifizierung und `tenant_id` koppelt. Implementierungsoptionen (externer IdP vs. Eigenentwicklung) sind noch zu klären. Nur für Szenario 3 (SaaS) relevant.
 
