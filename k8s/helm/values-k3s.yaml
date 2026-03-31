@@ -1,0 +1,76 @@
+# values-k3s.yaml — override values for local k3s deployment
+# Usage: helm install stt k8s/helm/stt/ -n stt -f k8s/helm/values-k3s.yaml
+
+replicaCount: 1
+
+image:
+  repository: docker.io/library/stt-server
+  tag: latest
+  pullPolicy: Never  # local image imported via k3s ctr
+
+worker:
+  replicaCount: 1
+
+database:
+  host: postgres
+  port: 5432
+  name: stt
+  user: stt
+  existingSecret: postgres-credentials
+  passwordKey: POSTGRES_PASSWORD
+
+minio:
+  endpoint: http://minio:9000
+  existingSecret: minio-credentials
+  accessKeyKey: MINIO_ROOT_USER
+  secretKeyKey: MINIO_ROOT_PASSWORD
+
+django:
+  debug: true
+  allowedHosts: "*"
+  dataRetentionDays: 90
+
+gunicorn:
+  workers: 2
+  timeout: 600
+
+whisper:
+  model: small
+  device: cpu
+
+service:
+  type: ClusterIP
+  port: 8090
+
+ingress:
+  enabled: true
+  className: nginx
+  host: stt.local
+
+resources:
+  server:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 1Gi
+      cpu: "1"
+  worker:
+    requests:
+      memory: 512Mi
+      cpu: 200m
+    limits:
+      memory: 2Gi
+      cpu: "2"
+
+autoscaling:
+  server:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 50
+  worker:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 2
+    targetCPUUtilizationPercentage: 60

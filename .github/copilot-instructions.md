@@ -36,3 +36,9 @@
 - Commands: `docker compose exec stt-server python manage.py ...`
 - App label for migrations: `api` (not `stt_api`)
 - DB: PostgreSQL 17 in `stt-db` container
+
+# Kubernetes Setup
+- use Kustomize: `kubectl apply -k k8s/base/`
+- Helm chart: `helm install stt k8s/helm/stt/`
+- Namespace: `stt`
+- DB: PostgreSQL 17 in `stt-db` pod
