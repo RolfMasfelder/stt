@@ -6,6 +6,7 @@ Also contains the GDPR auto-delete scheduled task (2e.2).
 """
 
 import logging
+import time
 import uuid
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from stt.summarize import process_transcript
 from stt.transcribe import transcribe_audio
 
 from .audit import log_audit
+from .metrics import GDPR_DELETED, JOB_DURATION, JOBS_COMPLETED, JOBS_FAILED
 from .models import AuditAction, AuditLog, Job, JobStatus, ResultVersion
 
 logger = logging.getLogger(__name__)
@@ -40,6 +42,7 @@ def _fail_job(job: Job, error: str) -> None:
     job.status = JobStatus.FAILED
     job.error_message = error
     job.save(update_fields=["status", "error_message", "updated_at"])
+    JOBS_FAILED.labels(job_type=job.job_type).inc()
     log_audit(
         AuditAction.JOB_FAILED,
         resource_type="job",
@@ -77,6 +80,7 @@ def run_transcribe(job_id: str) -> None:
     job.status = JobStatus.RUNNING
     job.save(update_fields=["status", "updated_at"])
 
+    _start = time.monotonic()
     try:
         whisper_cfg = _get_whisper_config(job.whisper_model)
         text = transcribe_audio(audio_path, whisper_cfg)
@@ -90,6 +94,8 @@ def run_transcribe(job_id: str) -> None:
             ]
         )
         _create_initial_version(job)
+        JOBS_COMPLETED.labels(job_type=job.job_type).inc()
+        JOB_DURATION.labels(job_type=job.job_type).observe(time.monotonic() - _start)
         log_audit(
             AuditAction.JOB_COMPLETED,
             resource_type="job",
@@ -117,6 +123,7 @@ def run_diarize(job_id: str) -> None:
     job.status = JobStatus.RUNNING
     job.save(update_fields=["status", "updated_at"])
 
+    _start = time.monotonic()
     try:
         cfg = _get_config()
         whisper_cfg = _get_whisper_config(job.whisper_model)
@@ -146,6 +153,8 @@ def run_diarize(job_id: str) -> None:
             ]
         )
         _create_initial_version(job)
+        JOBS_COMPLETED.labels(job_type=job.job_type).inc()
+        JOB_DURATION.labels(job_type=job.job_type).observe(time.monotonic() - _start)
         log_audit(
             AuditAction.JOB_COMPLETED,
             resource_type="job",
@@ -173,6 +182,7 @@ def run_process(job_id: str) -> None:
     job.status = JobStatus.RUNNING
     job.save(update_fields=["status", "updated_at"])
 
+    _start = time.monotonic()
     try:
         cfg = _get_config()
         whisper_cfg = _get_whisper_config(job.whisper_model)
@@ -209,6 +219,8 @@ def run_process(job_id: str) -> None:
             ]
         )
         _create_initial_version(job)
+        JOBS_COMPLETED.labels(job_type=job.job_type).inc()
+        JOB_DURATION.labels(job_type=job.job_type).observe(time.monotonic() - _start)
         log_audit(
             AuditAction.JOB_COMPLETED,
             resource_type="job",
@@ -261,6 +273,8 @@ def auto_delete_expired_jobs() -> int:
     ).delete()[0]
 
     expired_jobs.delete()
+
+    GDPR_DELETED.inc(total)
 
     log_audit(
         AuditAction.DATA_AUTO_DELETED,

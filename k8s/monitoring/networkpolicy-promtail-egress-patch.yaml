@@ -1,0 +1,50 @@
+# Promtail egress NetworkPolicy patch — adds k8s API server access
+# for kubernetes_sd_configs service discovery.
+# Apply: kubectl apply -f k8s/monitoring/networkpolicy-promtail-egress-patch.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-promtail-egress
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app: promtail
+  policyTypes:
+    - Egress
+  egress:
+    # Loki (existing)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: loki
+      ports:
+        - port: 3100
+          protocol: TCP
+    # Kubernetes API server — required for kubernetes_sd_configs
+    - to:
+        - ipBlock:
+            cidr: 10.43.0.1/32
+      ports:
+        - port: 443
+          protocol: TCP
+    # k3s also exposes API on node port 6443
+    - to:
+        - ipBlock:
+            cidr: 192.168.178.80/32
+      ports:
+        - port: 6443
+          protocol: TCP
+    # DNS (existing)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP

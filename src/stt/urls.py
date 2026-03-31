@@ -6,6 +6,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("", include("django_prometheus.urls")),
     path("", include("stt.api.urls")),
     path("o/", include("oauth2_provider.urls", namespace="oauth2_provider")),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),

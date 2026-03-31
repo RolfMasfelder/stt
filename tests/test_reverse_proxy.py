@@ -45,10 +45,15 @@ class TestSecuritySettings:
         assert "django.middleware.security.SecurityMiddleware" in settings.MIDDLEWARE
 
     def test_security_middleware_before_others(self) -> None:
-        """SecurityMiddleware should be first in the middleware stack."""
+        """SecurityMiddleware should be early in the middleware stack (after Prometheus)."""
         from django.conf import settings
 
-        assert settings.MIDDLEWARE[0] == "django.middleware.security.SecurityMiddleware"
+        security_idx = settings.MIDDLEWARE.index(
+            "django.middleware.security.SecurityMiddleware"
+        )
+        # Prometheus before/after middleware wraps the whole stack;
+        # SecurityMiddleware must be right after PrometheusBeforeMiddleware.
+        assert security_idx <= 1
 
 
 class TestCaddyfileExists:

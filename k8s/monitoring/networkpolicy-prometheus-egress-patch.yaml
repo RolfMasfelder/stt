@@ -1,0 +1,69 @@
+# NetworkPolicy: Allow Prometheus to scrape STT metrics.
+# Patches the existing Prometheus egress policy to add STT namespace.
+# Apply: kubectl apply -f k8s/monitoring/networkpolicy-prometheus-egress-patch.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-egress
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app: prometheus
+  policyTypes:
+    - Egress
+  egress:
+    # eRechnung Django (existing)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: erechnung
+          podSelector:
+            matchLabels:
+              app: django-web
+      ports:
+        - port: 8000
+          protocol: TCP
+    # STT server (NEW)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: stt
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: stt
+      ports:
+        - port: 8090
+          protocol: TCP
+    # kube-state-metrics (existing)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kube-state-metrics
+      ports:
+        - port: 8080
+          protocol: TCP
+    # DNS (existing)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Prometheus self (localhost) — needed for self-monitoring job
+    - to:
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - port: 9090
+          protocol: TCP

@@ -28,6 +28,7 @@ from stt.summarize import (
 from stt.transcribe import TranscriptionError, transcribe_audio
 
 from .audit import log_audit
+from .metrics import JOBS_CREATED
 from .models import (
     AuditAction,
     AuditLog,
@@ -392,6 +393,8 @@ class JobCreateView(APIView):
             owner=request.user if request.user.is_authenticated else None,
             tenant=getattr(request, "tenant", None),
         )
+
+        JOBS_CREATED.labels(job_type=raw_type).inc()
 
         log_audit(
             AuditAction.JOB_CREATED,
