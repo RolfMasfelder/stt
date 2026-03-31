@@ -4,9 +4,9 @@
 replicaCount: 1
 
 image:
-  repository: docker.io/library/stt-server
+  repository: 192.168.178.80:5000/stt-server
   tag: latest
-  pullPolicy: Never  # local image imported via k3s ctr
+  pullPolicy: Always  # pull from local registry
 
 worker:
   replicaCount: 1

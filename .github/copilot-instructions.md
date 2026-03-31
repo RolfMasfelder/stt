@@ -42,3 +42,14 @@
 - Helm chart: `helm install stt k8s/helm/stt/`
 - Namespace: `stt`
 - DB: PostgreSQL 17 in `stt-db` pod
+
+# Container Registry & Deployment Workflow
+- Registry: `192.168.178.80:5000` (cirrus7-neu, HTTPS self-signed, registry:2)
+- Local Docker: configured as insecure-registry in daemon.json
+- k3s: configured in `/etc/rancher/k3s/registries.yaml` with `insecure_skip_verify: true`
+- Image deploy workflow (NOT docker save/import):
+  1. Build: `docker compose build stt-server`
+  2. Tag: `docker tag stt-server:latest 192.168.178.80:5000/stt-server:latest`
+  3. Push: `docker push 192.168.178.80:5000/stt-server:latest`
+  4. Deploy: `helm upgrade stt k8s/helm/stt/ -n stt -f k8s/helm/values-k3s.yaml`
+- k3s values: `k8s/helm/values-k3s.yaml` (image pullPolicy: Always, repository: 192.168.178.80:5000/stt-server)
