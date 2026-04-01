@@ -349,7 +349,16 @@
 
 **Erledigt in 2f.10:** Audio-Löschung nach bestätigter Auslieferung und bei GDPR-Operationen. Neuer Scheduled Task `cleanup_delivered_audio()` (täglich via django-q2): löscht Audio aus dem Storage-Backend für Jobs deren Ergebnisse zugestellt wurden und die Karenzzeit (`AUDIO_CLEANUP_GRACE_HOURS`, Default 24h) überschritten haben. Neuer AuditAction `AUDIO_DELETED`. `JobDeleteView`, `UserDataDeleteView` und `auto_delete_expired_jobs()` löschen jeweils auch die zugehörigen Audio-Dateien aus dem Backend. 20 neue Tests (387 gesamt).
 
-**Hinweis zu 2f.11:** Die Kundenverwaltung ist ein eigenständiges System mit separater Datenbank, das STT nur über Token-basierte Authentifizierung und `tenant_id` koppelt. Implementierungsoptionen (externer IdP vs. Eigenentwicklung) sind noch zu klären. Nur für Szenario 3 (SaaS) relevant.
+**Hinweis zu 2f.11 — Anforderungen SaaS-Kundenverwaltung:**
+
+Nur für Szenario 3 (SaaS) relevant. Eigenständiges Modul, unabhängig vom STT-Repository.
+
+- **Separates System:** Eigenes Repo, eigener Container, eigene Datenbank. Kopplung an STT ausschließlich über Token-basierte Authentifizierung und `tenant_id`.
+- **Self-Service-Registrierung:** Neue Kunden registrieren sich selbstständig. Ein Free-Tier-Kontingent steht nach Registrierung zur Verfügung (z.B. begrenzte Minuten/Monat oder Jobs/Monat).
+- **Bezahlmodell:** Nach Ausschöpfung des Free-Tier-Kontingents ist ein kostenpflichtiges Abonnement erforderlich. Abrechnungssystem notwendig (z.B. Stripe, Mollie oder vergleichbar).
+- **Mandanten-Provisionierung:** Automatische Anlage von Tenant-Eintrag und IdP-Konfiguration bei Registrierung.
+- **Identity Provider:** Etabliertes, europäisches System (z.B. Zitadel, Ory, oder vergleichbar). Kein Eigenbau.
+- **Umfang:** Registrierung, Kontingent-Verwaltung, Abrechnung/Billing, IdP-Integration und Tenant-Lifecycle sind jeweils eigenständige Teilaufgaben mit erheblichem Implementierungsaufwand. Detailplanung und Technologie-Entscheidungen erfolgen separat.
 
 ---
 
@@ -389,6 +398,14 @@ Die folgenden Punkte müssen vor oder während der Umsetzung geklärt werden:
 - [x] **Skalierung:** ~~Reicht eine einzelne Instanz oder Horizontal Scaling?~~ → Szenario-abhängig: InHouse/Dedicated = vertikal, SaaS = horizontal mit K8s HPA
 - [ ] **InHouse Air-Gap-Updates:** Wie werden Offline-Installationen aktualisiert?
 - [ ] **LM Studio Ersatz für Produktion:** vLLM, Ollama, oder llama.cpp Server für headless Betrieb?
+
+### SaaS-Kundenverwaltung (2f.11)
+
+- [ ] **Identity Provider:** Welches europäische System? (Zitadel, Ory, andere?)
+- [ ] **Abrechnungssystem:** Welcher Payment-Provider? (Stripe, Mollie, andere?)
+- [ ] **Free-Tier-Kontingent:** Wie groß? (Minuten/Monat, Jobs/Monat, beides?)
+- [ ] **Pricing-Modell:** Pay-per-Use, Abo-Stufen, oder hybrid?
+- [ ] **Tech-Stack:** Welches Framework/Sprache für den Kundenverwaltungs-Service?
 
 ---
 
