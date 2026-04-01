@@ -472,3 +472,32 @@ def get_backend(config: object) -> StorageBackend:
         backend = EncryptingBackend(backend, settings.STORAGE_ENCRYPTION_KEY)
 
     return backend
+
+
+def get_audio_backend() -> StorageBackend:
+    """Create a StorageBackend for persistent audio storage (2f.8, FA-24).
+
+    Configured via AUDIO_STORAGE_* settings.
+    Wraps with EncryptingBackend if STORAGE_ENCRYPTION_KEY is set.
+    """
+    from django.conf import settings
+
+    if getattr(settings, "AUDIO_STORAGE_BACKEND", "local") == "s3":
+        backend: StorageBackend = S3Backend(
+            endpoint_url=settings.AUDIO_S3_ENDPOINT_URL,
+            bucket=settings.AUDIO_S3_BUCKET,
+            access_key=settings.AUDIO_S3_ACCESS_KEY,
+            secret_key=settings.AUDIO_S3_SECRET_KEY,
+            region=settings.AUDIO_S3_REGION,
+            backend_name="audio-s3",
+        )
+    else:
+        backend = LocalFileBackend(
+            base_path=settings.AUDIO_STORAGE_BASE_PATH,
+            backend_name="audio-local",
+        )
+
+    if settings.STORAGE_ENCRYPTION_KEY:
+        backend = EncryptingBackend(backend, settings.STORAGE_ENCRYPTION_KEY)
+
+    return backend

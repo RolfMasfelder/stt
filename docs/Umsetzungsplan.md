@@ -322,9 +322,9 @@
 | 2f.5 | GPU-Workload-Scheduling (Whisper, pyannote) | 2f.3 | ADR-09 | ✅ Done |
 | 2f.6 | Monitoring (Prometheus + Grafana) | 2f.3 | — | ✅ Done |
 | 2f.7 | Django-Admin anpassen für Multi-Tenant-Verwaltung | 2f.1 | ADR-09 | ✅ Done |
-| 2f.8 | Audio-Upload persistent im Storage-Backend speichern (statt Temp-File), Pfad im Job-Model verwalten | 2b.1 | FA-24, ADR-08 |
-| 2f.9 | Ergebnis-Auslieferung tracken (`results_delivered`-Flag am Job) | 2f.8 | FA-24 |
-| 2f.10 | Audio-Löschung erst nach bestätigter Auslieferung oder via Auto-Delete | 2f.9, 2e.2 | FA-24, FA-28 |
+| 2f.8 | Audio-Upload persistent im Storage-Backend speichern (statt Temp-File), Pfad im Job-Model verwalten | 2b.1 | FA-24, ADR-08 | ✅ Done |
+| 2f.9 | Ergebnis-Auslieferung tracken (`results_delivered`-Flag am Job) | 2f.8 | FA-24 | ✅ Done |
+| 2f.10 | Audio-Löschung erst nach bestätigter Auslieferung oder via Auto-Delete | 2f.9, 2e.2 | FA-24, FA-28 | ✅ Done |
 | 2f.11 | SaaS-Kundenverwaltung: separater Service für Registrierung, Mandanten-Provisionierung, IdP, Abrechnung | 2f.1 | FA-29 |
 
 **Erledigt in 2f.0:** k3s-Cluster auf 192.168.178.80 geprüft (v1.34.3+k3s3, ingress-nginx, MetalLB, cert-manager, Monitoring-Stack bereits vorhanden). Namespace `stt` erstellt. MinIO-Deployment mit PVC (10 GiB), Buckets `stt-audio` und `stt-results` angelegt. PostgreSQL 17 Deployment mit PVC (5 GiB). Beide Services als ClusterIP erreichbar. MinIO-Console via Ingress unter `minio.stt.local`.
@@ -342,6 +342,12 @@
 **Erledigt in 2f.6:** Monitoring mit Prometheus, Grafana und Loki/Promtail eingerichtet. django-prometheus 2.4.1 integriert: Before/After-Middleware, `/metrics`-Endpoint, 5 Custom-Metriken (JOBS_CREATED, JOBS_COMPLETED, JOBS_FAILED, JOB_DURATION, GDPR_DELETED) in tasks.py und views.py instrumentiert. Prometheus-Config gepatcht: STT-Scrape-Target (`stt-stt-server:8000/metrics`), 4 Alert-Rules (High5xxRate, TooManyFailedJobs, SlowJobProcessing, InstanceDown). Grafana-Dashboard „STT — Speech-to-Text" (uid: stt-overview) mit 8 Panels: Job-Rates, Completed/Failed, Duration-Histogramm (p50/p95/p99), HTTP-Status-Rates, Request-Latency p95, GDPR-Counter, Pod-CPU, Loki-Log-Panel. Dashboard in bestehende `grafana-dashboards` ConfigMap integriert. Promtail 3.6.8 mit HOSTNAME-Fix (`fieldRef: spec.nodeName`) für korrekte kubernetes_sd Node-Filterung — 15/15 Targets. Loki empfängt STT-Logs (Namespace-Label verifiziert). NetworkPolicies für Prometheus- und Promtail-Egress. 6 YAML-Patch-Dateien unter `k8s/monitoring/`. 11 neue Monitoring-Tests, 348 Tests gesamt.
 
 **Erledigt in 2f.7:** Django-Admin für Multi-Tenant-Verwaltung eingerichtet. `admin.py` mit 5 ModelAdmin-Klassen: TenantAdmin (Slug-Prepopulation), JobAdmin (Tenant-/Status-/Typ-Filter, Date-Hierarchy, short_id-Display), StorageConfigAdmin (S3-Secret-Maskierung via `masked_s3_secret_key`, S3-Felder in Collapse-Fieldset), AuditLogAdmin (vollständig read-only, kein Add/Change/Delete), ResultVersionAdmin. Alle Admins mit `list_filter` auf Tenant für mandantenübergreifende Verwaltung. 19 neue Tests (367 gesamt): Registrierung, Changelist-Seiten, Detail-Seiten, S3-Secret-Maskierung, AuditLog-Immutabilität, Unauthenticated-Zugriffssperre, Tenant-Filterung.
+
+**Erledigt in 2f.8:** Audio-Upload wird persistent im konfigurierbaren Storage-Backend gespeichert statt als Temp-File. Neues Feld `Job.audio_storage_path` (CharField, max 1024) speichert den Key/Pfad im Backend. `JobCreateView` speichert Audio via `get_audio_backend()` (konfigurierbar über `AUDIO_STORAGE_BACKEND`, `AUDIO_STORAGE_BASE_PATH`, `AUDIO_S3_*` Env-Variablen). Tasks (`run_transcribe`, `run_diarize`, `run_process`) holen Audio aus dem Backend via `_retrieve_audio()` — Fallback auf Legacy-Temp-Pfad für Abwärtskompatibilität. Migration 0008.
+
+**Erledigt in 2f.9:** Ergebnis-Auslieferung wird am Job getrackt. Neue Felder `Job.results_delivered` (BooleanField) und `Job.results_delivered_at` (DateTimeField). `JobDetailView.get()` setzt `results_delivered=True` beim ersten Abruf eines abgeschlossenen Jobs und loggt `RESULT_ACCESSED` Audit-Event. Zweiter Abruf ändert den Zeitstempel nicht. `JobDetailSerializer` gibt beide Felder in der API-Response zurück. JobAdmin zeigt `results_delivered` in list_display und list_filter.
+
+**Erledigt in 2f.10:** Audio-Löschung nach bestätigter Auslieferung und bei GDPR-Operationen. Neuer Scheduled Task `cleanup_delivered_audio()` (täglich via django-q2): löscht Audio aus dem Storage-Backend für Jobs deren Ergebnisse zugestellt wurden und die Karenzzeit (`AUDIO_CLEANUP_GRACE_HOURS`, Default 24h) überschritten haben. Neuer AuditAction `AUDIO_DELETED`. `JobDeleteView`, `UserDataDeleteView` und `auto_delete_expired_jobs()` löschen jeweils auch die zugehörigen Audio-Dateien aus dem Backend. 20 neue Tests (387 gesamt).
 
 **Hinweis zu 2f.11:** Die Kundenverwaltung ist ein eigenständiges System mit separater Datenbank, das STT nur über Token-basierte Authentifizierung und `tenant_id` koppelt. Implementierungsoptionen (externer IdP vs. Eigenentwicklung) sind noch zu klären. Nur für Szenario 3 (SaaS) relevant.
 

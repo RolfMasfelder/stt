@@ -86,6 +86,8 @@ class JobDetailSerializer(JobResponseSerializer):
     result_summary = serializers.CharField()
     result_segments_json = serializers.JSONField(allow_null=True)
     error_message = serializers.CharField()
+    results_delivered = serializers.BooleanField()
+    results_delivered_at = serializers.DateTimeField(allow_null=True)
 
 
 # --- Storage config serializers (ADR-11, ADR-12) ---

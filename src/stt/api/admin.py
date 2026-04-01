@@ -21,13 +21,20 @@ class JobAdmin(admin.ModelAdmin):
         "job_type",
         "status",
         "original_filename",
+        "results_delivered",
         "tenant",
         "owner",
         "created_at",
     )
-    list_filter = ("status", "job_type", "tenant", "enable_diarize")
+    list_filter = (
+        "status",
+        "job_type",
+        "tenant",
+        "enable_diarize",
+        "results_delivered",
+    )
     search_fields = ("id", "original_filename", "owner__username")
-    readonly_fields = ("id", "created_at", "updated_at")
+    readonly_fields = ("id", "created_at", "updated_at", "results_delivered_at")
     raw_id_fields = ("owner", "tenant")
     date_hierarchy = "created_at"
 

@@ -2,10 +2,13 @@
 
 Each task receives a Job UUID, loads the Job from the database,
 runs the ML pipeline, and writes back the results.
-Also contains the GDPR auto-delete scheduled task (2e.2).
+Also contains the GDPR auto-delete scheduled task (2e.2)
+and audio cleanup after delivery (2f.10).
 """
 
 import logging
+import os
+import tempfile
 import time
 import uuid
 from pathlib import Path
@@ -64,6 +67,37 @@ def _create_initial_version(job: Job) -> None:
     )
 
 
+def _retrieve_audio(job: Job) -> Path | None:
+    """Retrieve audio for a job, returning a temp file path.
+
+    Tries storage backend first (2f.8), falls back to legacy temp path.
+    Returns None and fails the job if audio cannot be found.
+    """
+    if job.audio_storage_path:
+        try:
+            from .storage import get_audio_backend
+
+            audio_backend = get_audio_backend()
+            audio_data = audio_backend.retrieve(job.audio_storage_path)
+            suffix = Path(job.audio_storage_path).suffix or ".wav"
+            fd, tmp_name = tempfile.mkstemp(suffix=suffix)
+            try:
+                os.write(fd, audio_data)
+            finally:
+                os.close(fd)
+            return Path(tmp_name)
+        except Exception as exc:
+            _fail_job(job, f"Failed to retrieve audio from storage: {exc}")
+            return None
+
+    # Legacy: direct temp file path.
+    audio_path = Path(job.original_filename)
+    if not audio_path.exists():
+        _fail_job(job, f"Audio file not found: {audio_path}")
+        return None
+    return audio_path
+
+
 def run_transcribe(job_id: str) -> None:
     """Transcribe audio for the given Job."""
     try:
@@ -72,9 +106,8 @@ def run_transcribe(job_id: str) -> None:
         logger.error("Job %s not found", job_id)
         return
 
-    audio_path = Path(job.original_filename)
-    if not audio_path.exists():
-        _fail_job(job, f"Audio file not found: {audio_path}")
+    audio_path = _retrieve_audio(job)
+    if audio_path is None:
         return
 
     job.status = JobStatus.RUNNING
@@ -115,9 +148,8 @@ def run_diarize(job_id: str) -> None:
         logger.error("Job %s not found", job_id)
         return
 
-    audio_path = Path(job.original_filename)
-    if not audio_path.exists():
-        _fail_job(job, f"Audio file not found: {audio_path}")
+    audio_path = _retrieve_audio(job)
+    if audio_path is None:
         return
 
     job.status = JobStatus.RUNNING
@@ -174,9 +206,8 @@ def run_process(job_id: str) -> None:
         logger.error("Job %s not found", job_id)
         return
 
-    audio_path = Path(job.original_filename)
-    if not audio_path.exists():
-        _fail_job(job, f"Audio file not found: {audio_path}")
+    audio_path = _retrieve_audio(job)
+    if audio_path is None:
         return
 
     job.status = JobStatus.RUNNING
@@ -266,6 +297,25 @@ def auto_delete_expired_jobs() -> int:
     job_ids = list(expired_jobs.values_list("id", flat=True))
     job_id_strs = [str(jid) for jid in job_ids]
 
+    # Delete audio from storage backend (2f.10).
+    audio_paths = list(
+        expired_jobs.exclude(audio_storage_path="").values_list(
+            "audio_storage_path", flat=True
+        )
+    )
+    if audio_paths:
+        try:
+            from .storage import get_audio_backend
+
+            audio_backend = get_audio_backend()
+            for path in audio_paths:
+                try:
+                    audio_backend.delete(path)
+                except Exception:
+                    logger.warning("Auto-delete: failed to delete audio %s", path)
+        except Exception:
+            logger.warning("Auto-delete: failed to init audio backend", exc_info=True)
+
     deleted_versions = ResultVersion.objects.filter(job_id__in=job_ids).delete()[0]
     deleted_audit = AuditLog.objects.filter(
         resource_type="job",
@@ -290,3 +340,61 @@ def auto_delete_expired_jobs() -> int:
         deleted_audit,
     )
     return total
+
+
+# --- Audio cleanup after delivery (2f.10, FA-24) ---
+
+
+def cleanup_delivered_audio() -> int:
+    """Delete audio for jobs whose results have been delivered.
+
+    Waits AUDIO_CLEANUP_GRACE_HOURS after delivery before deleting.
+    Designed to be called as a django-q2 scheduled task.
+    Returns the number of cleaned jobs.
+    """
+    from datetime import timedelta
+
+    from django.conf import settings
+    from django.utils import timezone
+
+    grace_hours = getattr(settings, "AUDIO_CLEANUP_GRACE_HOURS", 24)
+    cutoff = timezone.now() - timedelta(hours=grace_hours)
+
+    eligible = Job.objects.filter(
+        results_delivered=True,
+        results_delivered_at__lt=cutoff,
+    ).exclude(audio_storage_path="")
+
+    total = eligible.count()
+    if total == 0:
+        logger.info("Audio cleanup: no eligible jobs found")
+        return 0
+
+    try:
+        from .storage import get_audio_backend
+
+        audio_backend = get_audio_backend()
+    except Exception:
+        logger.error("Audio cleanup: failed to init audio backend", exc_info=True)
+        return 0
+
+    cleaned = 0
+    for job in eligible.iterator():
+        try:
+            audio_backend.delete(job.audio_storage_path)
+            old_path = job.audio_storage_path
+            job.audio_storage_path = ""
+            job.save(update_fields=["audio_storage_path", "updated_at"])
+            cleaned += 1
+            log_audit(
+                AuditAction.AUDIO_DELETED,
+                resource_type="job",
+                resource_id=str(job.id),
+                detail=f"path={old_path}",
+                actor="system",
+            )
+        except Exception:
+            logger.warning("Audio cleanup: failed for job %s", job.id, exc_info=True)
+
+    logger.info("Audio cleanup: deleted audio for %d/%d jobs", cleaned, total)
+    return cleaned

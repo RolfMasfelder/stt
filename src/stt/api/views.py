@@ -33,6 +33,7 @@ from .models import (
     AuditAction,
     AuditLog,
     Job,
+    JobStatus,
     JobType,
     ResultVersion,
     StorageConfig,
@@ -385,14 +386,35 @@ class JobCreateView(APIView):
         except _AudioUploadError as e:
             return Response({"detail": e.detail}, status=e.status_code)
 
+        user_filename = file.name or "upload.wav"
         job = Job.objects.create(
             job_type=raw_type,
-            original_filename=str(audio_path),
+            original_filename=user_filename,
             whisper_model=model,
             enable_diarize=do_diarize,
             owner=request.user if request.user.is_authenticated else None,
             tenant=getattr(request, "tenant", None),
         )
+
+        # Store audio persistently in storage backend (2f.8).
+        try:
+            from .storage import get_audio_backend
+
+            suffix = Path(user_filename).suffix.lower() or ".wav"
+            storage_key = f"{job.id}{suffix}"
+            audio_backend = get_audio_backend()
+            audio_backend.store(audio_path.read_bytes(), storage_key)
+            job.audio_storage_path = storage_key
+            job.save(update_fields=["audio_storage_path"])
+        except Exception:
+            logger.exception("Failed to store audio persistently for job %s", job.id)
+            # Fall back: keep temp path so task can still process.
+            job.original_filename = str(audio_path)
+            job.save(update_fields=["original_filename"])
+            audio_path = None  # Prevent deletion below.
+        finally:
+            if audio_path is not None:
+                audio_path.unlink(missing_ok=True)
 
         JOBS_CREATED.labels(job_type=raw_type).inc()
 
@@ -432,6 +454,22 @@ class JobDetailView(APIView):
                 {"detail": "Job not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
+        # Track results delivery (2f.9).
+        if job.status == JobStatus.COMPLETED and not job.results_delivered:
+            from django.utils import timezone
+
+            job.results_delivered = True
+            job.results_delivered_at = timezone.now()
+            job.save(update_fields=["results_delivered", "results_delivered_at"])
+            log_audit(
+                AuditAction.RESULT_ACCESSED,
+                request=request,
+                resource_type="job",
+                resource_id=str(job.id),
+                detail="results_delivered=true",
+            )
+
         return Response(JobDetailSerializer(job).data)
 
 
@@ -854,6 +892,18 @@ class JobDeleteView(APIView):
             resource_id=job_id_str,
         ).delete()
 
+        # Delete audio from storage backend (2f.10).
+        if job.audio_storage_path:
+            try:
+                from .storage import get_audio_backend
+
+                audio_backend = get_audio_backend()
+                audio_backend.delete(job.audio_storage_path)
+            except Exception:
+                logger.warning(
+                    "Failed to delete audio for job %s", job_id_str, exc_info=True
+                )
+
         job.delete()
 
         log_audit(
@@ -900,6 +950,27 @@ class UserDataDeleteView(APIView):
 
         deleted_versions = ResultVersion.objects.filter(job_id__in=job_ids).count()
         ResultVersion.objects.filter(job_id__in=job_ids).delete()
+
+        # Delete audio from storage backend (2f.10).
+        audio_paths = list(
+            jobs.exclude(audio_storage_path="").values_list(
+                "audio_storage_path", flat=True
+            )
+        )
+        if audio_paths:
+            try:
+                from .storage import get_audio_backend
+
+                audio_backend = get_audio_backend()
+                for path in audio_paths:
+                    try:
+                        audio_backend.delete(path)
+                    except Exception:
+                        logger.warning("Failed to delete audio %s", path, exc_info=True)
+            except Exception:
+                logger.warning(
+                    "Failed to init audio backend for bulk delete", exc_info=True
+                )
 
         deleted_audit = AuditLog.objects.filter(
             resource_type="job",

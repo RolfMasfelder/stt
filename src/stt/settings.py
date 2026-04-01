@@ -165,6 +165,22 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024 * 1024
 # Set to 0 to disable auto-deletion.
 DATA_RETENTION_DAYS: int = int(os.getenv("DATA_RETENTION_DAYS", "90"))
 
+# --- Audio Storage (2f.8, FA-24) ---
+
+# Backend type for persistent audio storage: "local" or "s3"
+AUDIO_STORAGE_BACKEND: str = os.getenv("AUDIO_STORAGE_BACKEND", "local")
+AUDIO_STORAGE_BASE_PATH: str = os.getenv(
+    "AUDIO_STORAGE_BASE_PATH", str(BASE_DIR / "data" / "audio")
+)
+AUDIO_S3_ENDPOINT_URL: str = os.getenv("AUDIO_S3_ENDPOINT_URL", "")
+AUDIO_S3_BUCKET: str = os.getenv("AUDIO_S3_BUCKET", "stt-audio")
+AUDIO_S3_ACCESS_KEY: str = os.getenv("AUDIO_S3_ACCESS_KEY", "")
+AUDIO_S3_SECRET_KEY: str = os.getenv("AUDIO_S3_SECRET_KEY", "")
+AUDIO_S3_REGION: str = os.getenv("AUDIO_S3_REGION", "")
+
+# Grace period (hours) after delivery before audio is eligible for cleanup (2f.10).
+AUDIO_CLEANUP_GRACE_HOURS: int = int(os.getenv("AUDIO_CLEANUP_GRACE_HOURS", "24"))
+
 # --- django-q2 Task Queue ---
 
 # Default cluster: lightweight tasks (GDPR auto-delete, scheduled jobs)
@@ -181,6 +197,11 @@ Q_CLUSTER = {
             "func": "stt.api.tasks.auto_delete_expired_jobs",
             "schedule_type": "D",  # Daily
             "name": "gdpr-auto-delete",
+        },
+        {
+            "func": "stt.api.tasks.cleanup_delivered_audio",
+            "schedule_type": "D",  # Daily
+            "name": "audio-cleanup",
         },
     ],
 }

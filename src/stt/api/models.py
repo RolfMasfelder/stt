@@ -58,10 +58,18 @@ class Job(models.Model):
         db_index=True,
     )
 
-    # Input metadata (no raw audio stored — only the temp path while processing).
+    # Input metadata.
     original_filename = models.CharField(max_length=512, blank=True, default="")
     whisper_model = models.CharField(max_length=50, default="small")
     enable_diarize = models.BooleanField(default=True)
+
+    # Audio storage (2f.8): persistent storage in backend instead of temp files.
+    audio_storage_path = models.CharField(
+        max_length=1024,
+        blank=True,
+        default="",
+        help_text="Key/path of the audio file in the storage backend",
+    )
 
     # Results (stored as text/JSON once processing completes).
     result_text = models.TextField(blank=True, default="")
@@ -69,6 +77,17 @@ class Job(models.Model):
     result_structured_text = models.TextField(blank=True, default="")
     result_summary = models.TextField(blank=True, default="")
     result_segments_json = models.JSONField(blank=True, null=True)
+
+    # Results delivery tracking (2f.9).
+    results_delivered = models.BooleanField(
+        default=False,
+        help_text="Whether results have been delivered to the client",
+    )
+    results_delivered_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When results were first delivered to the client",
+    )
 
     # Error details for failed jobs.
     error_message = models.TextField(blank=True, default="")
@@ -179,6 +198,7 @@ class AuditAction(models.TextChoices):
     STORAGE_CONFIG_UPDATED = "storage_config_updated", "Storage Config Updated"
     STORAGE_CONFIG_DELETED = "storage_config_deleted", "Storage Config Deleted"
     STORAGE_CONFIG_TESTED = "storage_config_tested", "Storage Config Tested"
+    AUDIO_DELETED = "audio_deleted", "Audio Deleted"
     AUTH_FAILED = "auth_failed", "Authentication Failed"
     RATE_LIMITED = "rate_limited", "Rate Limited"
 
