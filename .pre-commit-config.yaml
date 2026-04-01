@@ -24,6 +24,7 @@ repos:
         exclude: ^k8s/helm/
       - id: check-json
       - id: check-added-large-files
+        args: ['--maxkb=5120']
       - id: detect-private-key
       - id: end-of-file-fixer
       - id: trailing-whitespace
