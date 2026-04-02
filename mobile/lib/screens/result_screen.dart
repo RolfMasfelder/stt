@@ -92,19 +92,20 @@ class ResultScreen extends StatelessWidget {
     if (job == null) return const SizedBox.shrink();
 
     return DefaultTabController(
-      length: _tabCount(job.resultText, job.resultDiarizedText,
-          job.resultStructuredText, job.resultSummary),
+      length: _tabCount(
+        job.resultText,
+        job.resultDiarizedText,
+        job.resultStructuredText,
+        job.resultSummary,
+      ),
       child: Column(
         children: [
           TabBar(
             isScrollable: true,
             tabs: [
-              if (job.resultSummary != null)
-                const Tab(text: 'Zusammenfassung'),
-              if (job.resultStructuredText != null)
-                const Tab(text: 'Struktur'),
-              if (job.resultDiarizedText != null)
-                const Tab(text: 'Sprecher'),
+              if (job.resultSummary != null) const Tab(text: 'Zusammenfassung'),
+              if (job.resultStructuredText != null) const Tab(text: 'Struktur'),
+              if (job.resultDiarizedText != null) const Tab(text: 'Sprecher'),
               if (job.resultText != null) const Tab(text: 'Transkript'),
             ],
           ),
@@ -127,8 +128,12 @@ class ResultScreen extends StatelessWidget {
     );
   }
 
-  int _tabCount(String? text, String? diarized, String? structured,
-      String? summary) {
+  int _tabCount(
+    String? text,
+    String? diarized,
+    String? structured,
+    String? summary,
+  ) {
     int count = 0;
     if (summary != null) count++;
     if (structured != null) count++;
@@ -149,9 +154,9 @@ class ResultScreen extends StatelessWidget {
               TextButton.icon(
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: content));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Kopiert')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('Kopiert')));
                 },
                 icon: const Icon(Icons.copy, size: 16),
                 label: const Text('Kopieren'),
@@ -193,8 +198,8 @@ class ResultScreen extends StatelessWidget {
     }
 
     Clipboard.setData(ClipboardData(text: buffer.toString()));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Alle Ergebnisse kopiert')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Alle Ergebnisse kopiert')));
   }
 }

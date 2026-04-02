@@ -26,12 +26,15 @@ class _JobEditScreenState extends State<JobEditScreen> {
     if (_job == null) {
       _job = ModalRoute.of(context)!.settings.arguments as JobResult;
       _textController = TextEditingController(text: _job!.resultText ?? '');
-      _diarizedController =
-          TextEditingController(text: _job!.resultDiarizedText ?? '');
-      _structuredController =
-          TextEditingController(text: _job!.resultStructuredText ?? '');
-      _summaryController =
-          TextEditingController(text: _job!.resultSummary ?? '');
+      _diarizedController = TextEditingController(
+        text: _job!.resultDiarizedText ?? '',
+      );
+      _structuredController = TextEditingController(
+        text: _job!.resultStructuredText ?? '',
+      );
+      _summaryController = TextEditingController(
+        text: _job!.resultSummary ?? '',
+      );
     }
   }
 
@@ -65,9 +68,9 @@ class _JobEditScreenState extends State<JobEditScreen> {
     }
 
     if (fields.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Keine Änderungen')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Keine Änderungen')));
       return;
     }
 
@@ -82,14 +85,14 @@ class _JobEditScreenState extends State<JobEditScreen> {
     setState(() => _saving = false);
 
     if (result != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Korrektur gespeichert')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Korrektur gespeichert')));
       Navigator.pop(context, result);
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Speichern fehlgeschlagen')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Speichern fehlgeschlagen')));
     }
   }
 

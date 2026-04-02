@@ -36,15 +36,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    final connection =
-        Provider.of<ServerConnectionService>(context, listen: false);
-    _urlController =
-        TextEditingController(text: connection.config?.serverUrl ?? '');
+    final connection = Provider.of<ServerConnectionService>(
+      context,
+      listen: false,
+    );
+    _urlController = TextEditingController(
+      text: connection.config?.serverUrl ?? '',
+    );
     _clientIdController = TextEditingController();
     _verifyTls = connection.config?.verifyTls ?? true;
 
-    final processing =
-        Provider.of<ProcessingConfigService>(context, listen: false);
+    final processing = Provider.of<ProcessingConfigService>(
+      context,
+      listen: false,
+    );
     final cfg = processing.config;
     _language = cfg.language;
     _model = cfg.model;
@@ -72,16 +77,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final uri = Uri.tryParse(url);
     if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ungültige Server-URL')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Ungültige Server-URL')));
       return;
     }
 
     setState(() => _testing = true);
 
-    final connection =
-        Provider.of<ServerConnectionService>(context, listen: false);
+    final connection = Provider.of<ServerConnectionService>(
+      context,
+      listen: false,
+    );
     await connection.updateConfig(
       ServerConfig(serverUrl: url, verifyTls: _verifyTls),
     );
@@ -106,28 +113,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _saveProcessingConfig() {
-    final processing =
-        Provider.of<ProcessingConfigService>(context, listen: false);
-    processing.update(ProcessingConfig(
-      language: _language,
-      model: _model,
-      diarize: _diarize,
-      summarize: _summarize,
-      structure: _structure,
-      audioFormat: _audioFormat,
-      sampleRate: _sampleRate,
-      wifiOnly: _wifiOnly,
-      autoUpload: _autoUpload,
-      storageDestination: _storageDestination,
-    ));
+    final processing = Provider.of<ProcessingConfigService>(
+      context,
+      listen: false,
+    );
+    processing.update(
+      ProcessingConfig(
+        language: _language,
+        model: _model,
+        diarize: _diarize,
+        summarize: _summarize,
+        structure: _structure,
+        audioFormat: _audioFormat,
+        sampleRate: _sampleRate,
+        wifiOnly: _wifiOnly,
+        autoUpload: _autoUpload,
+        storageDestination: _storageDestination,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Einstellungen'),
-      ),
+      appBar: AppBar(title: const Text('Einstellungen')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -162,8 +171,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.check_circle),
-            label:
-                Text(_testing ? 'Teste Verbindung...' : 'Speichern & Testen'),
+            label: Text(
+              _testing ? 'Teste Verbindung...' : 'Speichern & Testen',
+            ),
           ),
           const Divider(height: 48),
 
@@ -180,11 +190,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.language,
             value: _language,
             items: ProcessingConfig.availableLanguages
-                .map((l) => DropdownMenuItem(
-                      value: l,
-                      child:
-                          Text(ProcessingConfig.languageLabels[l] ?? l),
-                    ))
+                .map(
+                  (l) => DropdownMenuItem(
+                    value: l,
+                    child: Text(ProcessingConfig.languageLabels[l] ?? l),
+                  ),
+                )
                 .toList(),
             onChanged: (v) {
               setState(() => _language = v!);
@@ -193,16 +204,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           _dropdownTile<String>(
             title: 'Whisper-Modell',
-            subtitle:
-                ProcessingConfig.modelDescriptions[_model] ?? _model,
+            subtitle: ProcessingConfig.modelDescriptions[_model] ?? _model,
             icon: Icons.model_training,
             value: _model,
             items: ProcessingConfig.availableModels
-                .map((m) => DropdownMenuItem(
-                      value: m,
-                      child: Text(
-                          '$m — ${ProcessingConfig.modelDescriptions[m]}'),
-                    ))
+                .map(
+                  (m) => DropdownMenuItem(
+                    value: m,
+                    child: Text(
+                      '$m — ${ProcessingConfig.modelDescriptions[m]}',
+                    ),
+                  ),
+                )
                 .toList(),
             onChanged: (v) {
               setState(() => _model = v!);
@@ -253,15 +266,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: 'Audio-Format',
             subtitle:
                 ProcessingConfig.audioFormatLabels[_audioFormat] ??
-                    _audioFormat,
+                _audioFormat,
             icon: Icons.audio_file,
             value: _audioFormat,
             items: ProcessingConfig.availableAudioFormats
-                .map((f) => DropdownMenuItem(
-                      value: f,
-                      child: Text(
-                          ProcessingConfig.audioFormatLabels[f] ?? f),
-                    ))
+                .map(
+                  (f) => DropdownMenuItem(
+                    value: f,
+                    child: Text(ProcessingConfig.audioFormatLabels[f] ?? f),
+                  ),
+                )
                 .toList(),
             onChanged: (v) {
               setState(() => _audioFormat = v!);
@@ -272,15 +286,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: 'Sample-Rate',
             subtitle:
                 ProcessingConfig.sampleRateLabels[_sampleRate] ??
-                    '$_sampleRate Hz',
+                '$_sampleRate Hz',
             icon: Icons.graphic_eq,
             value: _sampleRate,
             items: ProcessingConfig.availableSampleRates
-                .map((r) => DropdownMenuItem(
-                      value: r,
-                      child: Text(
-                          ProcessingConfig.sampleRateLabels[r] ?? '$r Hz'),
-                    ))
+                .map(
+                  (r) => DropdownMenuItem(
+                    value: r,
+                    child: Text(
+                      ProcessingConfig.sampleRateLabels[r] ?? '$r Hz',
+                    ),
+                  ),
+                )
                 .toList(),
             onChanged: (v) {
               setState(() => _sampleRate = v!);
@@ -333,8 +350,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           SwitchListTile(
             title: const Text('Automatischer Upload'),
-            subtitle:
-                const Text('Aufnahme nach Stopp automatisch hochladen'),
+            subtitle: const Text('Aufnahme nach Stopp automatisch hochladen'),
             secondary: const Icon(Icons.cloud_upload),
             value: _autoUpload,
             onChanged: (v) {
@@ -368,9 +384,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () async {
               await auth.logout();
               if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Abgemeldet')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Abgemeldet')));
             },
             icon: const Icon(Icons.logout),
             label: const Text('Abmelden'),
@@ -408,9 +424,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (url.isEmpty || clientId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Server-URL und Client-ID eingeben'),
-        ),
+        const SnackBar(content: Text('Server-URL und Client-ID eingeben')),
       );
       return;
     }
@@ -423,17 +437,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: Text(
           success ? 'Anmeldung erfolgreich' : 'Anmeldung fehlgeschlagen',
         ),
-        backgroundColor:
-            success ? Colors.green.shade800 : Colors.red.shade800,
+        backgroundColor: success ? Colors.green.shade800 : Colors.red.shade800,
       ),
     );
   }
 
   Widget _sectionHeader(String title) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleLarge,
-    );
+    return Text(title, style: Theme.of(context).textTheme.titleLarge);
   }
 
   Widget _dropdownTile<T>({
@@ -455,10 +465,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           builder: (ctx) => SimpleDialog(
             title: Text(title),
             children: items
-                .map((item) => SimpleDialogOption(
-                      onPressed: () => Navigator.pop(ctx, item.value),
-                      child: item.child,
-                    ))
+                .map(
+                  (item) => SimpleDialogOption(
+                    onPressed: () => Navigator.pop(ctx, item.value),
+                    child: item.child,
+                  ),
+                )
                 .toList(),
           ),
         );

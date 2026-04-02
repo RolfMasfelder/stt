@@ -51,11 +51,9 @@ class _HalEyeState extends State<HalEye> with TickerProviderStateMixin {
     if (oldWidget.status != widget.status ||
         oldWidget.recording != widget.recording) {
       final newColor = _targetColor();
-      _colorAnimation = ColorTween(begin: _currentColor, end: newColor)
-          .animate(CurvedAnimation(
-        parent: _colorController,
-        curve: Curves.easeInOut,
-      ));
+      _colorAnimation = ColorTween(begin: _currentColor, end: newColor).animate(
+        CurvedAnimation(parent: _colorController, curve: Curves.easeInOut),
+      );
       _colorController.forward(from: 0.0).then((_) {
         _currentColor = newColor;
       });
@@ -92,8 +90,8 @@ class _HalEyeState extends State<HalEye> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final isActive = widget.status != ConnectionStatus.disconnected ||
-        widget.recording;
+    final isActive =
+        widget.status != ConnectionStatus.disconnected || widget.recording;
 
     return AnimatedBuilder(
       animation: Listenable.merge([_glowAnimation, _colorAnimation]),
@@ -102,10 +100,7 @@ class _HalEyeState extends State<HalEye> with TickerProviderStateMixin {
         final color = _colorAnimation.value ?? _currentColor;
         return CustomPaint(
           size: Size(widget.size, widget.size),
-          painter: _HalEyePainter(
-            color: color,
-            glowIntensity: glowIntensity,
-          ),
+          painter: _HalEyePainter(color: color, glowIntensity: glowIntensity),
         );
       },
     );
@@ -166,18 +161,19 @@ class _HalEyePainter extends CustomPainter {
       center.dy - radius * 0.15,
     );
     final specularPaint = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          Colors.white.withValues(alpha: 0.4 * glowIntensity),
-          Colors.transparent,
-        ],
-      ).createShader(
-          Rect.fromCircle(center: specularCenter, radius: radius * 0.15));
+      ..shader =
+          RadialGradient(
+            colors: [
+              Colors.white.withValues(alpha: 0.4 * glowIntensity),
+              Colors.transparent,
+            ],
+          ).createShader(
+            Rect.fromCircle(center: specularCenter, radius: radius * 0.15),
+          );
     canvas.drawCircle(specularCenter, radius * 0.15, specularPaint);
   }
 
   @override
   bool shouldRepaint(_HalEyePainter oldDelegate) =>
-      color != oldDelegate.color ||
-      glowIntensity != oldDelegate.glowIntensity;
+      color != oldDelegate.color || glowIntensity != oldDelegate.glowIntensity;
 }

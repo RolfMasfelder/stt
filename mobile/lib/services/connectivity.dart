@@ -8,12 +8,9 @@ class ConnectivityService extends ChangeNotifier {
   StreamSubscription<List<ConnectivityResult>>? _subscription;
   List<ConnectivityResult> _results = [];
 
-  bool get isOnline =>
-      _results.any((r) => r != ConnectivityResult.none);
-  bool get isOnWifi =>
-      _results.contains(ConnectivityResult.wifi);
-  bool get isOnMobile =>
-      _results.contains(ConnectivityResult.mobile);
+  bool get isOnline => _results.any((r) => r != ConnectivityResult.none);
+  bool get isOnWifi => _results.contains(ConnectivityResult.wifi);
+  bool get isOnMobile => _results.contains(ConnectivityResult.mobile);
 
   ConnectivityService() {
     _init();

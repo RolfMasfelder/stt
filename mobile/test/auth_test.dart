@@ -35,10 +35,7 @@ void main() {
     });
 
     test('no expiry means not expired', () {
-      const state = AuthState(
-        isAuthenticated: true,
-        accessToken: 'test-token',
-      );
+      const state = AuthState(isAuthenticated: true, accessToken: 'test-token');
       expect(state.isExpired, false);
     });
   });

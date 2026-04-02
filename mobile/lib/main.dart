@@ -36,9 +36,7 @@ class STTApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => RecordingHistoryService()),
         ChangeNotifierProvider(create: (_) => ConnectivityService()),
         ChangeNotifierProxyProvider<AuthService, UploadService>(
-          create: (ctx) => UploadService(
-            authService: ctx.read<AuthService>(),
-          ),
+          create: (ctx) => UploadService(authService: ctx.read<AuthService>()),
           update: (_, auth, previous) =>
               previous ?? UploadService(authService: auth),
         ),

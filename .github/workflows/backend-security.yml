@@ -78,6 +78,7 @@ jobs:
             -f txt \
             -o bandit-report.txt \
             || true
+          [ -f bandit-report.txt ] || echo 'No findings.' > bandit-report.txt
 
       - name: Show bandit results
         if: always()

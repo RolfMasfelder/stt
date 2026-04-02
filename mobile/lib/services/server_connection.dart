@@ -64,9 +64,7 @@ class ServerConnectionService extends ChangeNotifier {
 
     try {
       final uri = Uri.parse('${_config!.serverUrl}/health');
-      final response = await http.get(uri).timeout(
-        const Duration(seconds: 5),
-      );
+      final response = await http.get(uri).timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         _status = body['status'] == 'healthy'

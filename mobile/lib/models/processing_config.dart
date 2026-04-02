@@ -50,17 +50,17 @@ class ProcessingConfig {
   }
 
   Map<String, dynamic> toJson() => {
-        'language': language,
-        'model': model,
-        'diarize': diarize,
-        'summarize': summarize,
-        'structure': structure,
-        'audioFormat': audioFormat,
-        'sampleRate': sampleRate,
-        'wifiOnly': wifiOnly,
-        'autoUpload': autoUpload,
-        'storageDestination': storageDestination,
-      };
+    'language': language,
+    'model': model,
+    'diarize': diarize,
+    'summarize': summarize,
+    'structure': structure,
+    'audioFormat': audioFormat,
+    'sampleRate': sampleRate,
+    'wifiOnly': wifiOnly,
+    'autoUpload': autoUpload,
+    'storageDestination': storageDestination,
+  };
 
   factory ProcessingConfig.fromJson(Map<String, dynamic> json) {
     return ProcessingConfig(

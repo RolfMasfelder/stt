@@ -74,14 +74,14 @@ class HomeScreen extends StatelessWidget {
             Text(
               _statusText(connection.status, recorder.state),
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: recorder.isRecording
-                        ? Colors.red
-                        : connection.status == ConnectionStatus.connected
-                            ? Colors.green
-                            : connection.status == ConnectionStatus.error
-                                ? Colors.red
-                                : Colors.grey,
-                  ),
+                color: recorder.isRecording
+                    ? Colors.red
+                    : connection.status == ConnectionStatus.connected
+                    ? Colors.green
+                    : connection.status == ConnectionStatus.error
+                    ? Colors.red
+                    : Colors.grey,
+              ),
             ),
 
             // Duration display during recording
@@ -90,9 +90,9 @@ class HomeScreen extends StatelessWidget {
               Text(
                 _formatDuration(recorder.duration),
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: Colors.white70,
-                      fontFeatures: [const FontFeature.tabularFigures()],
-                    ),
+                  color: Colors.white70,
+                  fontFeatures: [const FontFeature.tabularFigures()],
+                ),
               ),
               const SizedBox(height: 24),
 
@@ -135,9 +135,9 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 connection.config!.serverUrl,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey),
               ),
             ],
 
@@ -164,9 +164,7 @@ class HomeScreen extends StatelessWidget {
     if (!hasPerms) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Mikrofon-Berechtigung wird benötigt'),
-        ),
+        const SnackBar(content: Text('Mikrofon-Berechtigung wird benötigt')),
       );
       return;
     }
@@ -197,8 +195,7 @@ class HomeScreen extends StatelessWidget {
 
       final canUploadNow =
           connection.status == ConnectionStatus.connected &&
-          connectivity.canUpload(
-              wifiOnly: processingConfig.config.wifiOnly);
+          connectivity.canUpload(wifiOnly: processingConfig.config.wifiOnly);
 
       if (processingConfig.config.autoUpload && canUploadNow) {
         upload.uploadAndProcess(

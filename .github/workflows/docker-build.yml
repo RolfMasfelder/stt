@@ -40,7 +40,7 @@ jobs:
           docker inspect stt-server:ci --format '{{.Config.User}}' | grep -q 'stt' \
             && echo "✓ Non-root user configured" \
             || echo "::warning::Container runs as root"
-          docker image ls stt-server:ci stt-server:ci-dev
+          docker images --filter 'reference=stt-server:ci*'
           echo "::endgroup::"
 
       - name: Smoke test – production image import check

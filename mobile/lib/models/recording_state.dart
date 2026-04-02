@@ -1,5 +1,1 @@
-enum RecordingState {
-  idle,
-  recording,
-  paused,
-}
+enum RecordingState { idle, recording, paused }

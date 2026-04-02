@@ -91,15 +91,14 @@ class AudioRecordingService extends ChangeNotifier {
       notifyListeners();
     });
 
-    _amplitudeTimer = Timer.periodic(
-      const Duration(milliseconds: 200),
-      (_) async {
-        final amp = await _recorder.getAmplitude();
-        // Normalize from dB (-160..0) to 0..1
-        _amplitude = ((amp.current + 60) / 60).clamp(0.0, 1.0);
-        notifyListeners();
-      },
-    );
+    _amplitudeTimer = Timer.periodic(const Duration(milliseconds: 200), (
+      _,
+    ) async {
+      final amp = await _recorder.getAmplitude();
+      // Normalize from dB (-160..0) to 0..1
+      _amplitude = ((amp.current + 60) / 60).clamp(0.0, 1.0);
+      notifyListeners();
+    });
   }
 
   void _stopTimers() {

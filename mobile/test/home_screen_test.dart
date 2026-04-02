@@ -21,8 +21,7 @@ Widget createTestApp() {
       ChangeNotifierProvider(create: (_) => RecordingHistoryService()),
       ChangeNotifierProvider(create: (_) => ConnectivityService()),
       ChangeNotifierProxyProvider<AuthService, UploadService>(
-        create: (ctx) =>
-            UploadService(authService: ctx.read<AuthService>()),
+        create: (ctx) => UploadService(authService: ctx.read<AuthService>()),
         update: (_, auth, previous) =>
             previous ?? UploadService(authService: auth),
       ),
@@ -65,8 +64,9 @@ void main() {
       expect(find.byType(GestureDetector), findsWidgets);
     });
 
-    testWidgets('does not show recording controls in idle state',
-        (tester) async {
+    testWidgets('does not show recording controls in idle state', (
+      tester,
+    ) async {
       await tester.pumpWidget(createTestApp());
       await tester.pump();
 

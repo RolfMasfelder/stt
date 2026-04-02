@@ -10,22 +10,22 @@ void main() {
     // Mock the connectivity plugin method channel
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('dev.fluttercommunity.plus/connectivity'),
-      (methodCall) async {
-        if (methodCall.method == 'check') {
-          return ['none'];
-        }
-        return null;
-      },
-    );
+          const MethodChannel('dev.fluttercommunity.plus/connectivity'),
+          (methodCall) async {
+            if (methodCall.method == 'check') {
+              return ['none'];
+            }
+            return null;
+          },
+        );
   });
 
   tearDown(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('dev.fluttercommunity.plus/connectivity'),
-      null,
-    );
+          const MethodChannel('dev.fluttercommunity.plus/connectivity'),
+          null,
+        );
   });
 
   group('ConnectivityService', () {

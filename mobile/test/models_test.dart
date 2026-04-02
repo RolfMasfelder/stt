@@ -111,15 +111,21 @@ void main() {
 
     test('has language labels for all available languages', () {
       for (final lang in ProcessingConfig.availableLanguages) {
-        expect(ProcessingConfig.languageLabels.containsKey(lang), true,
-            reason: 'Missing label for language: $lang');
+        expect(
+          ProcessingConfig.languageLabels.containsKey(lang),
+          true,
+          reason: 'Missing label for language: $lang',
+        );
       }
     });
 
     test('has model descriptions for all available models', () {
       for (final model in ProcessingConfig.availableModels) {
-        expect(ProcessingConfig.modelDescriptions.containsKey(model), true,
-            reason: 'Missing description for model: $model');
+        expect(
+          ProcessingConfig.modelDescriptions.containsKey(model),
+          true,
+          reason: 'Missing description for model: $model',
+        );
       }
     });
   });
@@ -213,10 +219,7 @@ void main() {
         createdAt: now,
         duration: const Duration(minutes: 1),
       );
-      final updated = entry.copyWith(
-        jobId: 'job-abc',
-        status: 'uploaded',
-      );
+      final updated = entry.copyWith(jobId: 'job-abc', status: 'uploaded');
       expect(updated.jobId, 'job-abc');
       expect(updated.status, 'uploaded');
       expect(updated.id, 'entry-1');

@@ -39,15 +39,15 @@ class RecordingEntry {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'filePath': filePath,
-        'filename': filename,
-        'createdAt': createdAt.toIso8601String(),
-        'durationMs': duration.inMilliseconds,
-        'jobId': jobId,
-        'status': status,
-        'resultSummary': resultSummary,
-      };
+    'id': id,
+    'filePath': filePath,
+    'filename': filename,
+    'createdAt': createdAt.toIso8601String(),
+    'durationMs': duration.inMilliseconds,
+    'jobId': jobId,
+    'status': status,
+    'resultSummary': resultSummary,
+  };
 
   factory RecordingEntry.fromJson(Map<String, dynamic> json) {
     return RecordingEntry(

@@ -218,8 +218,9 @@ void main() {
   });
 
   group('Einstellungen Navigation-Flow', () {
-    testWidgets('Einstellungen → URL eingeben → zurück → HomeScreen',
-        (tester) async {
+    testWidgets('Einstellungen → URL eingeben → zurück → HomeScreen', (
+      tester,
+    ) async {
       await pumpApp(tester);
 
       await tester.tap(find.byIcon(Icons.settings));
@@ -241,8 +242,10 @@ void main() {
       await tester.tap(find.byIcon(Icons.settings));
       await settle(tester);
 
-      final tlsSwitch =
-          find.widgetWithText(SwitchListTile, 'TLS-Zertifikat prüfen');
+      final tlsSwitch = find.widgetWithText(
+        SwitchListTile,
+        'TLS-Zertifikat prüfen',
+      );
       expect(tlsSwitch, findsOneWidget);
 
       await tester.tap(tlsSwitch);

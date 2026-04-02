@@ -49,10 +49,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       return;
     }
 
-    final job = await upload.fetchJob(
-      serverUrl: serverUrl,
-      jobId: args.jobId,
-    );
+    final job = await upload.fetchJob(serverUrl: serverUrl, jobId: args.jobId);
 
     if (job == null) {
       setState(() {
@@ -97,9 +94,9 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         _reprocessing = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Neu verarbeitet')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Neu verarbeitet')));
       }
     } else {
       setState(() => _reprocessing = false);
@@ -112,11 +109,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   }
 
   void _onEdit() {
-    Navigator.pushNamed(
-      context,
-      '/job/edit',
-      arguments: _job,
-    ).then((result) {
+    Navigator.pushNamed(context, '/job/edit', arguments: _job).then((result) {
       if (result is JobResult) {
         _loadJob(); // Reload to get updated versions too
       }
@@ -247,9 +240,9 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               TextButton.icon(
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: content));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Kopiert')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('Kopiert')));
                 },
                 icon: const Icon(Icons.copy, size: 16),
                 label: const Text('Kopieren'),
@@ -284,9 +277,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         final v = _versions[index];
         return Card(
           child: ListTile(
-            leading: CircleAvatar(
-              child: Text('v${v.version}'),
-            ),
+            leading: CircleAvatar(child: Text('v${v.version}')),
             title: Text(_sourceLabel(v.source)),
             subtitle: Text(dateFormat.format(v.createdAt.toLocal())),
             trailing: const Icon(Icons.chevron_right),
@@ -329,22 +320,25 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               ),
               const SizedBox(height: 16),
               if (_hasContent(v.resultSummary)) ...[
-                Text('Zusammenfassung',
-                    style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  'Zusammenfassung',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
                 const SizedBox(height: 4),
                 SelectableText(v.resultSummary!),
                 const Divider(height: 24),
               ],
               if (_hasContent(v.resultStructuredText)) ...[
-                Text('Struktur',
-                    style: Theme.of(context).textTheme.titleSmall),
+                Text('Struktur', style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 4),
                 SelectableText(v.resultStructuredText!),
                 const Divider(height: 24),
               ],
               if (_hasContent(v.resultText)) ...[
-                Text('Transkript',
-                    style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  'Transkript',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
                 const SizedBox(height: 4),
                 SelectableText(v.resultText!),
               ],

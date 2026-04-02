@@ -27,7 +27,7 @@ class UploadService extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   UploadService({required AuthService authService})
-      : _authService = authService;
+    : _authService = authService;
 
   /// Upload audio file and start async processing job.
   Future<void> uploadAndProcess({
@@ -93,9 +93,9 @@ class UploadService extends ChangeNotifier {
     try {
       final headers = await _authService.getAuthHeaders();
       final uri = Uri.parse('$serverUrl/v1/jobs/${_currentJob!.id}');
-      final response = await http.get(uri, headers: headers).timeout(
-        const Duration(seconds: 10),
-      );
+      final response = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -110,7 +110,8 @@ class UploadService extends ChangeNotifier {
           );
         } else if (_currentJob!.isFailed) {
           _status = UploadStatus.failed;
-          _errorMessage = _currentJob!.errorMessage ?? 'Verarbeitung fehlgeschlagen';
+          _errorMessage =
+              _currentJob!.errorMessage ?? 'Verarbeitung fehlgeschlagen';
           _pollTimer?.cancel();
           NotificationService().showProcessingFailed(
             filename: _currentJob!.originalFilename,
@@ -144,9 +145,9 @@ class UploadService extends ChangeNotifier {
     try {
       final headers = await _authService.getAuthHeaders();
       final uri = Uri.parse('$serverUrl/v1/jobs/$jobId');
-      final response = await http.get(uri, headers: headers).timeout(
-        const Duration(seconds: 10),
-      );
+      final response = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -168,11 +169,9 @@ class UploadService extends ChangeNotifier {
       final headers = await _authService.getAuthHeaders();
       headers['Content-Type'] = 'application/json';
       final uri = Uri.parse('$serverUrl/v1/jobs/$jobId/correct');
-      final response = await http.patch(
-        uri,
-        headers: headers,
-        body: jsonEncode(fields),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .patch(uri, headers: headers, body: jsonEncode(fields))
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -194,11 +193,9 @@ class UploadService extends ChangeNotifier {
       final headers = await _authService.getAuthHeaders();
       headers['Content-Type'] = 'application/json';
       final uri = Uri.parse('$serverUrl/v1/jobs/$jobId/reprocess');
-      final response = await http.post(
-        uri,
-        headers: headers,
-        body: jsonEncode({'steps': steps}),
-      ).timeout(const Duration(seconds: 120));
+      final response = await http
+          .post(uri, headers: headers, body: jsonEncode({'steps': steps}))
+          .timeout(const Duration(seconds: 120));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -218,9 +215,9 @@ class UploadService extends ChangeNotifier {
     try {
       final headers = await _authService.getAuthHeaders();
       final uri = Uri.parse('$serverUrl/v1/jobs/$jobId/versions');
-      final response = await http.get(uri, headers: headers).timeout(
-        const Duration(seconds: 10),
-      );
+      final response = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body) as List<dynamic>;

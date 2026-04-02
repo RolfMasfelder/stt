@@ -14,9 +14,7 @@ class HistoryScreen extends StatelessWidget {
     final history = context.watch<RecordingHistoryService>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Aufnahmen'),
-      ),
+      appBar: AppBar(title: const Text('Aufnahmen')),
       body: history.entries.isEmpty
           ? const Center(
               child: Text(
@@ -57,10 +55,10 @@ class _EntryTile extends StatelessWidget {
       trailing: _buildTrailing(context),
       onTap: entry.status == 'completed' && entry.jobId != null
           ? () => Navigator.pushNamed(
-                context,
-                '/job/detail',
-                arguments: JobDetailArgs(jobId: entry.jobId!),
-              )
+              context,
+              '/job/detail',
+              arguments: JobDetailArgs(jobId: entry.jobId!),
+            )
           : null,
     );
   }
@@ -86,10 +84,7 @@ class _EntryTile extends StatelessWidget {
             }
           },
           itemBuilder: (_) => [
-            const PopupMenuItem(
-              value: 'delete',
-              child: Text('Löschen'),
-            ),
+            const PopupMenuItem(value: 'delete', child: Text('Löschen')),
           ],
         );
     }
