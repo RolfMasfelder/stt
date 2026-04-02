@@ -85,7 +85,7 @@ jobs:
         run: cat bandit-report.txt
 
       - name: Fail on high-severity issues
-        run: bandit -r src/ -lll --severity-level high
+        run: bandit -r src/ --severity-level high
 
       - name: Upload bandit report
         if: always()
