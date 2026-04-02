@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -121,7 +122,7 @@ class UploadService extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('Job polling error: $e');
+      log('Job polling error: $e', name: 'UploadService');
     }
   }
 
@@ -132,7 +133,7 @@ class UploadService extends ChangeNotifier {
       await file.writeAsString(content);
       return outputPath;
     } catch (e) {
-      debugPrint('Save failed: $e');
+      log('Save failed: $e', name: 'UploadService');
       return null;
     }
   }
@@ -154,7 +155,7 @@ class UploadService extends ChangeNotifier {
         return JobResult.fromJson(body);
       }
     } catch (e) {
-      debugPrint('Fetch job error: $e');
+      log('Fetch job error: $e', name: 'UploadService');
     }
     return null;
   }
@@ -178,7 +179,7 @@ class UploadService extends ChangeNotifier {
         return JobResult.fromJson(body);
       }
     } catch (e) {
-      debugPrint('Correct job error: $e');
+      log('Correct job error: $e', name: 'UploadService');
     }
     return null;
   }
@@ -202,7 +203,7 @@ class UploadService extends ChangeNotifier {
         return JobResult.fromJson(body);
       }
     } catch (e) {
-      debugPrint('Reprocess job error: $e');
+      log('Reprocess job error: $e', name: 'UploadService');
     }
     return null;
   }
@@ -224,7 +225,7 @@ class UploadService extends ChangeNotifier {
         return ResultVersion.fromJsonList(body);
       }
     } catch (e) {
-      debugPrint('Fetch versions error: $e');
+      log('Fetch versions error: $e', name: 'UploadService');
     }
     return [];
   }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_appauth/flutter_appauth.dart';
@@ -108,7 +109,7 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('OAuth2 login failed: $e');
+      log('OAuth2 login failed: $e', name: 'AuthService');
       return false;
     }
   }
@@ -155,7 +156,7 @@ class AuthService extends ChangeNotifier {
       _scheduleRefresh();
       notifyListeners();
     } catch (e) {
-      debugPrint('Token refresh failed: $e');
+      log('Token refresh failed: $e', name: 'AuthService');
       await logout();
     }
   }
