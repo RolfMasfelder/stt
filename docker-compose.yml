@@ -12,6 +12,7 @@ services:
       - stt-network
     profiles:
       - production
+      - test
 
   # Caddy reverse-proxy with automatic TLS
   caddy:
@@ -37,11 +38,11 @@ services:
   stt-server:
     build:
       context: .
-      secrets:
-        - hf_token
+      target: production
     container_name: stt-server
     depends_on:
       - db
+      - stt-ml
     env_file:
       - .env
     ports:
@@ -50,13 +51,9 @@ services:
       - .:/app:z
     environment:
       - PYTHONPATH=/app
-      - LM_STUDIO_HOST=${LM_STUDIO_HOST}
-      - LM_STUDIO_PORT=${LM_STUDIO_PORT}
-      - LM_STUDIO_MODEL=${LM_STUDIO_MODEL}
-      - WHISPER_MODEL=${WHISPER_MODEL}
-      - WHISPER_DEVICE=${WHISPER_DEVICE}
-      - WHISPER_API_URL=${WHISPER_API_URL}
-      - HF_STT_TOKEN=${HF_STT_TOKEN}
+      - LLM_BASE_URL=${LLM_BASE_URL}
+      - LLM_MODEL=${LLM_MODEL}
+      - ML_SERVICE_URL=http://stt-ml:8091
       - LOG_LEVEL=${LOG_LEVEL}
       - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
       - DJANGO_SETTINGS_MODULE=stt.settings
@@ -71,11 +68,11 @@ services:
   stt-worker:
     build:
       context: .
-      secrets:
-        - hf_token
+      target: production
     container_name: stt-worker
     depends_on:
       - db
+      - stt-ml
     env_file:
       - .env
     volumes:
@@ -83,13 +80,9 @@ services:
     environment:
       - PYTHONPATH=/app
       - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
-      - LM_STUDIO_HOST=${LM_STUDIO_HOST}
-      - LM_STUDIO_PORT=${LM_STUDIO_PORT}
-      - LM_STUDIO_MODEL=${LM_STUDIO_MODEL}
-      - WHISPER_MODEL=${WHISPER_MODEL}
-      - WHISPER_DEVICE=${WHISPER_DEVICE}
-      - WHISPER_API_URL=${WHISPER_API_URL}
-      - HF_STT_TOKEN=${HF_STT_TOKEN}
+      - LLM_BASE_URL=${LLM_BASE_URL}
+      - LLM_MODEL=${LLM_MODEL}
+      - ML_SERVICE_URL=http://stt-ml:8091
       - LOG_LEVEL=${LOG_LEVEL}
       - DJANGO_SETTINGS_MODULE=stt.settings
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-insecure-dev-key-change-in-production}
@@ -99,12 +92,32 @@ services:
       - production
     command: ["python", "manage.py", "qcluster"]
 
+  # Test runner service (dev stage with pytest, ruff, bandit)
+  stt-test:
+    build:
+      context: .
+      target: dev
+    container_name: stt-test
+    depends_on:
+      - db
+    volumes:
+      - .:/app:z
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
+      - DJANGO_SETTINGS_MODULE=stt.settings
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-test-secret-not-for-production}
+    networks:
+      - stt-network
+    profiles:
+      - test
+    command: ["python", "-m", "pytest", "tests/", "-x", "-q"]
+
   # CLI service for one-off commands via docker-compose exec/run
   stt-cli:
     build:
       context: .
-      secrets:
-        - hf_token
+      target: dev
     container_name: stt-cli
     env_file:
       - .env
@@ -120,6 +133,45 @@ services:
     profiles:
       - cli
     command: ["python", "-m", "stt"]
+
+  # ML microservice: transcription (faster-whisper) + diarization (pyannote)
+  stt-ml:
+    build:
+      context: ./services/ml
+      secrets:
+        - hf_token
+    container_name: stt-ml
+    ports:
+      - "8091:8091"
+    environment:
+      - WHISPER_MODEL=${WHISPER_MODEL:-small}
+      - WHISPER_DEVICE=${WHISPER_DEVICE:-cpu}
+      - DIARIZE_MODEL=${DIARIZE_MODEL:-pyannote/speaker-diarization-3.1}
+      - DIARIZE_DEVICE=${DIARIZE_DEVICE:-cpu}
+      - HF_STT_TOKEN=${HF_STT_TOKEN}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    networks:
+      - stt-network
+    profiles:
+      - production
+      - test
+    restart: unless-stopped
+
+  # Ollama LLM inference server
+  # For development: runs on remote machine (192.168.178.80)
+  # For production: runs alongside the STT stack
+  ollama:
+    image: ollama/ollama:latest
+    container_name: stt-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - stt-network
+    profiles:
+      - ollama
+    restart: unless-stopped
 
   # Remote Whisper transcription server (faster-whisper-server)
   # Run on a more powerful machine for faster transcription
@@ -159,6 +211,7 @@ volumes:
   pgdata:
   caddy_data:
   caddy_config:
+  ollama_data:
   flutter_pub_cache:
   flutter_gradle:
 

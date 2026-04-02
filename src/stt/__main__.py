@@ -213,7 +213,7 @@ def _apply_cli_overrides(config, args):
     if args.timeout is not None:
         config = replace(
             config,
-            lm_studio=replace(config.lm_studio, timeout=args.timeout),
+            llm=replace(config.llm, timeout=args.timeout),
         )
     if args.whisper_timeout is not None:
         config = replace(
@@ -245,9 +245,9 @@ def _transcribe_local(args, config) -> tuple[str, str | None] | int:
         return 1
 
     diarized_text: str | None = None
-    if args.diarize and config.diarize.hf_token:
+    if args.diarize:
         try:
-            segments = diarize_audio(audio_path, config.whisper, config.diarize)
+            segments = diarize_audio(audio_path, config.ml_service)
             diarized_text = format_diarized_segments(segments)
             transcript = " ".join(seg.text for seg in segments)
         except FileNotFoundError as e:
@@ -258,7 +258,7 @@ def _transcribe_local(args, config) -> tuple[str, str | None] | int:
             return 1
     else:
         try:
-            transcript = transcribe_audio(audio_path, config.whisper)
+            transcript = transcribe_audio(audio_path, config.ml_service)
         except FileNotFoundError as e:
             logger.error("%s", e)
             return 1
@@ -275,7 +275,7 @@ def _run_postprocessing(
     """Handle --summarize, --process, and --diarize post-processing. Returns exit code."""
     if args.summarize:
         try:
-            summary = summarize_text(transcript, config.lm_studio)
+            summary = summarize_text(transcript, config.llm)
             print("\n--- Zusammenfassung ---")
             print(summary)
         except SummarizationError as e:
@@ -286,7 +286,7 @@ def _run_postprocessing(
         try:
             result = process_transcript(
                 transcript,
-                config.lm_studio,
+                config.llm,
                 diarize=args.diarize,
                 diarized_text=diarized_text,
             )
@@ -329,7 +329,7 @@ def _run_postprocessing(
 
     elif args.diarize:
         try:
-            diarized = diarized_text or diarize_text(transcript, config.lm_studio)
+            diarized = diarized_text or diarize_text(transcript, config.llm)
             print("\n--- Sprecherzuordnung ---")
             print(diarized)
 

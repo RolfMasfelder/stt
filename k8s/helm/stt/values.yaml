@@ -11,9 +11,14 @@ image:
 worker:
   replicaCount: 1
 
-# -- ML Worker (GPU/CPU-intensive: Whisper, pyannote, LLM) --
-mlWorker:
+# -- ML Service (FastAPI microservice: Whisper, pyannote) --
+mlService:
   replicaCount: 1
+  image:
+    repository: stt-ml
+    tag: latest
+    pullPolicy: IfNotPresent
+  port: 8091
   # For GPU nodes, set nodeSelector and tolerations:
   # nodeSelector:
   #   nvidia.com/gpu.present: "true"
@@ -23,6 +28,12 @@ mlWorker:
   #     effect: NoSchedule
   nodeSelector: {}
   tolerations: []
+  whisperModel: small
+  whisperDevice: cpu
+  diarizeModel: pyannote/speaker-diarization-3.1
+  diarizeDevice: cpu
+
+hfToken: ""  # HuggingFace token for pyannote models
 
 # -- PostgreSQL (uses the existing k8s/base deployment) --
 database:
@@ -57,18 +68,10 @@ gunicorn:
   workers: 2
   timeout: 600
 
-# -- ML / Whisper config --
-whisper:
-  model: small
-  device: cpu
-  apiUrl: ""
-
-lmStudio:
-  host: ""
-  port: ""
+# -- LLM config --
+llm:
+  baseUrl: ""
   model: ""
-
-hfToken: ""  # HuggingFace token for pyannote models
 
 # -- Service --
 service:
@@ -99,7 +102,7 @@ resources:
     limits:
       memory: 512Mi
       cpu: 500m
-  mlWorker:
+  mlService:
     requests:
       memory: 2Gi
       cpu: "1"
@@ -121,7 +124,7 @@ autoscaling:
     minReplicas: 1
     maxReplicas: 3
     targetCPUUtilizationPercentage: 60
-  mlWorker:
+  mlService:
     enabled: false
     minReplicas: 1
     maxReplicas: 3

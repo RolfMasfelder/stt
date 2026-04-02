@@ -6,7 +6,8 @@ from unittest.mock import patch
 from stt.config import (
     AppConfig,
     DiarizeConfig,
-    LMStudioConfig,
+    LLMConfig,
+    MLServiceConfig,
     OAuth2ClientConfig,
     WhisperConfig,
     load_config,
@@ -33,22 +34,21 @@ class TestWhisperConfig:
         assert config.api_url == "http://192.168.178.80:8000"
 
 
-class TestLMStudioConfig:
-    """Tests for LMStudioConfig."""
+class TestLLMConfig:
+    """Tests for LLMConfig."""
 
     def test_defaults(self) -> None:
-        config = LMStudioConfig()
-        assert config.host == "localhost"
-        assert config.port == 1234
-        assert config.model == "mistral-7b-instruct"
+        config = LLMConfig()
+        assert config.base_url == "http://localhost:11434"
+        assert config.model == "mistral"
         assert config.timeout == 120
 
     def test_url_property(self) -> None:
-        config = LMStudioConfig(host="myhost", port=5678)
-        assert config.url == "http://myhost:5678/v1/chat/completions"
+        config = LLMConfig(base_url="http://myhost:11434")
+        assert config.url == "http://myhost:11434/v1/chat/completions"
 
     def test_custom_timeout(self) -> None:
-        config = LMStudioConfig(timeout=600)
+        config = LLMConfig(timeout=600)
         assert config.timeout == 600
 
 
@@ -67,6 +67,20 @@ class TestDiarizeConfig:
         assert config.device == "cuda"
 
 
+class TestMLServiceConfig:
+    """Tests for MLServiceConfig."""
+
+    def test_defaults(self) -> None:
+        config = MLServiceConfig()
+        assert config.base_url == "http://stt-ml:8091"
+        assert config.timeout == 600
+
+    def test_custom_values(self) -> None:
+        config = MLServiceConfig(base_url="http://localhost:8091", timeout=300)
+        assert config.base_url == "http://localhost:8091"
+        assert config.timeout == 300
+
+
 class TestLoadConfig:
     """Tests for load_config."""
 
@@ -77,13 +91,14 @@ class TestLoadConfig:
             "WHISPER_DEVICE": "cuda",
             "WHISPER_API_URL": "http://192.168.178.80:8000",
             "WHISPER_TIMEOUT": "1800",
-            "LM_STUDIO_HOST": "testhost",
-            "LM_STUDIO_PORT": "9999",
-            "LM_STUDIO_MODEL": "test-model",
-            "LM_STUDIO_TIMEOUT": "300",
+            "LLM_BASE_URL": "http://testhost:11434",
+            "LLM_MODEL": "test-model",
+            "LLM_TIMEOUT": "300",
             "HF_STT_TOKEN": "hf_test123",
             "DIARIZE_MODEL": "pyannote/speaker-diarization-3.0",
             "DIARIZE_DEVICE": "cuda",
+            "ML_SERVICE_URL": "http://ml:9000",
+            "ML_SERVICE_TIMEOUT": "1200",
             "LOG_LEVEL": "DEBUG",
             "AUDIO_INPUT_DIR": "/tmp/audio",
             "OUTPUT_DIR": "/tmp/output",
@@ -101,13 +116,14 @@ class TestLoadConfig:
         assert config.whisper.device == "cuda"
         assert config.whisper.api_url == "http://192.168.178.80:8000"
         assert config.whisper.timeout == 1800
-        assert config.lm_studio.host == "testhost"
-        assert config.lm_studio.port == 9999
-        assert config.lm_studio.model == "test-model"
-        assert config.lm_studio.timeout == 300
+        assert config.llm.base_url == "http://testhost:11434"
+        assert config.llm.model == "test-model"
+        assert config.llm.timeout == 300
         assert config.diarize.hf_token == "hf_test123"
         assert config.diarize.model_name == "pyannote/speaker-diarization-3.0"
         assert config.diarize.device == "cuda"
+        assert config.ml_service.base_url == "http://ml:9000"
+        assert config.ml_service.timeout == 1200
         assert config.log_level == "DEBUG"
         assert config.stt_server_url == "http://192.168.178.80:8001"
         assert config.oauth2.client_id == "my-client"
@@ -121,10 +137,12 @@ class TestLoadConfig:
         assert config.whisper.model_name == "small"
         assert config.whisper.api_url is None
         assert config.whisper.timeout == 600
-        assert config.lm_studio.host == "localhost"
-        assert config.lm_studio.timeout == 120
+        assert config.llm.base_url == "http://localhost:11434"
+        assert config.llm.timeout == 120
         assert config.diarize.hf_token is None
         assert config.diarize.model_name == "pyannote/speaker-diarization-3.1"
+        assert config.ml_service.base_url == "http://stt-ml:8091"
+        assert config.ml_service.timeout == 600
         assert config.log_level == "INFO"
         assert config.stt_server_url is None
         assert config.oauth2.client_id == ""

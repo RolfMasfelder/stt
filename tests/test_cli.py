@@ -119,7 +119,7 @@ class TestCLI:
         assert result == 0
         mock_process.assert_called_once_with(
             "Transkript",
-            config.lm_studio,
+            config.llm,
             diarize=False,
             diarized_text=None,
         )
@@ -169,13 +169,13 @@ class TestCLI:
         tmp_path: MagicMock,
     ) -> None:
         """Should override LM Studio timeout from CLI --timeout."""
-        from stt.config import AppConfig, LMStudioConfig, WhisperConfig
+        from stt.config import AppConfig, LLMConfig, WhisperConfig
 
         audio_file = tmp_path / "test.wav"
         audio_file.write_bytes(b"fake")
 
         config = AppConfig(
-            lm_studio=LMStudioConfig(timeout=120),
+            llm=LLMConfig(timeout=120),
             whisper=WhisperConfig(),
         )
         mock_config.return_value = config
@@ -264,7 +264,7 @@ class TestCLI:
         assert result == 0
         mock_process.assert_called_once_with(
             "Meeting transcript",
-            config.lm_studio,
+            config.llm,
             diarize=False,
             diarized_text=None,
         )
@@ -290,7 +290,7 @@ class TestCLI:
 
         result = main(["--skip", "--text-file", str(text_file), "--diarize"])
         assert result == 0
-        mock_diarize.assert_called_once_with("Speaker text here", config.lm_studio)
+        mock_diarize.assert_called_once_with("Speaker text here", config.llm)
 
 
 class TestCLIServerUrl:

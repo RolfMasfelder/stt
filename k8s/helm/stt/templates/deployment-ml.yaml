@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "stt.fullname" . }}-ml
+  labels:
+    {{- include "stt.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ml-service
+spec:
+  replicas: {{ .Values.mlService.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "stt.mlServiceLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "stt.mlServiceLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.mlService.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.mlService.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: ml-service
+          image: "{{ .Values.mlService.image.repository }}:{{ .Values.mlService.image.tag }}"
+          imagePullPolicy: {{ .Values.mlService.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.mlService.port }}
+              protocol: TCP
+          env:
+            - name: WHISPER_MODEL
+              value: {{ .Values.mlService.whisperModel | quote }}
+            - name: WHISPER_DEVICE
+              value: {{ .Values.mlService.whisperDevice | quote }}
+            - name: DIARIZE_MODEL
+              value: {{ .Values.mlService.diarizeModel | quote }}
+            - name: DIARIZE_DEVICE
+              value: {{ .Values.mlService.diarizeDevice | quote }}
+            {{- if .Values.hfToken }}
+            - name: HF_STT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "stt.fullname" . }}-ml-config
+                  key: HF_STT_TOKEN
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.resources.mlService | nindent 12 }}

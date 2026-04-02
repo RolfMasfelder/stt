@@ -1,46 +1,44 @@
-FROM python:3.13-slim-bookworm
+# ---- Base stage: shared system dependencies and Python packages ----
+FROM python:3.13-slim-bookworm AS base
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies for audio processing
+# Install system dependencies for audio processing (ffmpeg for format conversion)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
-    libsndfile1 \
-    portaudio19-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install PyTorch CPU first, then remaining dependencies
-# (prevents pyannote.audio from pulling CUDA torch variants)
-RUN pip install --no-cache-dir \
-    --extra-index-url https://download.pytorch.org/whl/cpu \
-    torch==2.11.0+cpu torchaudio==2.11.0+cpu torchcodec==0.11.0 && \
-    pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
 
-# Install the stt package
-RUN pip install --no-cache-dir -e .
+# ---- Production stage: minimal image for deployment ----
+FROM base AS production
 
-# Pre-download pyannote model if HF token is available at build time
-# Usage: DOCKER_BUILDKIT=1 docker build --secret id=hf_token,env=HF_STT_TOKEN .
-RUN --mount=type=secret,id=hf_token \
-    HF_STT_TOKEN=$(cat /run/secrets/hf_token 2>/dev/null || true) && \
-    if [ -n "$HF_STT_TOKEN" ]; then \
-    python -c "from pyannote.audio import Pipeline; \
-    Pipeline.from_pretrained('pyannote/speaker-diarization-3.1', \
-    token='$HF_STT_TOKEN')" \
-    && echo "pyannote model cached"; \
-    fi
+# Install package without dev dependencies
+RUN pip install --no-cache-dir -e .
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash stt && \
     chown -R stt:stt /app /home/stt
 USER stt
 
-# Default command: run Django via gunicorn
 CMD ["python", "-m", "gunicorn", "stt.wsgi:application", "--bind", "0.0.0.0:8090", "--workers", "2", "--timeout", "600"]
+
+# ---- Dev/Test stage: includes pytest, ruff, bandit etc. ----
+FROM base AS dev
+
+# Install package with dev/test dependencies
+RUN pip install --no-cache-dir -e ".[dev]"
+
+# Create non-root user for security
+RUN useradd --create-home --shell /bin/bash stt && \
+    chown -R stt:stt /app /home/stt
+USER stt
+
+CMD ["python", "-m", "pytest", "tests/", "-x", "-q"]

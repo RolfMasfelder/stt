@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import requests
 
-from stt.config import LMStudioConfig
+from stt.config import LLMConfig
 from stt.prompts import (
     DEFAULT_SYSTEM_PROMPT,
     DIARIZE_SYSTEM_PROMPT,
@@ -27,19 +27,19 @@ class ProcessResult:
 
 
 class SummarizationError(Exception):
-    """Raised when summarization via LM Studio fails."""
+    """Raised when summarization via LLM fails."""
 
 
 def summarize_text(
     text: str,
-    config: LMStudioConfig | None = None,
+    config: LLMConfig | None = None,
     system_prompt: str = DEFAULT_SYSTEM_PROMPT,
 ) -> str:
-    """Summarize text using an LM Studio model.
+    """Summarize text using an LLM.
 
     Args:
         text: The text to summarize.
-        config: LM Studio configuration. Uses defaults if None.
+        config: LLM configuration. Uses defaults if None.
         system_prompt: System prompt for the LLM.
 
     Returns:
@@ -50,7 +50,7 @@ def summarize_text(
         SummarizationError: If the API request fails.
     """
     if config is None:
-        config = LMStudioConfig()
+        config = LLMConfig()
 
     if not text.strip():
         raise ValueError("Input text must not be empty")
@@ -75,16 +75,14 @@ def summarize_text(
         )
         response.raise_for_status()
     except requests.ConnectionError as e:
-        raise SummarizationError(
-            f"Cannot connect to LM Studio at {config.url}: {e}"
-        ) from e
+        raise SummarizationError(f"Cannot connect to LLM at {config.url}: {e}") from e
     except requests.Timeout as e:
         raise SummarizationError(
-            f"Request to LM Studio timed out after {config.timeout}s: {e}"
+            f"Request to LLM timed out after {config.timeout}s: {e}"
         ) from e
     except requests.HTTPError as e:
         raise SummarizationError(
-            f"LM Studio returned HTTP {response.status_code}: {response.text}"
+            f"LLM returned HTTP {response.status_code}: {response.text}"
         ) from e
 
     try:
@@ -93,9 +91,7 @@ def summarize_text(
         # Strip model thinking blocks (e.g. <think>...</think>)
         summary = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
     except (KeyError, IndexError, ValueError) as e:
-        raise SummarizationError(
-            f"Unexpected response format from LM Studio: {e}"
-        ) from e
+        raise SummarizationError(f"Unexpected response format from LLM: {e}") from e
 
     logger.info("Summarization complete: %d characters", len(summary))
     return summary
@@ -103,13 +99,13 @@ def summarize_text(
 
 def structure_text(
     text: str,
-    config: LMStudioConfig | None = None,
+    config: LLMConfig | None = None,
 ) -> str:
     """Structure a transcript into thematic sections.
 
     Args:
         text: The raw transcript text to structure.
-        config: LM Studio configuration. Uses defaults if None.
+        config: LLM configuration. Uses defaults if None.
 
     Returns:
         The structured text with thematic sections as Markdown.
@@ -124,7 +120,7 @@ def structure_text(
 
 def diarize_text(
     text: str,
-    config: LMStudioConfig | None = None,
+    config: LLMConfig | None = None,
 ) -> str:
     """Add speaker labels to a transcript using LLM heuristics.
 
@@ -133,7 +129,7 @@ def diarize_text(
 
     Args:
         text: The raw transcript text.
-        config: LM Studio configuration. Uses defaults if None.
+        config: LLM configuration. Uses defaults if None.
 
     Returns:
         The transcript with speaker labels added.
@@ -148,7 +144,7 @@ def diarize_text(
 
 def process_transcript(
     text: str,
-    config: LMStudioConfig | None = None,
+    config: LLMConfig | None = None,
     diarize: bool = False,
     diarized_text: str | None = None,
 ) -> ProcessResult:
@@ -161,7 +157,7 @@ def process_transcript(
 
     Args:
         text: The raw transcript text.
-        config: LM Studio configuration. Uses defaults if None.
+        config: LLM configuration. Uses defaults if None.
         diarize: If True, run speaker diarization before structuring.
         diarized_text: Pre-computed diarized text (e.g. from audio-based
             diarization). When set, skips LLM-based diarization.

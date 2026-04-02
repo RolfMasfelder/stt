@@ -96,8 +96,8 @@
 
 **Konsequenzen:**
 
-- Muss manuell gestartet werden (kein Docker-Management)
-- `lmstudio`-Service in docker-compose.yml ist nur Platzhalter
+- Ollama-Service als Docker-Container verfügbar (Profil `ollama`)
+- Kann auf Remote-Rechner laufen (Entwicklung: 192.168.178.80)
 
 ---
 

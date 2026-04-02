@@ -185,7 +185,7 @@
 | **Multi-Tenant** | Nein | Nein | Ja |
 | **Internet** | Nein | Ja | Ja |
 | **TLS** | Self-Signed / internes CA | Let's Encrypt | Ingress + Let's Encrypt |
-| **LLM** | Ollama / LM Studio | vLLM / Ollama | vLLM (GPU-Pool) |
+| **LLM** | Ollama | Ollama | Ollama (vLLM optional) |
 | **Datenbank** | PostgreSQL | PostgreSQL | PostgreSQL |
 | **Storage** | Lokales Dateisystem | S3 (EU) / Lokal | S3 (Bucket-per-Tenant) |
 
@@ -193,21 +193,21 @@
 
 ## 3. Technologievorschläge
 
-| Komponente | Empfehlung | Alternativen | ADR |
-|------------|-----------|-------------|-----|
-| **Web-Framework** | Django 5.x + Django REST Framework | FastAPI (bisherig) | ADR-15 |
-| **Datenbank** | PostgreSQL (alle Szenarien) | — | ADR-15, RB-12 |
-| **Task-Queue** | django-q2 (DB als Broker) | Celery + Redis | ADR-15 |
-| **Mobile App** | Flutter (Dart) | Kotlin Multiplatform (späterer Wechsel möglich dank API-Entkopplung) | ADR-10 |
-| **Identity Provider** | django-oauth-toolkit (eingebaut) + optional externer IdP | Keycloak, Zitadel | ADR-07 |
-| **Reverse-Proxy** | Caddy | Traefik, nginx | ADR-14 |
-| **TLS-Zertifikate** | Let's Encrypt (via Caddy) | Manuell | ADR-08 |
-| **Object Storage** | IONOS S3 | OVH Object Storage, MinIO (Self-Hosted) | ADR-09, ADR-11 |
-| **Verschlüsselung at Rest** | LUKS + AES-256-GCM (App-Level) | Nur LUKS | ADR-08 |
-| **Hosting** | IONOS Cloud (DE) | Hetzner, Netcup, OVH | ADR-09 |
-| **Container-Orchestrierung** | Docker Compose (Szenarien 1+2), Kubernetes (Szenario 3) | — | ADR-09 |
-| **LLM (Produktion)** | vLLM oder Ollama | LM Studio (nur InHouse/Dev) | — |
-| **API-Dokumentation** | drf-spectacular (OpenAPI 3.0) | — | ADR-15 |
+| Komponente | Empfehlung | Alternativen | ADR | Status |
+|------------|-----------|-------------|-----|--------|
+| **Web-Framework** | Django 5.x + Django REST Framework | FastAPI (bisherig) | ADR-15 | ✅ 2a.0 |
+| **Datenbank** | PostgreSQL (alle Szenarien) | — | ADR-15, RB-12 | ✅ 2a.0 |
+| **Task-Queue** | django-q2 (DB als Broker) | Celery + Redis | ADR-15 | ✅ 2a.3 |
+| **Mobile App** | Flutter (Dart) | Kotlin Multiplatform (späterer Wechsel möglich dank API-Entkopplung) | ADR-10 | ✅ 2c |
+| **Identity Provider** | django-oauth-toolkit (eingebaut) + optional externer IdP | Keycloak, Zitadel | ADR-07 | ✅ 2a.6 |
+| **Reverse-Proxy** | Caddy | Traefik, nginx | ADR-14 | ✅ 2a.4 |
+| **TLS-Zertifikate** | Let's Encrypt (via Caddy) | Manuell | ADR-08 | ✅ 2a.5 |
+| **Object Storage** | IONOS S3 | OVH Object Storage, MinIO (Self-Hosted) | ADR-09, ADR-11 | ✅ S3-Backend (2b.3), MinIO dev (2f.0) — IONOS Prod offen (2e.6) |
+| **Verschlüsselung at Rest** | LUKS + AES-256-GCM (App-Level) | Nur LUKS | ADR-08 | ✅ 2b.4 |
+| **Hosting** | IONOS Cloud (DE) | Hetzner, Netcup, OVH | ADR-09 | ⬚ offen (2e.6) |
+| **Container-Orchestrierung** | Docker Compose (Szenarien 1+2), Kubernetes (Szenario 3) | — | ADR-09 | ✅ Docker Compose + Helm (2f.3) |
+| **LLM (Produktion)** | Ollama (alle Szenarien), vLLM (SaaS optional) | LM Studio (nur Entwicklung/Prompt-Tuning) | — | ✅ Ollama |
+| **API-Dokumentation** | drf-spectacular (OpenAPI 3.0) | — | ADR-15 | ✅ 2b.6 |
 
 ---
 
@@ -397,7 +397,7 @@ Die folgenden Punkte müssen vor oder während der Umsetzung geklärt werden:
 - [ ] **Update-Strategie:** Rolling Updates, Blue-Green Deployment?
 - [x] **Skalierung:** ~~Reicht eine einzelne Instanz oder Horizontal Scaling?~~ → Szenario-abhängig: InHouse/Dedicated = vertikal, SaaS = horizontal mit K8s HPA
 - [ ] **InHouse Air-Gap-Updates:** Wie werden Offline-Installationen aktualisiert?
-- [ ] **LM Studio Ersatz für Produktion:** vLLM, Ollama, oder llama.cpp Server für headless Betrieb?
+- [x] ~~**LM Studio Ersatz für Produktion:** vLLM, Ollama, oder llama.cpp Server für headless Betrieb?~~ → Ollama (alle Szenarien). Automatische GPU-Erkennung, Docker-native, OpenAI-kompatible API. LM Studio bleibt für Entwicklung/Prompt-Tuning.
 
 ### SaaS-Kundenverwaltung (2f.11)
 
@@ -424,7 +424,7 @@ Die folgenden Punkte müssen vor oder während der Umsetzung geklärt werden:
 | Risiko | Wahrscheinlichkeit | Auswirkung | Mitigation |
 |--------|-------------------|------------|------------|
 | GPU-Hosting in EU teuer | Hoch | Hohe Betriebskosten | Hetzner GPU-Server, oder CPU-only mit längerer Verarbeitungszeit |
-| LM Studio nicht server-tauglich | Mittel | Architekturänderung nötig | Alternative: vLLM, Ollama, llama.cpp Server |
+| ~~LM Studio nicht server-tauglich~~ | ~~Mittel~~ | ~~Architekturänderung nötig~~ | ✅ Entschieden: Ollama für Produktion, LM Studio nur für Entwicklung |
 | DSGVO-Risiko biometrische Daten | Mittel | DSFA erforderlich, ggf. Einschränkungen | Juristische Bewertung einholen |
 | Einzelentwickler-Engpass | Hoch | Langsame Umsetzung | Phasenweise Umsetzung, MVP-Fokus |
 | iOS-Test nur über Simulator/CI | Hoch | Plattformspezifische Bugs erst spät entdeckt | Flutter-Cross-Platform reduziert Risiko, CI mit macOS-Runner, später Testgerät beschaffen |

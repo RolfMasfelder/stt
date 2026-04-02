@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from stt.api.models import AuditAction, AuditLog, Job, JobStatus, JobType
 from stt.api.tasks import cleanup_delivered_audio, run_transcribe
-from stt.config import WhisperConfig
+from stt.config import MLServiceConfig
 
 
 @pytest.fixture
@@ -21,7 +21,7 @@ def client(auth_client):
     """Authenticated client with mocked ML config."""
     mock_config = MagicMock()
     mock_config.log_level = "WARNING"
-    mock_config.whisper = WhisperConfig()
+    mock_config.ml_service = MLServiceConfig()
 
     with patch("stt.api.views._get_config", return_value=mock_config):
         yield auth_client
@@ -108,7 +108,7 @@ class TestAudioPersistentStorage:
     def test_task_retrieves_from_storage_backend(
         self, mock_get_backend, mock_transcribe, mock_config
     ) -> None:
-        mock_config.return_value = MagicMock(whisper=WhisperConfig())
+        mock_config.return_value = MagicMock(ml_service=MLServiceConfig())
         mock_transcribe.return_value = "Hello World"
 
         mock_backend = MagicMock()
@@ -133,7 +133,7 @@ class TestAudioPersistentStorage:
     def test_task_fails_if_audio_not_in_storage(
         self, mock_get_backend, mock_config
     ) -> None:
-        mock_config.return_value = MagicMock(whisper=WhisperConfig())
+        mock_config.return_value = MagicMock(ml_service=MLServiceConfig())
         mock_backend = MagicMock()
         mock_backend.retrieve.side_effect = RuntimeError("Not found")
         mock_get_backend.return_value = mock_backend
@@ -155,7 +155,7 @@ class TestAudioPersistentStorage:
         self, mock_transcribe, mock_config
     ) -> None:
         """Jobs without audio_storage_path fall back to original_filename."""
-        mock_config.return_value = MagicMock(whisper=WhisperConfig())
+        mock_config.return_value = MagicMock(ml_service=MLServiceConfig())
         mock_transcribe.return_value = "Legacy text"
 
         tmp = Path("/tmp/test_legacy_audio.wav")

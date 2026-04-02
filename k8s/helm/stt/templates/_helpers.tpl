@@ -27,12 +27,12 @@ app.kubernetes.io/component: worker
 {{- end -}}
 
 {{/*
-Selector labels for ML worker
+Selector labels for ML service
 */}}
-{{- define "stt.mlWorkerLabels" -}}
+{{- define "stt.mlServiceLabels" -}}
 app.kubernetes.io/name: stt
 app.kubernetes.io/instance: {{ .Release.Name }}
-app.kubernetes.io/component: ml-worker
+app.kubernetes.io/component: ml-service
 {{- end -}}
 
 {{/*

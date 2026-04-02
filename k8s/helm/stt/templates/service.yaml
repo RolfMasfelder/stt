@@ -13,3 +13,20 @@ spec:
       port: {{ .Values.service.port }}
       targetPort: http
       protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "stt.fullname" . }}-ml
+  labels:
+    {{- include "stt.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ml-service
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "stt.mlServiceLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.mlService.port }}
+      targetPort: http
+      protocol: TCP

@@ -9,7 +9,7 @@ import pytest
 
 from stt.api.models import AuditAction, AuditLog, Job, JobStatus, JobType
 from stt.api.tasks import run_diarize, run_process, run_transcribe
-from stt.config import DiarizeConfig, LMStudioConfig, WhisperConfig
+from stt.config import LLMConfig, MLServiceConfig
 from stt.summarize import ProcessResult
 
 
@@ -18,9 +18,8 @@ def client(auth_client):
     """Create an authenticated DRF test client with mocked ML config."""
     mock_config = MagicMock()
     mock_config.log_level = "WARNING"
-    mock_config.whisper = WhisperConfig()
-    mock_config.diarize = DiarizeConfig(hf_token="hf_test")
-    mock_config.lm_studio = LMStudioConfig()
+    mock_config.ml_service = MLServiceConfig()
+    mock_config.llm = LLMConfig()
 
     with patch("stt.api.views._get_config", return_value=mock_config):
         yield auth_client
@@ -172,7 +171,7 @@ class TestRunTranscribeTask:
     @patch("stt.api.tasks._get_config")
     @patch("stt.api.tasks.transcribe_audio")
     def test_transcribe_success(self, mock_transcribe, mock_config) -> None:
-        mock_config.return_value = MagicMock(whisper=WhisperConfig())
+        mock_config.return_value = MagicMock(ml_service=MLServiceConfig())
         mock_transcribe.return_value = "Hello World"
 
         tmp = Path("/tmp/test_task.wav")
@@ -196,7 +195,7 @@ class TestRunTranscribeTask:
     @patch("stt.api.tasks._get_config")
     @patch("stt.api.tasks.transcribe_audio")
     def test_transcribe_failure(self, mock_transcribe, mock_config) -> None:
-        mock_config.return_value = MagicMock(whisper=WhisperConfig())
+        mock_config.return_value = MagicMock(ml_service=MLServiceConfig())
         mock_transcribe.side_effect = RuntimeError("Model not found")
 
         tmp = Path("/tmp/test_task_fail.wav")
@@ -247,8 +246,7 @@ class TestRunDiarizeTask:
         mock_diarize.return_value = [segment]
         mock_format.return_value = "[Sprecher 1] Hallo"
         mock_config.return_value = MagicMock(
-            whisper=WhisperConfig(),
-            diarize=DiarizeConfig(hf_token="hf_test"),
+            ml_service=MLServiceConfig(),
         )
 
         tmp = Path("/tmp/test_diarize.wav")
@@ -280,9 +278,8 @@ class TestRunProcessTask:
         self, mock_transcribe, mock_process, mock_config
     ) -> None:
         mock_config.return_value = MagicMock(
-            whisper=WhisperConfig(),
-            diarize=DiarizeConfig(hf_token=""),
-            lm_studio=LMStudioConfig(),
+            ml_service=MLServiceConfig(),
+            llm=LLMConfig(),
         )
         mock_transcribe.return_value = "Hello World"
         mock_process.return_value = ProcessResult(
@@ -323,9 +320,8 @@ class TestRunProcessTask:
         mock_diarize.return_value = [segment]
         mock_format.return_value = "[SPEAKER_00] Test"
         mock_config.return_value = MagicMock(
-            whisper=WhisperConfig(),
-            diarize=DiarizeConfig(hf_token="hf_test"),
-            lm_studio=LMStudioConfig(),
+            ml_service=MLServiceConfig(),
+            llm=LLMConfig(),
         )
         mock_process.return_value = ProcessResult(
             diarized_text="[SPEAKER_00] Test",

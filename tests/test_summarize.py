@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
-from stt.config import LMStudioConfig
+from stt.config import LLMConfig
 from stt.prompts import (
     DIARIZE_SYSTEM_PROMPT,
     STRUCTURE_SYSTEM_PROMPT,
@@ -126,7 +126,7 @@ class TestSummarizeText:
         mock_response.raise_for_status = MagicMock()
         mock_post.return_value = mock_response
 
-        config = LMStudioConfig(host="myhost", port=9999, model="my-model")
+        config = LLMConfig(base_url="http://myhost:9999", model="my-model")
         summarize_text("Test text", config)
 
         mock_post.assert_called_once()

@@ -28,8 +28,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Build Docker image
-        run: docker build -t stt-server:ci --build-arg SKIP_MODEL_CACHE=1 .
+      - name: Build production Docker image
+        run: docker build -t stt-server:ci --target production --build-arg SKIP_MODEL_CACHE=1 .
+
+      - name: Build dev Docker image
+        run: docker build -t stt-server:ci-dev --target dev --build-arg SKIP_MODEL_CACHE=1 .
 
       - name: Verify image metadata
         run: |
@@ -37,10 +40,23 @@ jobs:
           docker inspect stt-server:ci --format '{{.Config.User}}' | grep -q 'stt' \
             && echo "✓ Non-root user configured" \
             || echo "::warning::Container runs as root"
-          docker image ls stt-server:ci
+          docker image ls stt-server:ci stt-server:ci-dev
           echo "::endgroup::"
 
-      - name: Smoke test – import check
+      - name: Smoke test – production image import check
         run: |
           docker run --rm stt-server:ci \
             python -c "import stt; import django; print('imports OK')"
+
+      - name: Smoke test – dev image has pytest
+        run: |
+          docker run --rm stt-server:ci-dev \
+            python -c "import pytest; print('pytest', pytest.__version__)"
+
+      - name: Verify production image has no dev dependencies
+        run: |
+          if docker run --rm stt-server:ci python -c "import pytest" 2>/dev/null; then
+            echo "::error::pytest found in production image"
+            exit 1
+          fi
+          echo "pytest not in production image"

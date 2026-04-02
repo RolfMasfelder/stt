@@ -3,7 +3,6 @@
 import logging
 import os
 import tempfile
-from dataclasses import replace
 from pathlib import Path
 
 from django.core.exceptions import ValidationError
@@ -16,7 +15,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from stt.config import AppConfig, WhisperConfig, load_config
+from stt.config import AppConfig, load_config
 from stt.diarize import DiarizationError, diarize_audio, format_diarized_segments
 from stt.logging_setup import setup_logging
 from stt.summarize import (
@@ -111,10 +110,9 @@ def _save_upload(file: object) -> Path:
     return Path(tmp_name)
 
 
-def _get_whisper_config(model: str) -> WhisperConfig:
-    """Create a WhisperConfig with the given model name."""
-    cfg = _get_config()
-    return replace(cfg.whisper, model_name=model)
+def _get_whisper_config(model: str) -> str:
+    """Return the model name for ML service calls."""
+    return model
 
 
 class _AudioUploadError(Exception):
@@ -167,8 +165,8 @@ class TranscribeView(APIView):
             return Response({"detail": e.detail}, status=e.status_code)
 
         try:
-            whisper_cfg = _get_whisper_config(model)
-            text = transcribe_audio(audio_path, whisper_cfg)
+            cfg = _get_config()
+            text = transcribe_audio(audio_path, cfg.ml_service, model)
             return Response({"text": text})
         except TranscriptionError as e:
             return Response(
@@ -201,11 +199,6 @@ class DiarizeView(APIView):
     )
     def post(self, request: Request) -> Response:
         cfg = _get_config()
-        if not cfg.diarize.hf_token:
-            return Response(
-                {"detail": "HF_STT_TOKEN not configured on server"},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
 
         file = request.FILES.get("file")
         if not file:
@@ -222,8 +215,7 @@ class DiarizeView(APIView):
             return Response({"detail": e.detail}, status=e.status_code)
 
         try:
-            whisper_cfg = _get_whisper_config(model)
-            segments = diarize_audio(audio_path, whisper_cfg, cfg.diarize)
+            segments = diarize_audio(audio_path, cfg.ml_service, model)
             diarized_text = format_diarized_segments(segments)
             plain_text = " ".join(seg.text for seg in segments)
             return Response(
@@ -292,20 +284,18 @@ class ProcessView(APIView):
             return Response({"detail": e.detail}, status=e.status_code)
 
         try:
-            whisper_cfg = _get_whisper_config(model)
-
             diarized_text: str | None = None
 
-            if do_diarize and cfg.diarize.hf_token:
-                segments = diarize_audio(audio_path, whisper_cfg, cfg.diarize)
+            if do_diarize:
+                segments = diarize_audio(audio_path, cfg.ml_service, model)
                 diarized_text = format_diarized_segments(segments)
                 plain_text = " ".join(seg.text for seg in segments)
             else:
-                plain_text = transcribe_audio(audio_path, whisper_cfg)
+                plain_text = transcribe_audio(audio_path, cfg.ml_service, model)
 
             result = process_transcript(
                 plain_text,
-                cfg.lm_studio,
+                cfg.llm,
                 diarize=False,
                 diarized_text=diarized_text,
             )
@@ -604,12 +594,12 @@ class JobReprocessView(APIView):
 
         try:
             if "structure" in steps:
-                job.result_structured_text = structure_text(source_text, cfg.lm_studio)
+                job.result_structured_text = structure_text(source_text, cfg.llm)
                 updated_fields.append("result_structured_text")
 
             if "summarize" in steps:
                 text_to_summarize = job.result_structured_text or source_text
-                job.result_summary = summarize_text(text_to_summarize, cfg.lm_studio)
+                job.result_summary = summarize_text(text_to_summarize, cfg.llm)
                 updated_fields.append("result_summary")
         except SummarizationError as e:
             return Response(

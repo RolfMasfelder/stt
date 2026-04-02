@@ -5,15 +5,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from stt.config import DiarizeConfig, LMStudioConfig, WhisperConfig
+from stt.config import LLMConfig, MLServiceConfig
 
 
 def _mock_config():
     mock_config = MagicMock()
     mock_config.log_level = "WARNING"
-    mock_config.whisper = WhisperConfig()
-    mock_config.diarize = DiarizeConfig(hf_token="hf_test")
-    mock_config.lm_studio = LMStudioConfig()
+    mock_config.ml_service = MLServiceConfig()
+    mock_config.llm = LLMConfig()
     return mock_config
 
 

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from stt.config import DiarizeConfig, LMStudioConfig, WhisperConfig
+from stt.config import LLMConfig, MLServiceConfig
 from stt.summarize import ProcessResult
 
 
@@ -14,9 +14,8 @@ def client(auth_client):
     """Create an authenticated DRF test client with mocked ML config."""
     mock_config = MagicMock()
     mock_config.log_level = "WARNING"
-    mock_config.whisper = WhisperConfig()
-    mock_config.diarize = DiarizeConfig(hf_token="hf_test")
-    mock_config.lm_studio = LMStudioConfig()
+    mock_config.ml_service = MLServiceConfig()
+    mock_config.llm = LLMConfig()
 
     with patch("stt.api.views._get_config", return_value=mock_config):
         yield auth_client
@@ -207,14 +206,18 @@ class TestUploadValidation:
 
 
 class TestDiarizeNoToken:
-    """Tests for missing HF token."""
+    """Tests for missing HF token (now handled by ML service)."""
 
-    def test_missing_hf_token_returns_503(self, auth_client) -> None:
+    @patch("stt.api.views.diarize_audio")
+    def test_ml_service_returns_hf_token_error(self, mock_diarize, auth_client) -> None:
+        from stt.diarize import DiarizationError
+
         mock_config = MagicMock()
         mock_config.log_level = "WARNING"
-        mock_config.whisper = WhisperConfig()
-        mock_config.diarize = DiarizeConfig()  # no hf_token
-        mock_config.lm_studio = LMStudioConfig()
+        mock_config.ml_service = MLServiceConfig()
+        mock_config.llm = LLMConfig()
+
+        mock_diarize.side_effect = DiarizationError("HF_STT_TOKEN not configured")
 
         with patch("stt.api.views._get_config", return_value=mock_config):
             response = auth_client.post(
@@ -222,7 +225,7 @@ class TestDiarizeNoToken:
                 {"file": _audio_file()},
                 format="multipart",
             )
-        assert response.status_code == 503
+        assert response.status_code == 500
         assert "HF_STT_TOKEN" in response.json()["detail"]
 
 

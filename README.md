@@ -5,7 +5,7 @@ Dieses Projekt zeigt eine minimalistische Pipeline:
 1. Meeting oder Audio aufnehmen (z. B. WAV-Datei).
 2. Transkription mit [faster-whisper](https://github.com/SYSTRAN/faster-whisper).
 3. Sprechererkennung mit [pyannote.audio](https://github.com/pyannote/pyannote-audio) (direkt auf Audio).
-4. Zusammenfassung mit einem lokalen LLM über [LM Studio](https://lmstudio.ai/).
+4. Zusammenfassung mit einem lokalen LLM über [Ollama](https://ollama.com/).
 
 ## Architektur
 
@@ -81,10 +81,33 @@ da ohne Audiodatei keine audio-basierte Diarization möglich ist.
 
 ### Docker
 
-```bash
-# Remote: Server starten
-docker compose --profile production up -d stt-server
+Das Dockerfile nutzt einen Multi-Stage-Build:
+- **`production`** — schlankes Image ohne Test-Tools (pytest, ruff, bandit)
+- **`dev`** — enthält zusätzlich alle Dev/Test-Dependencies
 
-# Lokal via CLI
+| Profil | Service | Dockerfile-Target | Zweck |
+|--------|---------|-------------------|-------|
+| `production` | `stt-server` | `production` | Django + Gunicorn |
+| `production` | `stt-worker` | `production` | django-q2 Task-Worker |
+| `production` | `db` | — (postgres:17) | PostgreSQL-Datenbank |
+| `production` | `caddy` | — (caddy:2) | Reverse-Proxy + TLS |
+| `test` | `stt-test` | `dev` | pytest-Runner |
+| `test` | `db` | — (postgres:17) | PostgreSQL für Tests |
+| `cli` | `stt-cli` | `dev` | CLI-Tool |
+| `ollama` | `ollama` | — (ollama:latest) | LLM-Inferenz |
+| `whisper-remote` | `whisper-server` | — (faster-whisper) | Whisper-Transkription |
+| `mobile` | `flutter` | — (eigenes) | Flutter-Entwicklung |
+
+```bash
+# Alle Container bauen
+./scripts/build-containers.sh
+
+# Produktion starten
+docker compose --profile production up -d
+
+# Tests ausführen
+docker compose run --rm stt-test
+
+# CLI nutzen
 docker compose --profile cli run --rm stt-cli python -m stt meeting.wav --diarize --process
 ```

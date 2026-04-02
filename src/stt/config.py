@@ -45,18 +45,26 @@ class DiarizeConfig:
 
 
 @dataclass(frozen=True)
-class LMStudioConfig:
-    """Configuration for the LM Studio API connection."""
+class LLMConfig:
+    """Configuration for the LLM API connection (Ollama or compatible)."""
 
-    host: str = "localhost"
-    port: int = 1234
-    model: str = "mistral-7b-instruct"
+    base_url: str = "http://localhost:11434"
+    model: str = "mistral"
     timeout: int = 120
 
     @property
     def url(self) -> str:
         """Return the full API URL for chat completions."""
-        return f"http://{self.host}:{self.port}/v1/chat/completions"
+        base = self.base_url.rstrip("/")
+        return f"{base}/v1/chat/completions"
+
+
+@dataclass(frozen=True)
+class MLServiceConfig:
+    """Configuration for the ML microservice (transcription + diarization)."""
+
+    base_url: str = "http://stt-ml:8091"
+    timeout: int = 600
 
 
 @dataclass(frozen=True)
@@ -74,8 +82,9 @@ class AppConfig:
     """Top-level application configuration."""
 
     whisper: WhisperConfig = field(default_factory=WhisperConfig)
-    lm_studio: LMStudioConfig = field(default_factory=LMStudioConfig)
+    llm: LLMConfig = field(default_factory=LLMConfig)
     diarize: DiarizeConfig = field(default_factory=DiarizeConfig)
+    ml_service: MLServiceConfig = field(default_factory=MLServiceConfig)
     oauth2: OAuth2ClientConfig = field(default_factory=OAuth2ClientConfig)
     audio_input_dir: Path = Path("./data/audio")
     output_dir: Path = Path("./data/output")
@@ -107,19 +116,23 @@ def load_config(env_file: str | None = None) -> AppConfig:
         timeout=int(whisper_timeout),
     )
 
-    lm_studio_port = os.getenv("LM_STUDIO_PORT", "1234")
-    lm_studio_timeout = os.getenv("LM_STUDIO_TIMEOUT", "120")
-    lm_studio = LMStudioConfig(
-        host=os.getenv("LM_STUDIO_HOST", "localhost"),
-        port=int(lm_studio_port),
-        model=os.getenv("LM_STUDIO_MODEL", "mistral-7b-instruct"),
-        timeout=int(lm_studio_timeout),
+    llm_timeout = os.getenv("LLM_TIMEOUT", "120")
+    llm = LLMConfig(
+        base_url=os.getenv("LLM_BASE_URL", "http://localhost:11434"),
+        model=os.getenv("LLM_MODEL", "mistral"),
+        timeout=int(llm_timeout),
     )
 
     diarize = DiarizeConfig(
         hf_token=os.getenv("HF_STT_TOKEN") or None,
         model_name=os.getenv("DIARIZE_MODEL", "pyannote/speaker-diarization-3.1"),
         device=os.getenv("DIARIZE_DEVICE", "cpu"),
+    )
+
+    ml_service_timeout = os.getenv("ML_SERVICE_TIMEOUT", "600")
+    ml_service = MLServiceConfig(
+        base_url=os.getenv("ML_SERVICE_URL", "http://stt-ml:8091"),
+        timeout=int(ml_service_timeout),
     )
 
     log_level = os.getenv("LOG_LEVEL", "INFO")
@@ -135,8 +148,9 @@ def load_config(env_file: str | None = None) -> AppConfig:
 
     config = AppConfig(
         whisper=whisper,
-        lm_studio=lm_studio,
+        llm=llm,
         diarize=diarize,
+        ml_service=ml_service,
         oauth2=oauth2,
         audio_input_dir=Path(os.getenv("AUDIO_INPUT_DIR", "./data/audio")),
         output_dir=Path(os.getenv("OUTPUT_DIR", "./data/output")),

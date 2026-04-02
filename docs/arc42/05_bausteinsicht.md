@@ -33,7 +33,7 @@
 
 - Zentrale Konfiguration via frozen Dataclasses
 - Lädt Umgebungsvariablen aus `.env`
-- Klassen: `WhisperConfig`, `DiarizeConfig`, `LMStudioConfig`, `AppConfig`
+- Klassen: `WhisperConfig`, `DiarizeConfig`, `LLMConfig`, `AppConfig`
 
 ### transcribe.py
 

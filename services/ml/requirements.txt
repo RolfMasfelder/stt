@@ -1,0 +1,16 @@
+# ML Service dependencies
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# Web framework
+fastapi==0.115.12
+
+# ML Stack
+faster-whisper==1.2.1
+numpy==2.4.2
+pyannote.audio==4.0.4
+python-multipart==0.0.20
+sounddevice==0.5.5
+torch==2.11.0+cpu
+torchaudio==2.11.0+cpu
+torchcodec==0.11.0
+uvicorn[standard]==0.34.3

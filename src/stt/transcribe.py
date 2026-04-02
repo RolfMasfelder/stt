@@ -1,12 +1,11 @@
-"""Audio transcription using faster-whisper (local or remote)."""
+"""Audio transcription via ML service HTTP API."""
 
 import logging
 from pathlib import Path
 
 import requests
 
-from stt.config import WhisperConfig
-from stt.whisper_common import post_whisper_remote, run_whisper_local
+from stt.config import MLServiceConfig
 
 logger = logging.getLogger(__name__)
 
@@ -15,58 +14,17 @@ class TranscriptionError(Exception):
     """Raised when audio transcription fails."""
 
 
-def _transcribe_local(audio_path: Path, config: WhisperConfig) -> str:
-    """Run transcription locally with faster-whisper."""
-    logger.info(
-        "Starting local transcription: file=%s, model=%s, device=%s",
-        audio_path,
-        config.model_name,
-        config.device,
-    )
-
-    segments, _info = run_whisper_local(audio_path, config)
-    transcript = " ".join(segment.text for segment in segments)
-    logger.info("Transcription complete: %d characters", len(transcript))
-    return transcript.strip()
-
-
-def _transcribe_remote(audio_path: Path, config: WhisperConfig) -> str:
-    """Send audio to a remote faster-whisper-server for transcription."""
-    logger.info(
-        "Starting remote transcription: file=%s, url=%s, model=%s",
-        audio_path,
-        config.transcription_url,
-        config.model_name,
-    )
-
-    try:
-        response = post_whisper_remote(audio_path, config, response_format="text")
-    except ValueError as e:
-        raise TranscriptionError(str(e)) from e
-
-    if response.status_code != 200:
-        raise TranscriptionError(
-            f"Remote transcription failed (HTTP {response.status_code}): "
-            f"{response.text}"
-        )
-
-    transcript = response.text.strip()
-    logger.info("Remote transcription complete: %d characters", len(transcript))
-    return transcript
-
-
 def transcribe_audio(
     audio_file: str | Path,
-    config: WhisperConfig | None = None,
+    ml_service: MLServiceConfig | None = None,
+    model: str = "small",
 ) -> str:
-    """Transcribe an audio file to text.
-
-    When ``config.api_url`` is set the audio is sent to a remote
-    faster-whisper-server instance; otherwise transcription runs locally.
+    """Transcribe an audio file to text via the ML service.
 
     Args:
         audio_file: Path to the audio file to transcribe.
-        config: Whisper configuration. Uses defaults if None.
+        ml_service: ML service configuration. Uses defaults if None.
+        model: Whisper model name to use.
 
     Returns:
         The transcribed text as a single string.
@@ -75,18 +33,36 @@ def transcribe_audio(
         FileNotFoundError: If the audio file does not exist.
         TranscriptionError: If transcription fails.
     """
-    if config is None:
-        config = WhisperConfig()
+    if ml_service is None:
+        ml_service = MLServiceConfig()
 
     audio_path = Path(audio_file)
     if not audio_path.exists():
         raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
+    url = f"{ml_service.base_url.rstrip('/')}/v1/transcribe"
+
     try:
-        if config.api_url:
-            return _transcribe_remote(audio_path, config)
-        return _transcribe_local(audio_path, config)
+        with open(audio_path, "rb") as f:
+            files = {"file": (audio_path.name, f, "audio/wav")}
+            data = {"model": model}
+            response = requests.post(
+                url, files=files, data=data, timeout=ml_service.timeout
+            )
+
+        if response.status_code != 200:
+            raise TranscriptionError(
+                f"ML service transcription failed (HTTP {response.status_code}): "
+                f"{response.text}"
+            )
+
+        result = response.json()
+        return result.get("text", "").strip()
     except TranscriptionError:
         raise
-    except (RuntimeError, OSError, requests.RequestException) as e:
-        raise TranscriptionError(f"Failed to transcribe {audio_path}: {e}") from e
+    except requests.RequestException as e:
+        raise TranscriptionError(
+            f"Failed to connect to ML service at {url}: {e}"
+        ) from e
+    except (KeyError, ValueError) as e:
+        raise TranscriptionError(f"Unexpected response from ML service: {e}") from e

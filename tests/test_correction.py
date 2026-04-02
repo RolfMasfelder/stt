@@ -15,7 +15,7 @@ from stt.api.models import (
     ResultVersion,
 )
 from stt.api.tasks import run_process, run_transcribe
-from stt.config import DiarizeConfig, LMStudioConfig, WhisperConfig
+from stt.config import LLMConfig, MLServiceConfig
 from stt.summarize import ProcessResult
 
 
@@ -24,9 +24,8 @@ def client(auth_client):
     """Authenticated client with mocked ML config."""
     mock_config = MagicMock()
     mock_config.log_level = "WARNING"
-    mock_config.whisper = WhisperConfig()
-    mock_config.diarize = DiarizeConfig(hf_token="hf_test")
-    mock_config.lm_studio = LMStudioConfig()
+    mock_config.ml_service = MLServiceConfig()
+    mock_config.llm = LLMConfig()
 
     with patch("stt.api.views._get_config", return_value=mock_config):
         yield auth_client
@@ -299,7 +298,7 @@ class TestTaskCreatesVersion:
     @patch("stt.api.tasks._get_config")
     @patch("stt.api.tasks.transcribe_audio")
     def test_run_transcribe_creates_v0(self, mock_transcribe, mock_config) -> None:
-        mock_config.return_value = MagicMock(whisper=WhisperConfig())
+        mock_config.return_value = MagicMock(ml_service=MLServiceConfig())
         mock_transcribe.return_value = "Hello World"
 
         tmp = Path("/tmp/test_correction_task.wav")
@@ -326,9 +325,8 @@ class TestTaskCreatesVersion:
         self, mock_transcribe, mock_process, mock_config
     ) -> None:
         mock_config.return_value = MagicMock(
-            whisper=WhisperConfig(),
-            diarize=DiarizeConfig(hf_token=""),
-            lm_studio=LMStudioConfig(),
+            ml_service=MLServiceConfig(),
+            llm=LLMConfig(),
         )
         mock_transcribe.return_value = "Some text"
         mock_process.return_value = ProcessResult(

@@ -11,10 +11,17 @@ image:
 worker:
   replicaCount: 1
 
-mlWorker:
+mlService:
   replicaCount: 1
+  image:
+    repository: 192.168.178.80:5000/stt-ml
+    tag: latest
+    pullPolicy: Always
+  port: 8091
   nodeSelector: {}
   tolerations: []
+  whisperModel: small
+  whisperDevice: cpu
 
 database:
   host: postgres
@@ -38,10 +45,6 @@ django:
 gunicorn:
   workers: 2
   timeout: 600
-
-whisper:
-  model: small
-  device: cpu
 
 service:
   type: ClusterIP
@@ -67,7 +70,7 @@ resources:
     limits:
       memory: 512Mi
       cpu: 500m
-  mlWorker:
+  mlService:
     requests:
       memory: 512Mi
       cpu: 200m
@@ -86,7 +89,7 @@ autoscaling:
     minReplicas: 1
     maxReplicas: 2
     targetCPUUtilizationPercentage: 60
-  mlWorker:
+  mlService:
     enabled: true
     minReplicas: 1
     maxReplicas: 2

@@ -13,7 +13,7 @@ import time
 import uuid
 from pathlib import Path
 
-from stt.config import AppConfig, WhisperConfig, load_config
+from stt.config import AppConfig, load_config
 from stt.diarize import diarize_audio, format_diarized_segments
 from stt.summarize import process_transcript
 from stt.transcribe import transcribe_audio
@@ -32,13 +32,6 @@ def _get_config() -> AppConfig:
     if _config is None:
         _config = load_config()
     return _config
-
-
-def _get_whisper_config(model: str) -> WhisperConfig:
-    from dataclasses import replace
-
-    cfg = _get_config()
-    return replace(cfg.whisper, model_name=model)
 
 
 def _fail_job(job: Job, error: str) -> None:
@@ -115,8 +108,8 @@ def run_transcribe(job_id: str) -> None:
 
     _start = time.monotonic()
     try:
-        whisper_cfg = _get_whisper_config(job.whisper_model)
-        text = transcribe_audio(audio_path, whisper_cfg)
+        cfg = _get_config()
+        text = transcribe_audio(audio_path, cfg.ml_service, job.whisper_model)
         job.status = JobStatus.COMPLETED
         job.result_text = text
         job.save(
@@ -158,8 +151,7 @@ def run_diarize(job_id: str) -> None:
     _start = time.monotonic()
     try:
         cfg = _get_config()
-        whisper_cfg = _get_whisper_config(job.whisper_model)
-        segments = diarize_audio(audio_path, whisper_cfg, cfg.diarize)
+        segments = diarize_audio(audio_path, cfg.ml_service, job.whisper_model)
         diarized_text = format_diarized_segments(segments)
         plain_text = " ".join(seg.text for seg in segments)
 
@@ -216,20 +208,19 @@ def run_process(job_id: str) -> None:
     _start = time.monotonic()
     try:
         cfg = _get_config()
-        whisper_cfg = _get_whisper_config(job.whisper_model)
 
         diarized_text: str | None = None
 
-        if job.enable_diarize and cfg.diarize.hf_token:
-            segments = diarize_audio(audio_path, whisper_cfg, cfg.diarize)
+        if job.enable_diarize:
+            segments = diarize_audio(audio_path, cfg.ml_service, job.whisper_model)
             diarized_text = format_diarized_segments(segments)
             plain_text = " ".join(seg.text for seg in segments)
         else:
-            plain_text = transcribe_audio(audio_path, whisper_cfg)
+            plain_text = transcribe_audio(audio_path, cfg.ml_service, job.whisper_model)
 
         result = process_transcript(
             plain_text,
-            cfg.lm_studio,
+            cfg.llm,
             diarize=False,
             diarized_text=diarized_text,
         )

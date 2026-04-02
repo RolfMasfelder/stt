@@ -9,13 +9,8 @@ data:
   DEBUG: {{ .Values.django.debug | quote }}
   ALLOWED_HOSTS: {{ .Values.django.allowedHosts | quote }}
   DATA_RETENTION_DAYS: {{ .Values.django.dataRetentionDays | quote }}
-  WHISPER_MODEL: {{ .Values.whisper.model | quote }}
-  WHISPER_DEVICE: {{ .Values.whisper.device | quote }}
-  {{- if .Values.whisper.apiUrl }}
-  WHISPER_API_URL: {{ .Values.whisper.apiUrl | quote }}
-  {{- end }}
-  {{- if .Values.lmStudio.host }}
-  LM_STUDIO_HOST: {{ .Values.lmStudio.host | quote }}
-  LM_STUDIO_PORT: {{ .Values.lmStudio.port | quote }}
-  LM_STUDIO_MODEL: {{ .Values.lmStudio.model | quote }}
+  ML_SERVICE_URL: "http://{{ include "stt.fullname" . }}-ml:{{ .Values.mlService.port }}"
+  {{- if .Values.llm.baseUrl }}
+  LLM_BASE_URL: {{ .Values.llm.baseUrl | quote }}
+  LLM_MODEL: {{ .Values.llm.model | quote }}
   {{- end }}

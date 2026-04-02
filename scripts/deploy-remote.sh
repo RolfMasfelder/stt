@@ -1,32 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Deploy STT Docker image to remote host
-REMOTE_HOST="192.168.178.80"
-REMOTE_USER="rolf"
-IMAGE_NAME="stt-app"
-IMAGE_TAG="latest"
-IMAGE_FILE="/tmp/stt-app.tar"
+# Deploy STT Docker images to local registry and upgrade k3s via Helm
+REGISTRY="192.168.178.80:5000"
 
 echo "=== STT Remote Deploy ==="
 
-# Step 1: Build Docker image locally
-echo "[1/3] Building Docker image..."
-docker compose build stt
+# Step 1: Build Docker images
+echo "[1/4] Building Docker images..."
+docker compose build stt-server stt-ml
 
-# Tag the image for export
-docker tag "stt-${IMAGE_NAME}:${IMAGE_TAG}" "${IMAGE_NAME}:${IMAGE_TAG}" 2>/dev/null || true
+# Step 2: Tag for registry
+echo "[2/4] Tagging images for registry ${REGISTRY}..."
+docker tag stt-stt-server:latest "${REGISTRY}/stt-server:latest"
+docker tag stt-stt-ml:latest "${REGISTRY}/stt-ml:latest"
 
-# Step 2: Save and transfer image
-echo "[2/3] Exporting and transferring image to ${REMOTE_USER}@${REMOTE_HOST}..."
-docker save "${IMAGE_NAME}:${IMAGE_TAG}" | ssh "${REMOTE_USER}@${REMOTE_HOST}" "docker load"
+# Step 3: Push to registry
+echo "[3/4] Pushing images to registry..."
+docker push "${REGISTRY}/stt-server:latest"
+docker push "${REGISTRY}/stt-ml:latest"
 
-# Step 3: Transfer .env and docker-compose.yml
-echo "[3/3] Syncing project files..."
-ssh "${REMOTE_USER}@${REMOTE_HOST}" "mkdir -p ~/stt"
-scp docker-compose.yml .env "${REMOTE_USER}@${REMOTE_HOST}:~/stt/"
+# Step 4: Deploy via Helm
+echo "[4/4] Upgrading Helm release on k3s..."
+helm upgrade stt k8s/helm/stt/ -n stt -f k8s/helm/values-k3s.yaml
 
 echo ""
 echo "=== Deploy complete ==="
-echo "On ${REMOTE_HOST}, run:"
-echo "  cd ~/stt && docker compose --profile production up -d stt"
+echo "Verify with: kubectl get pods -n stt"

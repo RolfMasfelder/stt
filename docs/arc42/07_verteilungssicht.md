@@ -35,4 +35,4 @@
 | `stt-cli` | cli | CLI-Tool, nutzt STT_SERVER_URL | Eigenes Dockerfile |
 | `stt-dev` | dev | Entwicklungsshell mit bash | Eigenes Dockerfile |
 | `whisper-server` | whisper-remote | Optionaler Whisper-Server | `fedirz/faster-whisper-server:latest-cpu` |
-| `lmstudio` | production | Platzhalter für LM Studio | `alpine:latest` (Platzhalter) |
+| `ollama` | ollama | Ollama LLM-Inferenz-Server | `ollama/ollama:latest` |
