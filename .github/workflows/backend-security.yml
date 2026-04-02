@@ -1,0 +1,95 @@
+name: Backend Security
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - 'src/**'
+      - 'requirements.txt'
+      - 'pyproject.toml'
+      - '.github/workflows/backend-security.yml'
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - 'src/**'
+      - 'requirements.txt'
+      - 'pyproject.toml'
+      - '.github/workflows/backend-security.yml'
+  schedule:
+    - cron: '0 8 * * 1'  # Weekly Monday 08:00 UTC
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  dependency-audit:
+    name: Dependency Vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies & pip-audit
+        run: |
+          pip install pip-audit
+          pip install --extra-index-url https://download.pytorch.org/whl/cpu \
+            torch==2.11.0+cpu torchaudio==2.11.0+cpu torchcodec==0.11.0
+          pip install -r requirements.txt
+
+      - name: Audit installed packages
+        run: pip-audit --desc --output pip-audit-report.txt || true
+
+      - name: Show audit results
+        if: always()
+        run: cat pip-audit-report.txt
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-report
+          path: pip-audit-report.txt
+          retention-days: 90
+
+  code-security:
+    name: Static Security Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install bandit
+        run: pip install bandit
+
+      - name: Run bandit on source code
+        run: |
+          bandit -r src/ \
+            -ll \
+            --severity-level medium \
+            -f txt \
+            -o bandit-report.txt \
+            || true
+
+      - name: Show bandit results
+        if: always()
+        run: cat bandit-report.txt
+
+      - name: Fail on high-severity issues
+        run: bandit -r src/ -lll --severity-level high
+
+      - name: Upload bandit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.txt
+          retention-days: 90

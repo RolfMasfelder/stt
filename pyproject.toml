@@ -37,6 +37,8 @@ dev = [
     "pytest-django>=4.5",
     "ruff>=0.1.0",
     "pre-commit>=3.0",
+    "bandit>=1.7",
+    "pip-audit>=2.7",
 ]
 
 [tool.ruff]
@@ -45,13 +47,15 @@ line-length = 88
 
 [tool.ruff.lint]
 select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "B",  # flake8-bugbear
-    "C4", # flake8-comprehensions
-    "UP", # pyupgrade
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "T10", # flake8-debugger
+    "T20", # flake8-print
 ]
 ignore = [
     "E501",  # line too long, handled by black
@@ -61,6 +65,9 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+"src/stt/__main__.py" = ["T20"]
+"src/stt/client.py" = ["T20"]
+"tests/**" = ["T20"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -75,3 +82,23 @@ testpaths = [
     "tests",
 ]
 DJANGO_SETTINGS_MODULE = "stt.settings"
+
+[tool.coverage.run]
+source = ["stt"]
+branch = true
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+]
+
+[tool.coverage.report]
+fail_under = 60
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests"]

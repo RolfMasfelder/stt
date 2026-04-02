@@ -1,16 +1,31 @@
-name: CI
+name: Backend Tests
 
 on:
   push:
     branches: [dev, main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'requirements.txt'
+      - 'manage.py'
+      - '.github/workflows/backend-test.yml'
   pull_request:
     branches: [dev, main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'requirements.txt'
+      - 'manage.py'
+      - '.github/workflows/backend-test.yml'
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   test:
+    name: Tests & Coverage
     runs-on: ubuntu-latest
 
     services:
@@ -58,10 +73,26 @@ jobs:
       - name: Run migrations
         run: python manage.py migrate --no-input
 
-      - name: Run tests
-        run: pytest --tb=short -q
+      - name: Django system checks
+        run: python manage.py check
 
-      - name: Lint with ruff
+      - name: Check for missing migrations
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Run tests with coverage
         run: |
-          ruff check src/ tests/
-          ruff format --check src/ tests/
+          pytest \
+            --tb=short -q \
+            --cov=stt \
+            --cov-branch \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            --cov-fail-under=60
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 30

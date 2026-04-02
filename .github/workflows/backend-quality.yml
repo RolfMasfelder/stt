@@ -1,0 +1,89 @@
+name: Backend Quality
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'requirements.txt'
+      - 'manage.py'
+      - '.github/workflows/backend-quality.yml'
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'requirements.txt'
+      - 'manage.py'
+      - '.github/workflows/backend-quality.yml'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install ruff
+        run: pip install "ruff>=0.1.0"
+
+      - name: Ruff lint
+        run: ruff check src/ tests/
+
+      - name: Ruff format check
+        run: ruff format --check src/ tests/
+
+      - name: Check print() in library code
+        run: |
+          # Catch stray print() in library code; CLI entry points are excluded
+          ruff check --select T20 \
+            --per-file-ignores 'src/stt/__main__.py:T20,src/stt/client.py:T20' \
+            src/
+
+      - name: Check debugger imports
+        run: ruff check --select T10 src/
+
+  dev-artifacts:
+    name: Development Artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: No .env committed
+        run: |
+          if [ -f .env ]; then
+            echo "::error::.env file must not be committed to the repository"
+            exit 1
+          fi
+
+      - name: No breakpoint() calls
+        run: |
+          if grep -rn 'breakpoint()' src/ --include='*.py'; then
+            echo "::error::breakpoint() found in source code"
+            exit 1
+          fi
+
+      - name: No hardcoded secrets
+        run: |
+          # Check for long string assignments to typical secret variable names
+          if grep -rniE '(password|secret_key|api_key|private_key)\s*=\s*"[^"]{8,}"' src/ --include='*.py'; then
+            echo "::error::Possible hardcoded secret found in source code"
+            exit 1
+          fi
+
+      - name: Report TODO/FIXME markers
+        run: |
+          echo "::group::Development markers (informational, does not fail)"
+          grep -rn 'TODO\|FIXME\|HACK\|XXX' src/ tests/ --include='*.py' || echo "None found"
+          echo "::endgroup::"
