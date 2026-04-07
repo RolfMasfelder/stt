@@ -27,6 +27,32 @@
 ## Skills
 - **GitHub Actions & Workflows**: See `.github/skills/github_actions/SKILL.md` for current action versions and workflow conventions
 
+## Architecture
+
+Three-service architecture. Full details in `docs/anwendungsuebersicht.md`.
+
+### Services
+- **stt-server** (Django/DRF, :8090) – REST API, orchestration, async jobs. Delegates ML to stt-ml, summarization to Ollama.
+- **stt-ml** (FastAPI, :8091) – ML microservice (`services/ml/`). Runs faster-whisper + pyannote.audio locally. Endpoints: `/v1/transcribe`, `/v1/diarize`, `/health`.
+- **Ollama** (:11434) – LLM service for text summarization/structuring via `/api/chat`.
+
+### Key Modules (`src/stt/`)
+- `transcribe.py` – HTTP client → stt-ml `/v1/transcribe`
+- `diarize.py` – HTTP client → stt-ml `/v1/diarize`
+- `summarize.py` – LLM client → Ollama for structuring/summarization
+- `client.py` – `STTClient` class for programmatic API access
+- `__main__.py` – CLI entry point (`--diarize`, `--process`, `--summarize`, `--skip`)
+- `api/` – Django app (models, views, serializers, tasks, migrations). App label: `api`
+
+### Directory Structure
+- `src/stt/` – Backend application (Django/DRF)
+- `services/ml/` – ML microservice (FastAPI)
+- `mobile/` – Flutter mobile app
+- `tests/` – pytest test suite
+- `k8s/` – Kubernetes (Kustomize + Helm)
+- `docs/` – Architecture docs (arc42, req42)
+- `scripts/` – Build & deploy scripts
+
 ## STT Docker Setup
 
 - Docker service names: `stt-server`, `stt-worker`, `db`, `caddy`
