@@ -15,5 +15,5 @@ drf-spectacular==0.28.0      # OpenAPI 3.0 schema generation
 gunicorn==23.0.0             # WSGI production server
 numpy==2.4.2
 psycopg[binary]==3.2.6       # PostgreSQL adapter
-python-dotenv==1.2.1         # for loading .env files
+python-dotenv==1.2.2         # for loading .env files
 requests==2.32.5
