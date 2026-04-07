@@ -1,5 +1,5 @@
 # ---- Base stage: shared system dependencies and Python packages ----
-FROM python:3.13-slim-bookworm AS base
+FROM python:3.14-slim-bookworm AS base
 
 WORKDIR /app
 
