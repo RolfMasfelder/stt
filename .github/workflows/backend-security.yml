@@ -18,6 +18,13 @@ on:
   schedule:
     - cron: '0 8 * * 1'  # Weekly Monday 08:00 UTC
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -28,21 +35,15 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.13"
-          cache: pip
+      - name: Setup Python & dependencies
+        uses: ./.github/actions/setup-python
 
-      - name: Install dependencies & pip-audit
-        run: |
-          pip install pip-audit
-          pip install --extra-index-url https://download.pytorch.org/whl/cpu \
-            torch==2.11.0+cpu torchaudio==2.11.0+cpu torchcodec==0.11.0
-          pip install -r requirements.txt
+      - name: Install pip-audit
+        run: pip install pip-audit
 
       - name: Audit installed packages
-        run: pip-audit --desc --output pip-audit-report.txt || true
+        run: pip-audit --desc --output pip-audit-report.txt
+        continue-on-error: true
 
       - name: Show audit results
         if: always()
@@ -50,7 +51,7 @@ jobs:
 
       - name: Upload audit report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: pip-audit-report
           path: pip-audit-report.txt
@@ -89,7 +90,7 @@ jobs:
 
       - name: Upload bandit report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: bandit-report
           path: bandit-report.txt
