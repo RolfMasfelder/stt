@@ -5,10 +5,13 @@
 - **Python 3.13**: Use Python 3.13 syntax and libraries only
 - **Type-Hints**: Always use Type-Hints
 - **Tests required**: ALL features/bugfixes MUST have tests (unit + integration)
-- **Tests in Docker**: ALWAYS run tests via `docker compose exec stt-server python -m pytest`. NEVER run tests locally in venv – the DB and all dependencies are only available inside the container.
-- **Development with venv**: Use virtual environment for local dev (python -m venv .venv), always use "source venv/bin/activate" before running any commands, and in any terminal session
-- **Git Commits**: Keep messages concise (feat/fix/refactor format). NO long descriptions. Only one line as commit-message
+- **Tests in Docker**: ALWAYS run tests via `docker compose exec [cmd]`. NEVER run tests locally in venv – the DB and all dependencies are only available inside the container.
 - **Docker first**: ALL commands via `docker compose exec [cmd]`
+- **Development with venv**: Use virtual environment for local dev (python -m venv venv), always use "source venv/bin/activate" before running any commands, and in any terminal session
+- **Git Commits**: Keep messages concise (feat/fix/refactor format). NO long descriptions. Only one line as commit-message
+- **Environment**: Django app with PostgreSQL + Redis in containers.
+- **npm**: Only for frontend tests, run inside container. NO npm on host machine.
+- **No `:latest` Tags**: All container images MUST use explicit versioned tags. k8s manifests use `:KUSTOMIZE` (overridden by `kustomization.yaml`). Build scripts use `v<version>-<git-sha>` from `pyproject.toml` + `git rev-parse --short HEAD`.
 
 ## Git Branches
 - `main` → Stable branch, receives merges from `dev` at milestone/release points
@@ -27,6 +30,7 @@
 
 ## Skills
 - **GitHub Actions & Workflows**: See `.github/skills/github_actions/SKILL.md` for current action versions and workflow conventions
+- **OAuth2 & django-oauth-toolkit**: See `.github/skills/oauth2/SKILL.md` for DOT configuration, CustomOAuth2Validator, and known pitfalls
 
 ## Architecture
 
@@ -73,7 +77,7 @@ Three-service architecture. Full details in `docs/anwendungsuebersicht.md`.
 - k3s: configured in `/etc/rancher/k3s/registries.yaml` with `insecure_skip_verify: true`
 - Image deploy workflow (NOT docker save/import):
   1. Build: `docker compose build stt-server`
-  2. Tag: `docker tag stt-server:latest 192.168.178.80:5000/stt-server:latest`
-  3. Push: `docker push 192.168.178.80:5000/stt-server:latest`
+  2. Tag: `docker tag stt-server:kuztomize<version>-<git-sha> 192.168.178.80:5000/stt-server:kuztomize<version>-<git-sha>`
+  3. Push: `docker push 192.168.178.80:5000/stt-server:kuztomize<version>-<git-sha>`
   4. Deploy: `helm upgrade stt k8s/helm/stt/ -n stt -f k8s/helm/values-k3s.yaml`
 - k3s values: `k8s/helm/values-k3s.yaml` (image pullPolicy: Always, repository: 192.168.178.80:5000/stt-server)

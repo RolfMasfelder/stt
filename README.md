@@ -110,5 +110,21 @@ docker compose --profile production up -d
 docker compose run --rm stt-test
 
 # CLI nutzen
-docker compose --profile cli run --rm stt-cli python -m stt meeting.wav --diarize --process
+docker compose --profile cli run --rm stt-cli python -m stt data/audio/meeting.wav --diarize --process -o data/output/x.txt
+# oder auch mit expliziten Umgebungsvariablen (z.B. für caddy ohne Zertifikatsprüfung)
+# stt-server auf 'anderem' Rechner
+STT_SERVER_URL=http://192.168.178.80:8090 \
+OAUTH2_TOKEN_URL=http://192.168.178.80:8090/o/token/ \
+REQUESTS_CA_BUNDLE= \
+docker compose --profile cli run --rm stt-cli python -m stt data/audio/passwoerter_raus_aus_USCloud.wav --diarize --process -o data/output/x.txt
+
+# voher, um certificate von caddy zu bekommen (falls caddy mit TLS läuft und self-signed Zertifikate nutzt)
+ssh rolf@192.168.178.80 "cd workspace/stt && docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt -" | tar xf - -O > ./caddy-root.crt
+# bis hierher muss nur einmal gemacht werden
+
+# dann mit certifikat arbeiten
+STT_SERVER_URL=https://192.168.178.80 \
+OAUTH2_TOKEN_URL=https://192.168.178.80/o/token/ \
+REQUESTS_CA_BUNDLE=/app/caddy-root.crt \
+docker compose --profile cli run --rm stt-cli python -m stt data/audio/passwoerter_raus_aus_USCloud.wav --diarize --process -o data/output/x.txt
 ```

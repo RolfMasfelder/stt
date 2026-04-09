@@ -133,6 +133,10 @@ services:
     environment:
       - PYTHONPATH=/app
       - STT_SERVER_URL=${STT_SERVER_URL:-https://localhost}
+      - OAUTH2_TOKEN_URL=${OAUTH2_TOKEN_URL:-}
+      - OAUTH2_CLIENT_ID=${OAUTH2_CLIENT_ID:-}
+      - OAUTH2_CLIENT_SECRET=${OAUTH2_CLIENT_SECRET:-}
+      - OAUTH2_SCOPES=${OAUTH2_SCOPES:-read write}
       - LOG_LEVEL=${LOG_LEVEL}
       - REQUESTS_CA_BUNDLE=${REQUESTS_CA_BUNDLE:-/caddy_data/caddy/pki/authorities/local/root.crt}
     network_mode: host

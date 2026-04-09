@@ -6,7 +6,15 @@
 # Environment variables (set in .env or docker-compose.yml):
 #   SITE_ADDRESS  — Domain or localhost (default: localhost = self-signed)
 
+{
+	ocsp_stapling off
+	default_sni {$SITE_ADDRESS:localhost}
+}
+
 {$SITE_ADDRESS:localhost} {
+	# --- TLS: internal CA for IPs / localhost ---
+	tls internal
+
 	# --- Security Headers (OWASP Best Practices) ---
 	header {
 		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"

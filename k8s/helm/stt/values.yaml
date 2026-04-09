@@ -4,7 +4,7 @@ replicaCount: 1
 
 image:
   repository: stt-server
-  tag: latest
+  tag: KUSTOMIZE
   pullPolicy: IfNotPresent
 
 # -- Worker (django-q2, lightweight tasks: GDPR, scheduling) --
@@ -16,7 +16,7 @@ mlService:
   replicaCount: 1
   image:
     repository: stt-ml
-    tag: latest
+    tag: KUSTOMIZE
     pullPolicy: IfNotPresent
   port: 8091
   # For GPU nodes, set nodeSelector and tolerations:

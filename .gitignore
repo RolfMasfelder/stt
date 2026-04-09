@@ -76,3 +76,6 @@ data/output/*
 
 # static files
 /staticfiles/*
+
+# caddy-cert
+caddy-root.crt

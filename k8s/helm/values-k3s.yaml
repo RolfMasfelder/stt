@@ -5,7 +5,7 @@ replicaCount: 1
 
 image:
   repository: 192.168.178.80:5000/stt-server
-  tag: latest
+  tag: KUSTOMIZE  # overridden by deploy-remote.sh --set image.tag=v<version>-<sha>
   pullPolicy: Always  # pull from local registry
 
 worker:
@@ -15,7 +15,7 @@ mlService:
   replicaCount: 1
   image:
     repository: 192.168.178.80:5000/stt-ml
-    tag: latest
+    tag: KUSTOMIZE  # overridden by deploy-remote.sh --set mlService.image.tag=v<version>-<sha>
     pullPolicy: Always
   port: 8091
   nodeSelector: {}
