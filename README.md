@@ -82,6 +82,7 @@ da ohne Audiodatei keine audio-basierte Diarization möglich ist.
 ### Docker
 
 Das Dockerfile nutzt einen Multi-Stage-Build:
+
 - **`production`** — schlankes Image ohne Test-Tools (pytest, ruff, bandit)
 - **`dev`** — enthält zusätzlich alle Dev/Test-Dependencies
 

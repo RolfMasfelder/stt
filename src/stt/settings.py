@@ -262,4 +262,5 @@ OAUTH2_PROVIDER = {
     "READ_SCOPE": "read",  # Used by TokenHasReadWriteScope for GET
     "WRITE_SCOPE": "write",  # Used by TokenHasReadWriteScope for POST
     "OAUTH2_BACKEND_CLASS": "oauth2_provider.oauth2_backends.OAuthLibCore",
+    "OAUTH2_VALIDATOR_CLASS": "stt.api.oauth2_validators.CustomOAuth2Validator",
 }

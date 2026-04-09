@@ -1,0 +1,91 @@
+# Patch: Allow ingress-nginx egress to stt namespace
+# Adds egress rules for STT services (server, minio, ollama)
+# Apply: kubectl apply -f k8s/base/networkpolicy-ingress-egress-stt.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-egress
+  namespace: ingress-nginx
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: ingress-nginx
+  policyTypes:
+    - Egress
+  egress:
+    # --- existing rules (erechnung, monitoring, DNS) ---
+    - ports:
+        - port: 8080
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: erechnung
+          podSelector:
+            matchLabels:
+              app: api-gateway
+    - ports:
+        - port: 3000
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app: grafana
+    - ports:
+        - port: 9090
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app: prometheus
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+    # --- STT namespace ---
+    - ports:
+        - port: 8090
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: stt
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: stt-server
+    - ports:
+        - port: 9000
+          protocol: TCP
+        - port: 9001
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: stt
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: minio
+    - ports:
+        - port: 11434
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: stt
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ollama

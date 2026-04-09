@@ -78,9 +78,14 @@ Eigenständiger Microservice (`services/ml/`) mit allen ML-Abhängigkeiten
 
 ### S3: LLM-Service (Ollama, Port 11434)
 
-| Endpoint | Methode | Request | Response |
-|----------|---------|---------|----------|
-| `/api/chat` | POST | `{"model", "messages": [{"role", "content"}]}` | `{"message": {"content"}}` |
+Ollama stellt eine OpenAI-kompatible API bereit. Das STT-System nutzt ausschließlich
+den `/v1/chat/completions`-Endpunkt. Ollama bietet zusätzlich eine native API (`/api/chat`),
+die jedoch nicht verwendet wird.
+
+| Endpoint | Methode | Request | Response | Nutzung |
+|----------|---------|---------|----------|---------|
+| `/v1/chat/completions` | POST | `{"model", "messages": [{"role", "content"}]}` | `{"choices": [{"message": {"content"}}]}` | Strukturierung & Zusammenfassung (`summarize.py`) |
+| `/api/tags` | GET | — | `{"models": [...]}` | Health-Check (k8s readiness/liveness Probe) |
 
 ### S4: HuggingFace Hub (extern, einmalig)
 
@@ -130,3 +135,71 @@ Audio (.wav)
                      ├── result_struktur.md
                      └── result_zusammenfassung.md
 ```
+
+## Infrastruktur & Netzwerk
+
+### Übersicht
+
+```txt
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Entwicklungsrechner (lokales Netz)                                    │
+│                                                                       │
+│  ┌───────────────────────────────────┐                                 │
+│  │  Docker-Compose (production)      │                                 │
+│  │                                   │                                 │
+│  │  stt-server ─── stt-ml            │    ┌──────────────────────────┐ │
+│  │       │         stt-worker        │    │  k3s-Cluster             │ │
+│  │       │         db (postgres)     │    │  192.168.178.80          │ │
+│  │       │                           │    │                          │ │
+│  │       │  LLM_BASE_URL             │    │  MetalLB: .200 (80/443) │ │
+│  │       └──────────────────────────────►  │  └─ ingress-nginx       │ │
+│  │          http://ollama.stt.local   │    │     ├─ ollama.stt.local │ │
+│  │          (extra_hosts → .200)      │    │     ├─ stt.local        │ │
+│  │                                   │    │     └─ minio.stt.local  │ │
+│  └───────────────────────────────────┘    │                          │ │
+│                                           │  Namespace: stt          │ │
+│  /etc/hosts:                              │  ├─ ollama (ClusterIP)   │ │
+│  192.168.178.200  ollama.stt.local        │  ├─ postgres (ClusterIP) │ │
+│  192.168.178.200  stt.local               │  └─ minio (ClusterIP)   │ │
+│  192.168.178.200  minio.stt.local         └──────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Netzwerk-Pfad: Docker-Container → Ollama
+
+```txt
+stt-server Container
+  │  DNS: ollama.stt.local → 192.168.178.200 (via extra_hosts in docker-compose.yml)
+  ▼
+MetalLB LoadBalancer (192.168.178.200:80)
+  │  L2-Advertisement via ARP im LAN
+  │  IP-Pool: 192.168.178.200-210 (konfiguriert in eRechnung-Projekt)
+  ▼
+ingress-nginx Controller (Namespace ingress-nginx)
+  │  Routing nach Host-Header: ollama.stt.local
+  │  NetworkPolicy: allow-ingress-egress erlaubt Egress zu stt:11434
+  ▼
+Ollama Service (ClusterIP 10.43.x.x:11434, Namespace stt)
+  │
+  ▼
+Ollama Pod → /v1/chat/completions → Mistral-Modell (7.2B, in PVC ollama-data)
+```
+
+### Nicht-triviale Abhängigkeiten
+
+| Abhängigkeit | Konfiguration | Datei | Warum nötig |
+|---|---|---|---|
+| **DNS im Container** | `extra_hosts: ollama.stt.local:192.168.178.200` | `docker-compose.yml` (stt-server, stt-worker) | Docker-Container erben nicht `/etc/hosts` des Hosts |
+| **Egress-NetworkPolicy** | Ingress-nginx braucht Egress-Regel für `stt`-Namespace | `k8s/base/networkpolicy-ingress-egress-stt.yaml` | Ohne Policy → 502 Bad Gateway (Connection refused) |
+| **MetalLB IP-Pool** | `192.168.178.200-210` im LAN reserviert | `eRechnung/.../metallb-lan-config.yaml` | LoadBalancer-IP muss außerhalb des DHCP-Bereichs liegen |
+| **Modell-Persistenz** | PVC `ollama-data` (20Gi, local-path) | `k8s/base/ollama.yaml` | Modell (~4 GB) überlebt Pod-Neustarts |
+| **Ingress-Timeout** | `proxy-read/send-timeout: 3600` | `k8s/base/ollama.yaml` (Annotations) | LLM-Inferenz kann bei CPU-only mehrere Minuten dauern |
+| **Port-Mapping** | Ollama intern :11434, Ingress extern :80 | Ingress + ClusterIP Service | Clients sprechen Port 80 an, nicht 11434 |
+
+### Konfigurationsreferenz
+
+| Variable | Docker-Compose | k8s (values-k3s.yaml) | Bedeutung |
+|---|---|---|---|
+| `LLM_BASE_URL` | `http://ollama.stt.local` (via Ingress) | `http://ollama:11434` (ClusterIP direkt) | Ollama-Endpunkt |
+| `LLM_MODEL` | `mistral` | `mistral` | Ollama-Modellname |
+| `LLM_TIMEOUT` | `3600` (in .env) | — (Code-Default: 120s) | HTTP-Timeout für LLM-Anfragen |

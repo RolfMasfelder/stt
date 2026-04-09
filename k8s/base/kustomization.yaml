@@ -7,3 +7,5 @@ resources:
   - namespace.yaml
   - postgres.yaml
   - minio.yaml
+  - ollama.yaml
+  - networkpolicy-ingress-egress-stt.yaml

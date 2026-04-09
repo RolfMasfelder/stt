@@ -46,6 +46,11 @@ gunicorn:
   workers: 2
   timeout: 600
 
+# -- LLM (Ollama in k8s/base/ollama.yaml, same namespace) --
+llm:
+  baseUrl: "http://ollama:11434"
+  model: "mistral"
+
 service:
   type: ClusterIP
   port: 8090

@@ -58,11 +58,13 @@ services:
       - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
       - DJANGO_SETTINGS_MODULE=stt.settings
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-insecure-dev-key-change-in-production}
+    extra_hosts:
+      - "ollama.stt.local:192.168.178.200"
     networks:
       - stt-network
     profiles:
       - production
-    command: ["python", "-m", "gunicorn", "stt.wsgi:application", "--bind", "0.0.0.0:8090", "--workers", "2", "--timeout", "600"]
+    command: ["python", "-m", "gunicorn", "stt.wsgi:application", "--bind", "0.0.0.0:8090", "--workers", "2", "--timeout", "${GUNICORN_TIMEOUT:-600}"]
 
   # django-q2 worker for async task processing
   stt-worker:
@@ -86,6 +88,8 @@ services:
       - LOG_LEVEL=${LOG_LEVEL}
       - DJANGO_SETTINGS_MODULE=stt.settings
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-insecure-dev-key-change-in-production}
+    extra_hosts:
+      - "ollama.stt.local:192.168.178.200"
     networks:
       - stt-network
     profiles:
@@ -125,10 +129,12 @@ services:
       - .:/app:z
       - ${AUDIO_INPUT_DIR:-./data/audio}:/app/data/audio:z
       - ${OUTPUT_DIR:-./data/output}:/app/data/output:z
+      - caddy_data:/caddy_data:ro
     environment:
       - PYTHONPATH=/app
-      - STT_SERVER_URL=${STT_SERVER_URL}
+      - STT_SERVER_URL=${STT_SERVER_URL:-https://localhost}
       - LOG_LEVEL=${LOG_LEVEL}
+      - REQUESTS_CA_BUNDLE=${REQUESTS_CA_BUNDLE:-/caddy_data/caddy/pki/authorities/local/root.crt}
     network_mode: host
     profiles:
       - cli
