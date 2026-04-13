@@ -9,7 +9,7 @@ django-oauth-toolkit==3.0.1  # OAuth2 Provider (RFC 6749/7636)
 django-prometheus==2.4.1     # Prometheus metrics for Django
 django-q2==1.9.0             # Task queue with DB broker
 djangorestframework==3.16.0
-drf-spectacular==0.28.0      # OpenAPI 3.0 schema generation
+drf-spectacular==0.29.0      # OpenAPI 3.0 schema generation
 
 # -- Runtime --
 gunicorn==23.0.0             # WSGI production server
