@@ -34,7 +34,7 @@ dev = [
     "pytest-django>=4.5",
     "ruff>=0.15.10",
     "pre-commit>=3.0",
-    "bandit>=1.7",
+    "bandit>=1.9.4",
     "pip-audit>=2.7",
 ]
 
