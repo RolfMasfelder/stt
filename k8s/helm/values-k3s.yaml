@@ -3,7 +3,10 @@
 
 replicaCount: 1
 
-hfToken: true
+# HF token is stored in a manually created secret (not committed to git).
+# Create it once with:
+#   kubectl create secret generic stt-stt-ml-config -n stt --from-literal=HF_STT_TOKEN=<token>
+hfToken: ""
 
 nodeSelector:
   kubernetes.io/hostname: cirrus7-neu
@@ -28,6 +31,11 @@ mlService:
   tolerations: []
   whisperModel: small
   whisperDevice: cpu
+  existingHfTokenSecret: "stt-stt-ml-config"
+  persistence:
+    enabled: true
+    storageClass: local-path
+    size: 10Gi
 
 database:
   host: postgres

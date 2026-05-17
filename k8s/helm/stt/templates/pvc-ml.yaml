@@ -1,0 +1,18 @@
+{{- if .Values.mlService.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "stt.fullname" . }}-ml-cache
+  labels:
+    {{- include "stt.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ml-service
+spec:
+  accessModes:
+    - {{ .Values.mlService.persistence.accessMode | default "ReadWriteOnce" }}
+  {{- if .Values.mlService.persistence.storageClass }}
+  storageClassName: {{ .Values.mlService.persistence.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.mlService.persistence.size }}
+{{- end }}
