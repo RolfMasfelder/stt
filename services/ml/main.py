@@ -28,6 +28,7 @@ app = FastAPI(title="STT ML Service", version="0.1.0")
 # ---------------------------------------------------------------------------
 WHISPER_MODEL: str = os.getenv("WHISPER_MODEL", "small")
 WHISPER_DEVICE: str = os.getenv("WHISPER_DEVICE", "cpu")
+WHISPER_COMPUTE_TYPE: str = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
 DIARIZE_MODEL: str = os.getenv("DIARIZE_MODEL", "pyannote/speaker-diarization-3.1")
 DIARIZE_DEVICE: str = os.getenv("DIARIZE_DEVICE", "cpu")
 HF_STT_TOKEN: str | None = os.getenv("HF_STT_TOKEN") or None
@@ -51,7 +52,9 @@ class DiarizedSegment:
 # ---------------------------------------------------------------------------
 def _run_whisper(audio_path: Path, model_name: str) -> list[dict]:
     """Run faster-whisper locally, return segments as dicts."""
-    model = WhisperModel(model_name, device=WHISPER_DEVICE)
+    model = WhisperModel(
+        model_name, device=WHISPER_DEVICE, compute_type=WHISPER_COMPUTE_TYPE
+    )
     segments, info = model.transcribe(str(audio_path))
     logger.info(
         "Detected language: %s (probability: %.2f)",
