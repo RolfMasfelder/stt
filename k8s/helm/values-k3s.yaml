@@ -3,6 +3,8 @@
 
 replicaCount: 1
 
+hfToken: true
+
 nodeSelector:
   kubernetes.io/hostname: cirrus7-neu
 
