@@ -14,4 +14,5 @@ data:
   {{- if .Values.llm.baseUrl }}
   LLM_BASE_URL: {{ .Values.llm.baseUrl | quote }}
   LLM_MODEL: {{ .Values.llm.model | quote }}
+  LLM_TIMEOUT: {{ .Values.llm.timeout | default 120 | quote }}
   {{- end }}

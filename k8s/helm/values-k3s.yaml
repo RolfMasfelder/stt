@@ -100,7 +100,7 @@ resources:
       cpu: 200m
     limits:
       memory: 6Gi
-      cpu: "2"
+      cpu: "8"
 
 autoscaling:
   server:
