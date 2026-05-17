@@ -32,6 +32,8 @@ spec:
       labels:
         app.kubernetes.io/name: ollama
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: cirrus7-neu
       containers:
         - name: ollama
           image: ollama/ollama:latest
