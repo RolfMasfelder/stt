@@ -7,6 +7,10 @@ metadata:
     app.kubernetes.io/component: ml-service
 spec:
   replicas: {{ .Values.mlService.replicaCount }}
+  {{- if .Values.mlService.persistence.enabled }}
+  strategy:
+    type: Recreate
+  {{- end }}
   selector:
     matchLabels:
       {{- include "stt.mlServiceLabels" . | nindent 6 }}
@@ -42,11 +46,12 @@ spec:
               value: {{ .Values.mlService.diarizeModel | quote }}
             - name: DIARIZE_DEVICE
               value: {{ .Values.mlService.diarizeDevice | quote }}
-            {{- if .Values.hfToken }}
+            {{- $hfSecret := .Values.mlService.existingHfTokenSecret | default (ternary (printf "%s-ml-config" (include "stt.fullname" .)) "" (ne .Values.hfToken "")) }}
+            {{- if $hfSecret }}
             - name: HF_STT_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "stt.fullname" . }}-ml-config
+                  name: {{ $hfSecret }}
                   key: HF_STT_TOKEN
             {{- end }}
           readinessProbe:
@@ -63,3 +68,14 @@ spec:
             periodSeconds: 30
           resources:
             {{- toYaml .Values.resources.mlService | nindent 12 }}
+          {{- if .Values.mlService.persistence.enabled }}
+          volumeMounts:
+            - name: hf-cache
+              mountPath: /root/.cache/huggingface
+          {{- end }}
+      {{- if .Values.mlService.persistence.enabled }}
+      volumes:
+        - name: hf-cache
+          persistentVolumeClaim:
+            claimName: {{ include "stt.fullname" . }}-ml-cache
+      {{- end }}
