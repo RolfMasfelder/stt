@@ -31,6 +31,7 @@ mlService:
   tolerations: []
   whisperModel: small
   whisperDevice: cpu
+  timeout: 3600
   existingHfTokenSecret: "stt-stt-ml-config"
   persistence:
     enabled: true
@@ -58,7 +59,7 @@ django:
 
 gunicorn:
   workers: 2
-  timeout: 600
+  timeout: 3600
 
 # -- LLM (Ollama in k8s/base/ollama.yaml, same namespace) --
 llm:
