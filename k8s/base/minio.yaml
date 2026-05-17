@@ -40,6 +40,8 @@ spec:
       labels:
         app.kubernetes.io/name: minio
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: cirrus7-neu
       containers:
         - name: minio
           image: minio/minio:latest

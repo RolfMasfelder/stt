@@ -2,6 +2,8 @@
 
 replicaCount: 1
 
+nodeSelector: {}
+
 image:
   repository: stt-server
   tag: KUSTOMIZE
