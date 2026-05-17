@@ -36,6 +36,8 @@ spec:
               value: {{ .Values.mlService.whisperModel | quote }}
             - name: WHISPER_DEVICE
               value: {{ .Values.mlService.whisperDevice | quote }}
+            - name: WHISPER_COMPUTE_TYPE
+              value: {{ .Values.mlService.whisperComputeType | default "int8" | quote }}
             - name: DIARIZE_MODEL
               value: {{ .Values.mlService.diarizeModel | quote }}
             - name: DIARIZE_DEVICE

@@ -3,6 +3,9 @@
 
 replicaCount: 1
 
+nodeSelector:
+  kubernetes.io/hostname: cirrus7-neu
+
 image:
   repository: 192.168.178.80:5000/stt-server
   tag: KUSTOMIZE  # overridden by deploy-remote.sh --set image.tag=v<version>-<sha>
@@ -18,7 +21,8 @@ mlService:
     tag: KUSTOMIZE  # overridden by deploy-remote.sh --set mlService.image.tag=v<version>-<sha>
     pullPolicy: Always
   port: 8091
-  nodeSelector: {}
+  nodeSelector:
+    kubernetes.io/hostname: cirrus7-neu
   tolerations: []
   whisperModel: small
   whisperDevice: cpu
@@ -59,6 +63,10 @@ ingress:
   enabled: true
   className: nginx
   host: stt.local
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
 
 resources:
   server:
@@ -77,10 +85,10 @@ resources:
       cpu: 500m
   mlService:
     requests:
-      memory: 512Mi
+      memory: 1Gi
       cpu: 200m
     limits:
-      memory: 2Gi
+      memory: 6Gi
       cpu: "2"
 
 autoscaling:
