@@ -8,7 +8,7 @@ description: "Use when: modifying OAuth2 configuration, django-oauth-toolkit (DO
 
 # OAuth2 & django-oauth-toolkit (DOT)
 
-Use this skill when working on OAuth2 authentication/authorization, modifying `OAUTH2_PROVIDER` settings, the `CustomOAuth2Validator`, or debugging token-related permission issues.
+Use this skill specifically for OAuth2 authentication/authorization, modifying `OAUTH2_PROVIDER` settings, the `CustomOAuth2Validator`, or debugging token-related permission issues.
 
 ## Architecture
 

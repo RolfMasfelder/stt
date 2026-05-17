@@ -3,12 +3,13 @@
 ## Critical Rules
 
 - **Python 3.13**: Use Python 3.13 syntax and libraries only
-- **Type-Hints**: Always use Type-Hints
+- **Type-Hints**: Within code-files, use Type-Hints.
 - **Tests required**: ALL features/bugfixes MUST have tests (unit + integration)
-- **Tests in Docker**: ALWAYS run tests via `docker compose exec [cmd]`. NEVER run tests locally in venv – the DB and all dependencies are only available inside the container.
-- **Docker first**: ALL commands via `docker compose exec [cmd]`
-- **Development with venv**: Use virtual environment for local dev (python -m venv venv), always use "source venv/bin/activate" before running any commands, and in any terminal session
-- **Git Commits**: Keep messages concise (feat/fix/refactor format). NO long descriptions. Only one line as commit-message
+- **Tests in Docker**: ALWAYS run tests via `docker compose exec [cmd]`. NEVER run tests locally – the DB and all dependencies are only available inside the container.
+- **Terminal Sessions**: ALWAYS use "source venv/bin/activate" in any terminal session outside docker. This ensures the correct Python environment is active and prevents issues with missing dependencies or incorrect Python versions.
+- **Docker first**: If creating a new terminal session use "source venv/bin/activate". Run commands via `docker compose exec [cmd]`
+- **Development with venv**: Use virtual environment for local dev (python -m venv venv), always use "source venv/bin/activate" before running any commands.
+- **Git Commits**: Use commit messages starting with feat:, fix:, or refactor:. The entire commit message has to fit within 70 characters. It has to be one line. Additional lines are not allowed. The description should be concise and clearly describe the change made in the commit.
 - **Environment**: Django app with PostgreSQL + Redis in containers.
 - **npm**: Only for frontend tests, run inside container. NO npm on host machine.
 - **No `:latest` Tags**: All container images MUST use explicit versioned tags. k8s manifests use `:KUSTOMIZE` (overridden by `kustomization.yaml`). Build scripts use `v<version>-<git-sha>` from `pyproject.toml` + `git rev-parse --short HEAD`.
