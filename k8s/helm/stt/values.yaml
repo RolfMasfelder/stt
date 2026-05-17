@@ -91,6 +91,8 @@ gunicorn:
 llm:
   baseUrl: ""
   model: ""
+  # Timeout (seconds) for LLM requests. Ollama can be slow on first token.
+  timeout: 3600
 
 # -- Service --
 service:
