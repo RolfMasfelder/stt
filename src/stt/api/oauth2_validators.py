@@ -4,6 +4,7 @@ import logging
 
 from oauth2_provider.oauth2_validators import OAuth2Validator
 
+logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ class CustomOAuth2Validator(OAuth2Validator):
         if request.grant_type == "client_credentials" and request.client.user:
             from oauth2_provider.models import AccessToken
 
-            updated = updated = AccessToken.objects.filter(
+            updated = AccessToken.objects.filter(
                 token=token["access_token"],
                 user__isnull=True,
             ).update(user=request.client.user)
