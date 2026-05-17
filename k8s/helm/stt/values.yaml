@@ -34,6 +34,9 @@ mlService:
   whisperDevice: cpu
   diarizeModel: pyannote/speaker-diarization-3.1
   diarizeDevice: cpu
+  # Timeout (seconds) for stt-server → stt-ml HTTP requests.
+  # Must be less than gunicorn.timeout and ingress proxy-read-timeout.
+  timeout: 600
   # Persistent cache for HuggingFace models (Whisper + pyannote).
   # Without persistence the models are re-downloaded on every pod restart.
   persistence:

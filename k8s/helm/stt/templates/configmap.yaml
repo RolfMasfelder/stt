@@ -10,6 +10,7 @@ data:
   ALLOWED_HOSTS: {{ .Values.django.allowedHosts | quote }}
   DATA_RETENTION_DAYS: {{ .Values.django.dataRetentionDays | quote }}
   ML_SERVICE_URL: "http://{{ include "stt.fullname" . }}-ml:{{ .Values.mlService.port }}"
+  ML_SERVICE_TIMEOUT: {{ .Values.mlService.timeout | default 600 | quote }}
   {{- if .Values.llm.baseUrl }}
   LLM_BASE_URL: {{ .Values.llm.baseUrl | quote }}
   LLM_MODEL: {{ .Values.llm.model | quote }}
