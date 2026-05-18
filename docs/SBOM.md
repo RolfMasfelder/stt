@@ -64,30 +64,30 @@ mobile recording client.
 
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
-| cupertino_icons | ^1.0.8 | MIT | iOS-style icons |
-| http | ^1.4.0 | BSD-3-Clause | HTTP client |
-| provider | ^6.1.0 | MIT | State management |
-| shared_preferences | ^2.5.0 | BSD-3-Clause | Local key-value storage |
-| record | ^6.2.0 | MIT | Audio recording |
-| path_provider | ^2.1.0 | BSD-3-Clause | File system paths |
-| intl | ^0.20.0 | BSD-3-Clause | Internationalization |
-| flutter_appauth | ^12.0.0 | Apache-2.0 | OAuth2 / OpenID Connect client |
-| flutter_secure_storage | ^10.0.0 | BSD-3-Clause | Encrypted secure storage |
-| connectivity_plus | ^7.1.0 | BSD-3-Clause | Network connectivity detection |
-| flutter_local_notifications | ^21.0.0 | MIT | Local push notifications |
-| flutter_lints | ^6.0.0 | BSD-3-Clause | Lint rules |
+| cupertino_icons | 1.0.9 | MIT | iOS-style icons |
+| http | 1.6.0 | BSD-3-Clause | HTTP client |
+| provider | 6.1.5+1 | MIT | State management |
+| shared_preferences | 2.5.5 | BSD-3-Clause | Local key-value storage |
+| record | 6.2.0 | MIT | Audio recording |
+| path_provider | 2.1.5 | BSD-3-Clause | File system paths |
+| intl | 0.20.2 | BSD-3-Clause | Internationalization |
+| flutter_appauth | 12.0.0 | Apache-2.0 | OAuth2 / OpenID Connect client |
+| flutter_secure_storage | 10.0.0 | BSD-3-Clause | Encrypted secure storage |
+| connectivity_plus | 7.1.0 | BSD-3-Clause | Network connectivity detection |
+| flutter_local_notifications | 21.0.0 | MIT | Local push notifications |
+| flutter_lints | 6.0.0 | BSD-3-Clause | Lint rules |
 
 ### Infrastructure Services
 
-| Service | Version | Type | Port | Purpose |
-| --- | --- | --- | --- | --- |
-| stt-server | 0.1.1 | Application | 8090 | Django/DRF REST API + orchestration |
-| stt-worker | 0.1.1 | Background | — | Celery async task processing |
-| stt-ml | 0.1.1 | ML Service | 8091 | faster-whisper transcription + pyannote diarization |
-| stt-ollama | 0.24.0 | LLM Service | 11434 | Ollama – LLM inference (mistral) |
-| caddy | 2-alpine | Infrastructure | 80/443 | Reverse proxy + automatic TLS |
-| PostgreSQL | 17 | Database | 5432 | Primary database |
-| python:3.13-slim-bookworm | 3.13 | Infrastructure | — | Backend base image |
+| Service | Version | License | Type | Port | Purpose |
+| --- | --- | --- | --- | --- | --- |
+| stt-server | 0.1.1 | Proprietary | Application | 8090 | Django/DRF REST API + orchestration |
+| stt-worker | 0.1.1 | Proprietary | Background | — | Celery async task processing |
+| stt-ml | 0.1.1 | Proprietary | ML Service | 8091 | faster-whisper transcription + pyannote diarization |
+| stt-ollama | 0.24.0 | MIT | LLM Service | 11434 | Ollama – LLM inference (mistral) |
+| caddy | 2-alpine | Apache-2.0 | Infrastructure | 80/443 | Reverse proxy + automatic TLS |
+| PostgreSQL | 17 | PostgreSQL License | PostgreSQL License | Database | 5432 | Primary database |
+| python:3.13-slim-bookworm | 3.13 | PSF-2.0 | Infrastructure | — | Backend base image |
 
 ### Development & Quality Tools
 
