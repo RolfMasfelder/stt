@@ -1,52 +1,50 @@
 # 6. Laufzeitsicht
 
-## Szenario 1: Volle Pipeline (Remote)
+## Szenario 1: Volle Pipeline (Remote, via stt-cli)
 
 ```
-CLI                  STTClient           STT-Server         faster-whisper    pyannote    LM Studio
- │                      │                    │                    │              │           │
- │──process(audio)─────►│                    │                    │              │           │
- │                      │──POST /v1/process─►│                    │              │           │
- │                      │                    │──transcribe()─────►│              │           │
- │                      │                    │◄──segments─────────│              │           │
- │                      │                    │──diarize()────────────────────────►│           │
- │                      │                    │◄──speaker labels──────────────────│           │
- │                      │                    │──structure_text()─────────────────────────────►│
- │                      │                    │◄──structured──────────────────────────────────│
- │                      │                    │──summarize_text()─────────────────────────────►│
- │                      │                    │◄──summary─────────────────────────────────────│
- │                      │◄──JSON────────────│                    │              │           │
- │◄──ProcessResult──────│                    │                    │              │           │
- │                      │                    │                    │              │           │
- ├── print(transcript)  │                    │                    │              │           │
- ├── print(diarized)    │                    │                    │              │           │
- ├── print(structured)  │                    │                    │              │           │
- └── print(summary)     │                    │                    │              │           │
+CLI            STTClient        stt-server (Django)  stt-ml (FastAPI)   Ollama
+ |                 |                  |                    |               |
+ |--process()----> |                  |                    |               |
+ |                 |--POST /v1/process->                   |               |
+ |                 |                  |--POST /v1/transcribe->             |
+ |                 |                  |<--text-------------|               |
+ |                 |                  |--POST /v1/diarize-->               |
+ |                 |<--segments-------|                    |               |
+ |                 |                  |--POST /v1/chat/completions-------->|
+ |                 |                  |<--structured------------------------
+ |                 |                  |--POST /v1/chat/completions-------->|
+ |                 |                  |<--summary---------------------------
+ |                 |<--JSON-----------|                    |               |
+ |<--ProcessResult-|                  |                    |               |
 ```
 
-## Szenario 2: Nur Transkription (Lokal)
+## Szenario 2: Transkription + Diarization (via stt-ml)
 
 ```
-CLI              transcribe.py        faster-whisper (lokal)
- │                    │                       │
- │──transcribe()─────►│                       │
- │                    │──WhisperModel.transcribe()──►│
- │                    │◄──segments────────────│
- │◄──text─────────────│                       │
- │                    │                       │
- └── print(text)      │                       │
+stt-server          stt-ml              faster-whisper / pyannote
+ |                    |                       |
+ |--POST /v1/transcribe->                     |
+ |                    |--WhisperModel()------->|
+ |                    |<--segments------------|
+ |<--{"text": "..."}--|
+ |
+ |--POST /v1/diarize-->
+ |                    |--pyannote.Pipeline()--->|
+ |                    |<--speaker segments-----|
+ |<--{text, segments}--
 ```
 
-## Szenario 3: Text-Modus (--skip)
+## Szenario 3: Text-Modus (--skip, kein Audio)
 
 ```
-CLI              summarize.py         LM Studio
- │                    │                    │
- │──read text file    │                    │
- │──process_transcript()──►│               │
- │                    │──POST /v1/chat/completions──►│
- │                    │◄──structured────────│
- │                    │──POST /v1/chat/completions──►│
- │                    │◄──summary──────────│
- │◄──results──────────│                    │
+CLI              summarize.py         Ollama
+ |                    |                    |
+ |--read text file    |                    |
+ |--process_transcript()-->               |
+ |                    |--POST /v1/chat/completions-->|
+ |                    |<--structured-------|
+ |                    |--POST /v1/chat/completions-->|
+ |                    |<--summary----------|
+ |<--results----------|
 ```

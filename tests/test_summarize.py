@@ -73,16 +73,20 @@ class TestSummarizeText:
         assert "## Ergebnis" in result
         assert result == "## Ergebnis\nDas ist die Antwort."
 
+    @patch("stt.summarize.time.sleep")
     @patch("stt.summarize.requests.post")
-    def test_connection_error(self, mock_post: MagicMock) -> None:
+    def test_connection_error(
+        self, mock_post: MagicMock, mock_sleep: MagicMock
+    ) -> None:
         """Should wrap ConnectionError in SummarizationError."""
         mock_post.side_effect = requests.ConnectionError("Connection refused")
 
         with pytest.raises(SummarizationError, match="Cannot connect"):
             summarize_text("Test text")
 
+    @patch("stt.summarize.time.sleep")
     @patch("stt.summarize.requests.post")
-    def test_timeout_error(self, mock_post: MagicMock) -> None:
+    def test_timeout_error(self, mock_post: MagicMock, mock_sleep: MagicMock) -> None:
         """Should wrap Timeout in SummarizationError."""
         mock_post.side_effect = requests.Timeout("Timed out")
 
@@ -151,6 +155,46 @@ class TestSummarizeText:
         messages = call_args.kwargs["json"]["messages"]
         assert messages[0]["content"] == "Custom prompt"
 
+    @patch("stt.summarize.time.sleep")
+    @patch("stt.summarize.requests.post")
+    def test_retries_on_503(self, mock_post: MagicMock, mock_sleep: MagicMock) -> None:
+        """Should retry on HTTP 503 and succeed on second attempt."""
+        fail_response = MagicMock()
+        fail_response.status_code = 503
+        fail_response.ok = False
+        fail_response.raise_for_status = MagicMock()
+
+        ok_response = MagicMock()
+        ok_response.status_code = 200
+        ok_response.ok = True
+        ok_response.json.return_value = {
+            "choices": [{"message": {"content": "Retried OK"}}]
+        }
+        ok_response.raise_for_status = MagicMock()
+
+        mock_post.side_effect = [fail_response, ok_response]
+
+        result = summarize_text("Text")
+        assert result == "Retried OK"
+        assert mock_post.call_count == 2
+        mock_sleep.assert_called_once()
+
+    @patch("stt.summarize.time.sleep")
+    @patch("stt.summarize.requests.post")
+    def test_connection_error_retries_then_fails(
+        self, mock_post: MagicMock, mock_sleep: MagicMock
+    ) -> None:
+        """Should raise SummarizationError after exhausting all retries."""
+        from stt.summarize import _MAX_RETRIES
+
+        mock_post.side_effect = requests.ConnectionError("refused")
+
+        with pytest.raises(SummarizationError, match="Cannot connect"):
+            summarize_text("Text")
+
+        assert mock_post.call_count == _MAX_RETRIES
+        assert mock_sleep.call_count == _MAX_RETRIES - 1
+
 
 class TestStructureText:
     """Tests for structure_text."""
@@ -178,8 +222,11 @@ class TestStructureText:
         with pytest.raises(ValueError, match="must not be empty"):
             structure_text("")
 
+    @patch("stt.summarize.time.sleep")
     @patch("stt.summarize.requests.post")
-    def test_connection_error(self, mock_post: MagicMock) -> None:
+    def test_connection_error(
+        self, mock_post: MagicMock, mock_sleep: MagicMock
+    ) -> None:
         """Should propagate SummarizationError."""
         mock_post.side_effect = requests.ConnectionError("refused")
         with pytest.raises(SummarizationError):
@@ -229,15 +276,21 @@ class TestProcessTranscript:
             == SUMMARY_SYSTEM_PROMPT
         )
 
+    @patch("stt.summarize.time.sleep")
     @patch("stt.summarize.requests.post")
-    def test_structure_failure_stops_pipeline(self, mock_post: MagicMock) -> None:
-        """Should not attempt summarization if structuring fails."""
+    def test_structure_failure_stops_pipeline(
+        self, mock_post: MagicMock, mock_sleep: MagicMock
+    ) -> None:
+        """Should not attempt summarization if structuring fails (after retries)."""
         mock_post.side_effect = requests.ConnectionError("refused")
 
         with pytest.raises(SummarizationError):
             process_transcript("Text")
 
-        assert mock_post.call_count == 1
+        # Retries _MAX_RETRIES times for the structure step, never reaches summary
+        from stt.summarize import _MAX_RETRIES
+
+        assert mock_post.call_count == _MAX_RETRIES
 
     def test_empty_text_raises(self) -> None:
         """Should raise ValueError for empty text."""
@@ -325,8 +378,11 @@ class TestDiarizeText:
         with pytest.raises(ValueError, match="must not be empty"):
             diarize_text("")
 
+    @patch("stt.summarize.time.sleep")
     @patch("stt.summarize.requests.post")
-    def test_connection_error(self, mock_post: MagicMock) -> None:
+    def test_connection_error(
+        self, mock_post: MagicMock, mock_sleep: MagicMock
+    ) -> None:
         """Should propagate SummarizationError."""
         mock_post.side_effect = requests.ConnectionError("refused")
         with pytest.raises(SummarizationError):

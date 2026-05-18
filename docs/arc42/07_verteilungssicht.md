@@ -31,11 +31,16 @@
 
 | Service | Profil | Zweck | Image |
 |---------|--------|-------|-------|
-| `stt-server` | production | FastAPI-Server, Port 8001 | Eigenes Dockerfile |
-| `stt-cli` | cli | CLI-Tool, nutzt STT_SERVER_URL | Eigenes Dockerfile |
-| `stt-dev` | dev | Entwicklungsshell mit bash | Eigenes Dockerfile |
-| `whisper-server` | whisper-remote | Optionaler Whisper-Server | `fedirz/faster-whisper-server:latest-cpu` |
-| `ollama` | ollama | Ollama LLM-Inferenz-Server | `ollama/ollama:latest` |
+| `stt-server` | production | Django/DRF-Server, Port 8090 | Eigenes Dockerfile |
+| `stt-worker` | production | django-q2 Task-Worker | Eigenes Dockerfile |
+| `stt-ml` | production | ML-Service: Transkription + Diarization, Port 8091 | Eigenes Dockerfile |
+| `stt-ollama` | production | Ollama LLM-Inferenz, Port 11434 | `ollama/ollama:0.24.0` |
+| `db` | production | PostgreSQL-Datenbank | `postgres:17` |
+| `caddy` | production | Reverse-Proxy + TLS-Terminierung | `caddy:2-alpine` |
+| `stt-test` | test | pytest-Runner | Eigenes Dockerfile (dev) |
+| `stt-cli` | cli | CLI-Tool | Eigenes Dockerfile (dev) |
+| `whisper-server` | whisper-remote | Alternativer Whisper-Server | `fedirz/faster-whisper-server:latest-cpu` |
+| `flutter` | mobile | Flutter-Entwicklung | Eigenes Dockerfile |
 
 ## Kubernetes-Deployment (k3s)
 
@@ -55,7 +60,7 @@ Namespace `stt`. Alle Pods laufen via `nodeSelector: kubernetes.io/hostname: cir
 
 ### Ingress
 
-Caddy läuft nativ (kein Pod), Nginx-Ingress-Controller im Namespace `ingress-nginx`.
+Caddy läuft als Docker-Container im `production`-Profil und übernimmt TLS-Terminierung (Port 443/80). Nginx-Ingress-Controller im Namespace `ingress-nginx` für k3s.
 Extern erreichbar unter `http://stt.local` (DNS/hosts-Eintrag erforderlich).
 
 ### Persistent Volumes

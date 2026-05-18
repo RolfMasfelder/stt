@@ -37,7 +37,7 @@ konsumieren. Dokumentation erfolgt in arc42 (Kontextabgrenzung, Bausteinsicht).
 
 - [x] `docs/anwendungsuebersicht.md`: S3-Schnittstellentabelle aktualisiert (tatsächlich genutzter Endpunkt, Health-Check).
 - [x] `docs/anwendungsuebersicht.md`: Infrastruktur-Abschnitt mit Netzwerk-Architektur, Abhängigkeiten und Konfigurationsreferenz.
-- [ ] `docs/arc42/03_kontextabgrenzung.md`: Ollama-Schnittstelle (`POST /v1/chat/completions`) mit Request/Response-Format dokumentieren.
+- [x] `docs/arc42/03_kontextabgrenzung.md`: Ollama-Schnittstelle (`POST /v1/chat/completions`) mit Request/Response-Format dokumentieren.
 
 ### 2. GPU-Unterstützung für Ollama *(zurückgestellt – keine GPU verfügbar)*
 
@@ -61,7 +61,7 @@ docker compose --profile ollama up -d ollama
 docker compose exec ollama ollama pull mistral
 ```
 
-- [ ] Dokumentation der manuellen Schritte (s.o.) in README.md.
+- [x] Dokumentation der manuellen Schritte (s.o.) in README.md.
 - [ ] Optional: Init-Container oder Entrypoint-Script für automatischen Pull wenn Modell fehlt.
 
 ### 4. Kubernetes Ollama-Deployment
@@ -134,32 +134,32 @@ bereits via MetalLB erreichbar – **keine firewall-cmd-Regel für Ollama nötig
   - **Cloud/Dedicated**: `https://llama.example.com` (TLS via cert-manager, später)
 - [x] DNS-Eintrag `ollama.stt.local → 192.168.178.200` auf Entwicklungsrechner konfiguriert (`/etc/hosts`).
 - [x] Ingress-Timeout auf 3600s gesetzt (nginx-Annotations in `ollama.yaml`).
-- [ ] Prüfen ob Timeout-Werte (`LLM_TIMEOUT=3600`) für große Modelle ausreichen.
+- [x] Prüfen ob Timeout-Werte (`LLM_TIMEOUT=3600`) für große Modelle ausreichen.
 
 ### 6. Doku aktualisieren (Ollama als Produktion, LM Studio als Entwicklungsvariante)
 
 > LM Studio bleibt in der arc42-Doku als Entwicklungs-/Prompt-Tuning-Variante erhalten.
 > Ollama wird als produktive Entscheidung eingepflegt.
 
-- [ ] `README.md`: Architektur-Diagramm aktualisieren – Ollama als primäres LLM-Backend, LM Studio als optionale Dev-Alternative.
-- [ ] `README.md`: Voraussetzungen: Ollama (Produktion) oder LM Studio (Entwicklung).
-- [ ] `README.md`: Beschreibung der Services aktualisieren.
-- [ ] `docs/arc42/02_randbedingungen.md`: Ollama als produktive Wahl, LM Studio als Dev-Option erwähnen.
-- [ ] `docs/arc42/03_kontextabgrenzung.md`: Kontextdiagramm um Ollama (:11434) ergänzen.
-- [ ] `docs/arc42/04_loesungsstrategie.md`: Ollama als gewählte Technologie, LM Studio als Alternative beibehalten.
-- [ ] `docs/arc42/05_bausteinsicht.md`: Ollama als primäres Backend eintragen.
-- [ ] `docs/arc42/06_laufzeitsicht.md`: Sequenzdiagramme um Ollama ergänzen.
-- [ ] `docs/arc42/07_verteilungssicht.md`: Verteilungsdiagramm mit Ollama-Container aktualisieren.
-- [ ] `docs/arc42/08_entscheidungen.md`: ADR-5 ergänzen: Entscheidung für Ollama im produktiven Betrieb, LM Studio bleibt für Entwicklung.
-- [ ] `docs/arc42/ADR-08_verschluesselung.md`: Ollama-Kommunikation ergänzen.
-- [ ] `docker_usage.md`: Ollama-Nutzung ergänzen.
+- [x] `README.md`: Architektur-Diagramm aktualisieren – Ollama als primäres LLM-Backend, LM Studio als optionale Dev-Alternative.
+- [x] `README.md`: Voraussetzungen: Ollama (Produktion) oder LM Studio (Entwicklung).
+- [x] `README.md`: Beschreibung der Services aktualisieren.
+- [x] `docs/arc42/02_randbedingungen.md`: Ollama als produktive Wahl, LM Studio als Dev-Option erwähnen.
+- [x] `docs/arc42/03_kontextabgrenzung.md`: Kontextdiagramm um Ollama (:11434) ergänzen.
+- [x] `docs/arc42/04_loesungsstrategie.md`: Ollama als gewählte Technologie, LM Studio als Alternative beibehalten.
+- [x] `docs/arc42/05_bausteinsicht.md`: Ollama als primäres Backend eintragen.
+- [x] `docs/arc42/06_laufzeitsicht.md`: Sequenzdiagramme um Ollama ergänzen.
+- [x] `docs/arc42/07_verteilungssicht.md`: Verteilungsdiagramm mit Ollama-Container aktualisieren.
+- [x] `docs/arc42/08_entscheidungen.md`: ADR-5 ergänzen: Entscheidung für Ollama im produktiven Betrieb, LM Studio bleibt für Entwicklung.
+- [x] `docs/arc42/ADR-08_verschluesselung.md`: Ollama-Kommunikation ergänzen.
+- [x] `docker_usage.md`: Ollama-Nutzung ergänzen.
 
 ### 7. Resilience & Monitoring
 
-- [ ] Retry-Logik in `summarize.py`: Bei temporären Ollama-Fehlern (503, Timeout) automatisch wiederholen.
-- [ ] Health-Endpoint im Server, der LLM-Erreichbarkeit prüft (`GET /health` → Ollama `/api/tags`).
+- [x] Retry-Logik in `summarize.py`: Bei temporären Ollama-Fehlern (503, Timeout, ConnectionError) 3x mit Backoff wiederholen.
+- [x] Health-Endpoint im Server, der LLM-Erreichbarkeit prüft (`GET /health` → Ollama `/api/tags`).
 - [ ] Metriken: LLM-Antwortzeiten, Fehlerrate, Modell-Verfügbarkeit loggen.
-- [ ] Circuit-Breaker: Bei anhaltenden LLM-Fehlern graceful degradieren (Transkription ohne Zusammenfassung).
+- [x] Circuit-Breaker: Bei anhaltenden LLM-Fehlern graceful degradieren (Transkription ohne Zusammenfassung).
 
 ### 8. Sicherheit
 

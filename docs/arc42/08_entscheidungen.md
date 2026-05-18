@@ -81,23 +81,26 @@
 
 ---
 
-## ADR-5: LM Studio für LLM-Verarbeitung
+## ADR-5: Ollama als LLM-Backend (Produktion)
 
-**Kontext:** Zusammenfassung und Strukturierung benötigen ein LLM.
+**Kontext:** Zusammenfassung und Strukturierung benötigen ein LLM. LM Studio war das ursprüngliche Backend (nativ auf dem Remote-Server, kein Docker). Für den Produktionsbetrieb wird ein automatisch startbarer, containerisierter Dienst benötigt.
 
-**Entscheidung:** LM Studio als lokales LLM-Backend.
+**Entscheidung:** Ollama als Docker-Container im `production`-Profil. LM Studio bleibt als optionale Entwicklungs- und Prompt-Tuning-Alternative erhalten.
 
 **Begründung:**
 
-- OpenAI-kompatible API (`/v1/chat/completions`)
-- Einfache Modellverwaltung (GUI)
-- Läuft nativ auf dem Remote-Server (kein Docker nötig)
-- Unterstützt verschiedene Modelle (aktuell: glm-4.7-flash)
+- Ollama startet automatisch mit `docker compose --profile production up`
+- Kein manuelles Starten eines nativen Prozesses nötig
+- OpenAI-kompatible API (`/v1/chat/completions`) — gleiche Schnittstelle wie LM Studio
+- Persistentes Volume (`ollama_data`) sichert Modelle über Container-Neustarts
+- LM Studio bleibt weiterhin nutzbar durch Änderung von `LLM_BASE_URL` in `.env`
 
 **Konsequenzen:**
 
-- Ollama-Service als Docker-Container verfügbar (Profil `ollama`)
-- Kann auf Remote-Rechner laufen (Entwicklung: 192.168.178.80)
+- `stt-ollama` Container (`ollama/ollama:0.24.0`) im `production`-Profil
+- Einmaliger manueller Schritt: `docker compose exec stt-ollama ollama pull mistral`
+- k3s nutzt einen separaten Ollama-Pod im Namespace `stt` (unabhängig von Docker Compose)
+- `LLM_BASE_URL=http://stt-ollama:11434` hardcoded für docker-compose (kein extra_hosts mehr)
 
 ---
 

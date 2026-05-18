@@ -52,5 +52,6 @@ Audio-Aufnahmen und Transkripte enthalten personenbezogene Daten (Stimmen, gespr
 ## Offene Fragen
 
 - [x] ~~Welcher Reverse-Proxy?~~ → Caddy gewählt (automatisches Let's Encrypt, `Caddyfile` im Projekt)
+- [x] ~~Ollama-Kommunikation?~~ → Ollama läuft im selben Docker-Netz (`stt-network`) wie `stt-server`. Kommunikation erfolgt intern via HTTP (`http://stt-ollama:11434`). TLS ist innerhalb des Docker-Netzes nicht erforderlich. In k3s: ClusterIP-Service, ebenfalls nur interne Kommunikation. Externe Exposition von Port 11434 ist deaktiviert.
 - [ ] Wie wird die Schlüsselverwaltung in der ersten Version umgesetzt?
 - [ ] Sind Audio-Aufnahmen als biometrische Daten (Art. 9) zu klassifizieren?
