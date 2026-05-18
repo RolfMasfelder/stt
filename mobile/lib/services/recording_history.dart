@@ -52,6 +52,14 @@ class RecordingHistoryService extends ChangeNotifier {
     }
   }
 
+  RecordingEntry? findById(String id) {
+    try {
+      return _entries.firstWhere((e) => e.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _save() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_storageKey, RecordingEntry.encodeList(_entries));

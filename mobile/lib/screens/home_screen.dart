@@ -1,12 +1,16 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/connection_status.dart';
+import '../models/recording_entry.dart';
 import '../models/recording_state.dart';
 import '../models/upload_status.dart';
 import '../services/audio_recording.dart';
+import '../services/auth.dart';
 import '../services/connectivity.dart';
 import '../services/processing_config.dart';
+import '../services/recording_history.dart';
 import '../services/server_connection.dart';
 import '../services/upload.dart';
 import '../widgets/hal_eye.dart';
@@ -40,6 +44,7 @@ class HomeScreen extends StatelessWidget {
     final connection = context.watch<ServerConnectionService>();
     final recorder = context.watch<AudioRecordingService>();
     final upload = context.watch<UploadService>();
+    final auth = context.watch<AuthService>();
 
     return Scaffold(
       appBar: AppBar(
@@ -61,7 +66,7 @@ class HomeScreen extends StatelessWidget {
           children: [
             // HAL-9000 Eye — tap to toggle recording
             GestureDetector(
-              onTap: () => _onEyeTap(context, connection, recorder),
+              onTap: () => _onEyeTap(context, connection, recorder, auth),
               child: HalEye(
                 status: connection.status,
                 size: 200.0,
@@ -146,6 +151,15 @@ class HomeScreen extends StatelessWidget {
                 recorder.state == RecordingState.idle) ...[
               const SizedBox(height: 24),
               _buildUploadStatus(context, upload),
+              if (upload.status == UploadStatus.failed &&
+                  upload.errorMessage == 'Nicht angemeldet') ...[
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () => Navigator.pushNamed(context, '/settings'),
+                  icon: const Icon(Icons.login),
+                  label: const Text('Einloggen'),
+                ),
+              ],
             ],
           ],
         ),
@@ -157,8 +171,23 @@ class HomeScreen extends StatelessWidget {
     BuildContext context,
     ServerConnectionService connection,
     AudioRecordingService recorder,
+    AuthService auth,
   ) async {
     if (recorder.state != RecordingState.idle) return;
+
+    if (!auth.isAuthenticated) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Bitte zuerst einloggen'),
+          action: SnackBarAction(
+            label: 'Einstellungen',
+            onPressed: () => Navigator.pushNamed(context, '/settings'),
+          ),
+        ),
+      );
+      return;
+    }
 
     final hasPerms = await recorder.hasPermission();
     if (!hasPerms) {
@@ -186,12 +215,25 @@ class HomeScreen extends StatelessWidget {
     BuildContext context,
     AudioRecordingService recorder,
   ) async {
+    final duration = recorder.duration;
     final path = await recorder.stop();
     if (path != null && context.mounted) {
       final connection = context.read<ServerConnectionService>();
       final processingConfig = context.read<ProcessingConfigService>();
       final upload = context.read<UploadService>();
       final connectivity = context.read<ConnectivityService>();
+      final history = context.read<RecordingHistoryService>();
+
+      final filename = kIsWeb ? 'recording.webm' : path.split('/').last;
+      final entry = RecordingEntry(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        filePath: path,
+        filename: filename,
+        createdAt: DateTime.now(),
+        duration: duration,
+        status: 'recorded',
+      );
+      await history.add(entry);
 
       final canUploadNow =
           connection.status == ConnectionStatus.connected &&
@@ -202,11 +244,12 @@ class HomeScreen extends StatelessWidget {
           serverUrl: connection.config!.serverUrl,
           filePath: path,
           config: processingConfig.config,
+          entryId: entry.id,
         );
       } else {
         final reason = !canUploadNow
             ? 'Aufnahme gespeichert (offline — Upload später)'
-            : 'Aufnahme gespeichert: ${path.split('/').last}';
+            : 'Aufnahme gespeichert: $filename';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(reason),
@@ -218,6 +261,7 @@ class HomeScreen extends StatelessWidget {
                         serverUrl: connection.config!.serverUrl,
                         filePath: path,
                         config: processingConfig.config,
+                        entryId: entry.id,
                       );
                     },
                   )
