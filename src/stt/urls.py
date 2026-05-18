@@ -1,6 +1,8 @@
 """Root URL configuration for the STT project."""
 
+from django.conf import settings
 from django.contrib import admin
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
@@ -16,3 +18,6 @@ urlpatterns = [
         name="swagger-ui",
     ),
 ]
+
+if settings.DEBUG:
+    urlpatterns += staticfiles_urlpatterns()
