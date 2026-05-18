@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_appauth/flutter_appauth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'web_oauth_stub.dart' if (dart.library.html) 'web_oauth_web.dart' as webOAuth;
 
 class AuthState {
   final bool isAuthenticated;
@@ -24,7 +25,7 @@ class AuthState {
 class AuthService extends ChangeNotifier {
   // On web, use a localhost HTTP redirect; on mobile, use the custom scheme.
   static String get _redirectUri =>
-      kIsWeb ? 'http://localhost:5000/callback' : 'stt.app://callback';
+      kIsWeb ? 'http://localhost:5000/callback.html' : 'stt.app://callback';
   static const _scopes = ['read', 'write'];
 
   static const _keyAccessToken = 'auth_access_token';
@@ -80,6 +81,13 @@ class AuthService extends ChangeNotifier {
     try {
       final issuer = serverUrl.endsWith('/') ? '${serverUrl}o' : '$serverUrl/o';
 
+      if (kIsWeb) {
+        return await _loginWeb(
+          clientId: clientId,
+          issuer: issuer,
+        );
+      }
+
       final result = await _appAuth.authorizeAndExchangeCode(
         AuthorizationTokenRequest(
           clientId,
@@ -116,6 +124,58 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  Future<bool> _loginWeb({
+    required String clientId,
+    required String issuer,
+  }) async {
+    final authResult = await webOAuth.authorizeWithPopup(
+      authorizationEndpoint: '$issuer/authorize/',
+      clientId: clientId,
+      redirectUri: _redirectUri,
+      scopes: _scopes,
+    );
+    if (authResult == null) return false;
+
+    final tokens = await webOAuth.exchangeCodeForTokens(
+      tokenEndpoint: '$issuer/token/',
+      clientId: clientId,
+      redirectUri: _redirectUri,
+      code: authResult['code']!,
+      codeVerifier: authResult['verifier']!,
+    );
+    if (tokens == null) return false;
+
+    final accessToken = tokens['access_token'] as String?;
+    final refreshToken = tokens['refresh_token'] as String?;
+    if (accessToken == null || refreshToken == null) return false;
+
+    DateTime? expiresAt;
+    if (tokens['expires_in'] is int) {
+      expiresAt = DateTime.now().add(
+        Duration(seconds: tokens['expires_in'] as int),
+      );
+    }
+
+    await _storeTokens(
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      expiresAt: expiresAt,
+      clientId: clientId,
+      issuer: issuer,
+    );
+
+    _state = AuthState(
+      isAuthenticated: true,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      expiresAt: expiresAt,
+    );
+
+    _scheduleRefresh();
+    notifyListeners();
+    return true;
+  }
+
   Future<void> _refreshAccessToken() async {
     final refreshToken = await _storage.read(key: _keyRefreshToken);
     final clientId = await _storage.read(key: _keyClientId);
@@ -127,6 +187,49 @@ class AuthService extends ChangeNotifier {
     }
 
     try {
+      if (kIsWeb) {
+        final tokens = await webOAuth.refreshTokens(
+          tokenEndpoint: '$issuer/token/',
+          clientId: clientId,
+          redirectUri: _redirectUri,
+          refreshToken: refreshToken,
+          scopes: _scopes,
+        );
+        if (tokens == null) {
+          await logout();
+          return;
+        }
+        final accessToken = tokens['access_token'] as String?;
+        final newRefreshToken =
+            (tokens['refresh_token'] as String?) ?? refreshToken;
+        if (accessToken == null) {
+          await logout();
+          return;
+        }
+        DateTime? expiresAt;
+        if (tokens['expires_in'] is int) {
+          expiresAt = DateTime.now().add(
+            Duration(seconds: tokens['expires_in'] as int),
+          );
+        }
+        await _storeTokens(
+          accessToken: accessToken,
+          refreshToken: newRefreshToken,
+          expiresAt: expiresAt,
+          clientId: clientId,
+          issuer: issuer,
+        );
+        _state = AuthState(
+          isAuthenticated: true,
+          accessToken: accessToken,
+          refreshToken: newRefreshToken,
+          expiresAt: expiresAt,
+        );
+        _scheduleRefresh();
+        notifyListeners();
+        return;
+      }
+
       final result = await _appAuth.token(
         TokenRequest(
           clientId,
@@ -202,6 +305,11 @@ class AuthService extends ChangeNotifier {
     }
     await _storage.write(key: _keyClientId, value: clientId);
     await _storage.write(key: _keyIssuer, value: issuer);
+  }
+
+  /// Returns the stored OAuth2 client ID, if any.
+  Future<String?> getStoredClientId() async {
+    return await _storage.read(key: _keyClientId);
   }
 
   /// Returns auth headers for API requests. Auto-refreshes if expired.

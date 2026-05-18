@@ -67,7 +67,7 @@ class ServerConnectionService extends ChangeNotifier {
       final response = await http.get(uri).timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        _status = body['status'] == 'healthy'
+        _status = body['status'] == 'ok'
             ? ConnectionStatus.connected
             : ConnectionStatus.error;
       } else {
