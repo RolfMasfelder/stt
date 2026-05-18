@@ -3,7 +3,7 @@ boto3>=1.35.0                # S3-compatible object storage (ADR-11)
 cryptography>=44.0.0         # AES-256-GCM encryption at rest (ADR-08)
 
 # -- Django + REST Framework --
-django==5.2
+django==5.2.14
 django-cors-headers==4.7.0   # CORS middleware
 django-oauth-toolkit==3.0.1  # OAuth2 Provider (RFC 6749/7636)
 django-prometheus==2.4.1     # Prometheus metrics for Django
