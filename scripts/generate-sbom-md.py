@@ -72,6 +72,10 @@ KNOWN_LICENSES: dict[str, str] = {
     "flutter_local_notifications": "MIT",
     "cupertino_icons": "MIT",
     "flutter_lints": "BSD-3-Clause",
+    # Infrastructure
+    "postgresql": "PostgreSQL License",
+    "caddy": "Apache-2.0",
+    "ollama": "MIT",
 }
 
 # ---------------------------------------------------------------------------
@@ -95,7 +99,7 @@ def parse_requirements(path: Path) -> list[tuple[str, str]]:
 
 
 def parse_pubspec(path: Path) -> list[tuple[str, str]]:
-    """Parse pubspec.yaml deps → [(name, version_constraint), ...]."""
+    """Parse pubspec.yaml deps → [(name, version_constraint), ...]. Order preserved."""
     result = []
     in_deps = False
     for line in path.read_text().splitlines():
@@ -107,12 +111,27 @@ def parse_pubspec(path: Path) -> list[tuple[str, str]]:
         if in_deps:
             m = re.match(r"^\s{2}([a-z_][a-z0-9_-]*):\s*(.+)", line)
             if m:
-                name, version = m.group(1).strip(), m.group(2).strip()
+                name = m.group(1).strip()
                 if name in ("flutter",):
                     continue
-                # Remove quotes
-                version = version.strip("\"'")
-                result.append((name, version))
+                result.append(name)
+    return result
+
+
+def parse_pubspec_lock(lock_path: Path) -> dict[str, str]:
+    """Parse pubspec.lock → {name: pinned_version}."""
+    result: dict[str, str] = {}
+    current: str | None = None
+    for line in lock_path.read_text().splitlines():
+        m_pkg = re.match(r"^  ([a-z_][a-z0-9_-]+):$", line)
+        if m_pkg:
+            current = m_pkg.group(1)
+            continue
+        if current:
+            m_ver = re.match(r"^    version: \"([^\"]+)\"", line)
+            if m_ver:
+                result[current] = m_ver.group(1)
+                current = None
     return result
 
 
@@ -194,7 +213,8 @@ def build_md(project_root: Path) -> str:
 
     backend_deps = parse_requirements(project_root / "requirements.txt")
     ml_deps = parse_requirements(project_root / "services" / "ml" / "requirements.txt")
-    flutter_deps = parse_pubspec(project_root / "mobile" / "pubspec.yaml")
+    flutter_names = parse_pubspec(project_root / "mobile" / "pubspec.yaml")
+    flutter_lock = parse_pubspec_lock(project_root / "mobile" / "pubspec.lock")
 
     def backend_rows() -> list[tuple[str, ...]]:
         rows = []
@@ -214,9 +234,10 @@ def build_md(project_root: Path) -> str:
 
     def flutter_rows() -> list[tuple[str, ...]]:
         rows = []
-        for name, ver in flutter_deps:
+        for name in flutter_names:
             if name in ("flutter", "integration_test", "flutter_test"):
                 continue
+            ver = flutter_lock.get(name, "—")
             purpose = FLUTTER_PURPOSES.get(name, "—")
             rows.append((name, ver, license_of(name), purpose))
         return rows
@@ -233,14 +254,23 @@ def build_md(project_root: Path) -> str:
         (
             "stt-server",
             version,
+            "Proprietary",
             "Application",
             "8090",
             "Django/DRF REST API + orchestration",
         ),
-        ("stt-worker", version, "Background", "—", "Celery async task processing"),
+        (
+            "stt-worker",
+            version,
+            "Proprietary",
+            "Background",
+            "—",
+            "Celery async task processing",
+        ),
         (
             "stt-ml",
             version,
+            "Proprietary",
             "ML Service",
             "8091",
             "faster-whisper transcription + pyannote diarization",
@@ -248,6 +278,7 @@ def build_md(project_root: Path) -> str:
         (
             "stt-ollama",
             "0.24.0",
+            "MIT",
             "LLM Service",
             "11434",
             "Ollama – LLM inference (mistral)",
@@ -255,21 +286,31 @@ def build_md(project_root: Path) -> str:
         (
             "caddy",
             "2-alpine",
+            "Apache-2.0",
             "Infrastructure",
             "80/443",
             "Reverse proxy + automatic TLS",
         ),
-        ("PostgreSQL", "17", "Database", "5432", "Primary database"),
+        (
+            "PostgreSQL",
+            "17",
+            "PostgreSQL License",
+            "PostgreSQL License",
+            "Database",
+            "5432",
+            "Primary database",
+        ),
         (
             "python:3.13-slim-bookworm",
             "3.13",
+            "PSF-2.0",
             "Infrastructure",
             "—",
             "Backend base image",
         ),
     ]
     infra_table = md_table(
-        infra_rows, ["Service", "Version", "Type", "Port", "Purpose"]
+        infra_rows, ["Service", "Version", "License", "Type", "Port", "Purpose"]
     )
 
     dev_rows = [
