@@ -230,12 +230,10 @@ services:
       - stt-network
     profiles:
       - web-dev
-    command: >
-      sh -c "flutter pub get &&
-             flutter run -d web-server
-               --web-port 5000
-               --web-hostname 0.0.0.0
-               --dart-define=FLUTTER_WEB_USE_SKIA=false"
+    command: [
+      "sh", "-c",
+      "flutter pub get && flutter build web --release && dart pub global activate dhttpd && dart pub global run dhttpd --path build/web --port 5000 --host 0.0.0.0"
+    ]
 
 networks:
   stt-network:
