@@ -59,6 +59,8 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "stt.urls"
 
+LOGIN_URL = "/admin/login/"
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -210,7 +212,8 @@ Q_CLUSTER = {
 # ML workers run as separate pods with GPU node affinity in Kubernetes.
 # Env var Q_CLUSTER_NAME controls which cluster a qcluster process joins.
 Q_CLUSTER_ML = {
-    "name": "ml",
+    "name": "stt",  # Same name as main cluster — PREFIX must match for payload signing
+    "cluster_name": "ml",  # Routing key: workers pick up tasks with key='ml'
     "workers": int(os.getenv("Q_ML_WORKERS", "1")),
     "timeout": int(os.getenv("Q_ML_TIMEOUT", "3600")),  # 60 min per ML task
     "retry": int(os.getenv("Q_ML_RETRY", "4200")),  # retry after 70 min
@@ -230,6 +233,10 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Use forwarded host header from Caddy
 USE_X_FORWARDED_HOST = True
+
+# Cross-Origin-Opener-Policy must be absent (not same-origin) so that OAuth2
+# popup windows keep their window.opener reference for the postMessage callback.
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 
 # Security settings when behind reverse-proxy (non-DEBUG only)
 if not DEBUG:
