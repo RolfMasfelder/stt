@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Authentication complete</title>
+<p>Authentication is complete. You may close this window.</p>
+<script>
+  if (window.opener) {
+    window.opener.postMessage(
+      'oauth_callback:' + window.location.href,
+      window.location.origin
+    );
+  }
+  window.close();
+</script>

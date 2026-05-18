@@ -45,6 +45,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     _clientIdController = TextEditingController();
     _verifyTls = connection.config?.verifyTls ?? true;
+    // Pre-fill client ID from stored auth config (async, runs after initState)
+    final authService = Provider.of<AuthService>(context, listen: false);
+    authService.getStoredClientId().then((id) {
+      if (id != null && _clientIdController.text.isEmpty && mounted) {
+        _clientIdController.text = id;
+      }
+    });
 
     final processing = Provider.of<ProcessingConfigService>(
       context,

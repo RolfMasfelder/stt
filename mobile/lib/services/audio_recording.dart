@@ -35,15 +35,16 @@ class AudioRecordingService extends ChangeNotifier {
     if (kIsWeb) {
       // On web, path_provider is unavailable; the record package uses the
       // path as a blob key and returns a blob URL from stop().
-      _filePath = 'recording_$timestamp.m4a';
+      // Browsers do not support aacLc; use Opus (WebM container) instead.
+      _filePath = 'recording_$timestamp.webm';
     } else {
       final dir = await getApplicationDocumentsDirectory();
       _filePath = '${dir.path}/recording_$timestamp.m4a';
     }
 
     await _recorder.start(
-      const RecordConfig(
-        encoder: AudioEncoder.aacLc,
+      RecordConfig(
+        encoder: kIsWeb ? AudioEncoder.opus : AudioEncoder.aacLc,
         sampleRate: 44100,
         bitRate: 128000,
         numChannels: 1,
