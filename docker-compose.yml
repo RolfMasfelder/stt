@@ -39,10 +39,12 @@ services:
     build:
       context: .
       target: production
+    image: 192.168.178.80:5000/stt-server:${IMAGE_TAG:-latest}
     container_name: stt-server
     depends_on:
       - db
       - stt-ml
+      - ollama
     env_file:
       - .env
     ports:
@@ -51,15 +53,13 @@ services:
       - .:/app:z
     environment:
       - PYTHONPATH=/app
-      - LLM_BASE_URL=${LLM_BASE_URL}
+      - LLM_BASE_URL=http://stt-ollama:11434
       - LLM_MODEL=${LLM_MODEL}
       - ML_SERVICE_URL=http://stt-ml:8091
       - LOG_LEVEL=${LOG_LEVEL}
       - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
       - DJANGO_SETTINGS_MODULE=stt.settings
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-insecure-dev-key-change-in-production}
-    extra_hosts:
-      - "ollama.stt.local:192.168.178.200"
     networks:
       - stt-network
     profiles:
@@ -71,10 +71,12 @@ services:
     build:
       context: .
       target: production
+    image: 192.168.178.80:5000/stt-server:${IMAGE_TAG:-latest}
     container_name: stt-worker
     depends_on:
       - db
       - stt-ml
+      - ollama
     env_file:
       - .env
     volumes:
@@ -82,14 +84,12 @@ services:
     environment:
       - PYTHONPATH=/app
       - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
-      - LLM_BASE_URL=${LLM_BASE_URL}
+      - LLM_BASE_URL=http://stt-ollama:11434
       - LLM_MODEL=${LLM_MODEL}
       - ML_SERVICE_URL=http://stt-ml:8091
       - LOG_LEVEL=${LOG_LEVEL}
       - DJANGO_SETTINGS_MODULE=stt.settings
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-insecure-dev-key-change-in-production}
-    extra_hosts:
-      - "ollama.stt.local:192.168.178.200"
     networks:
       - stt-network
     profiles:
@@ -150,6 +150,7 @@ services:
       context: ./services/ml
       secrets:
         - hf_token
+    image: 192.168.178.80:5000/stt-ml:${IMAGE_TAG:-latest}
     container_name: stt-ml
     ports:
       - "8091:8091"
@@ -167,11 +168,10 @@ services:
       - test
     restart: unless-stopped
 
-  # Ollama LLM inference server
-  # For development: runs on remote machine (192.168.178.80)
-  # For production: runs alongside the STT stack
+  # Ollama LLM inference server — runs as part of the production stack.
+  # Independent from k3s: both setups manage their own Ollama instance.
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.24.0
     container_name: stt-ollama
     ports:
       - "11434:11434"
@@ -180,6 +180,7 @@ services:
     networks:
       - stt-network
     profiles:
+      - production
       - ollama
     restart: unless-stopped
 
