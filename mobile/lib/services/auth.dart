@@ -22,7 +22,9 @@ class AuthState {
 }
 
 class AuthService extends ChangeNotifier {
-  static const _redirectUri = 'stt.app://callback';
+  // On web, use a localhost HTTP redirect; on mobile, use the custom scheme.
+  static String get _redirectUri =>
+      kIsWeb ? 'http://localhost:5000/callback' : 'stt.app://callback';
   static const _scopes = ['read', 'write'];
 
   static const _keyAccessToken = 'auth_access_token';

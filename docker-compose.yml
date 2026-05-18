@@ -214,6 +214,29 @@ services:
       - mobile
     command: bash
 
+  # Flutter web dev server — simulates the mobile app in the browser
+  # Access at http://localhost:5000 after: docker compose --profile web-dev up flutter-web
+  flutter-web:
+    build:
+      context: ./mobile
+    container_name: stt-flutter-web
+    volumes:
+      - ./mobile:/app:z
+      - flutter_pub_cache:/home/appuser/.pub-cache
+      - flutter_gradle:/home/appuser/.gradle
+    ports:
+      - "5000:5000"
+    networks:
+      - stt-network
+    profiles:
+      - web-dev
+    command: >
+      sh -c "flutter pub get &&
+             flutter run -d web-server
+               --web-port 5000
+               --web-hostname 0.0.0.0
+               --dart-define=FLUTTER_WEB_USE_SKIA=false"
+
 networks:
   stt-network:
     driver: bridge
