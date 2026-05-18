@@ -96,15 +96,7 @@ docker compose --profile production run -d --no-deps \
   -e DEBUG=true --name stt-server --service-ports stt-server
 
 # 2. ML-Worker (verarbeitet Transkriptions-Jobs; eigener Cluster "ml")
-docker run -d \
-  --name stt-ml-worker \
-  --network stt_stt-network \
-  -e DATABASE_URL=postgres://stt:stt_dev@db:5432/stt \
-  -e DJANGO_SETTINGS_MODULE=stt.settings \
-  -e Q_CLUSTER_NAME=ml \
-  -e DEBUG=true \
-  192.168.178.80:5000/stt-server:latest \
-  python manage.py qcluster
+docker compose --profile web-dev up -d stt-ml-worker
 
 # 3. Flutter-Web-App (build + serve auf Port 5000)
 docker compose --profile web-dev up -d flutter-web
@@ -124,9 +116,8 @@ docker compose --profile web-dev logs -f flutter-web
 ### Aufräumen nach dem Test
 
 ```bash
-docker rm -f stt-server stt-ml-worker
-# flutter-web läuft weiter oder:
-docker compose --profile web-dev stop flutter-web
+docker rm -f stt-server
+docker compose --profile web-dev stop stt-ml-worker flutter-web
 ```
 
 ### Architektur-Hinweise
