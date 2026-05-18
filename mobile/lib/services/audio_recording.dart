@@ -31,9 +31,15 @@ class AudioRecordingService extends ChangeNotifier {
     final hasPerms = await _recorder.hasPermission();
     if (!hasPerms) return;
 
-    final dir = await getApplicationDocumentsDirectory();
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    _filePath = '${dir.path}/recording_$timestamp.m4a';
+    if (kIsWeb) {
+      // On web, path_provider is unavailable; the record package uses the
+      // path as a blob key and returns a blob URL from stop().
+      _filePath = 'recording_$timestamp.m4a';
+    } else {
+      final dir = await getApplicationDocumentsDirectory();
+      _filePath = '${dir.path}/recording_$timestamp.m4a';
+    }
 
     await _recorder.start(
       const RecordConfig(

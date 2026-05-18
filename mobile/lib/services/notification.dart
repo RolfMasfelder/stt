@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificationService {
@@ -11,6 +12,8 @@ class NotificationService {
 
   Future<void> init() async {
     if (_initialized) return;
+    // Notifications are not supported in the web build.
+    if (kIsWeb) return;
 
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
