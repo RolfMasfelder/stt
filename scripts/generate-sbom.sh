@@ -338,6 +338,16 @@ main() {
         echo -e "  ${GREEN}✓${NC} index.cdx.json"
         echo
         info "Files in $SBOM_DIR/ – commit to git for versioning"
+        echo
+        info "Files in $SBOM_DIR/ – commit to git for versioning"
+
+        # Generate human-readable SBOM.md
+        header "Human-Readable SBOM (docs/SBOM.md)"
+        if python3 "$SCRIPT_DIR/generate-sbom-md.py"; then
+            echo -e "  ${GREEN}✓${NC} docs/SBOM.md"
+        else
+            warn "generate-sbom-md.py failed – check Python 3 availability"
+        fi
     else
         warn "No SBOMs were generated"
     fi
