@@ -96,6 +96,40 @@ services:
       - production
     command: ["python", "manage.py", "qcluster"]
 
+  # ML worker — processes Whisper/pyannote/LLM tasks (cluster "ml")
+  # Runs alongside stt-worker (cluster "stt" = scheduled tasks).
+  # In Kubernetes, this runs on GPU nodes; locally both share the same image.
+  stt-ml-worker:
+    build:
+      context: .
+      target: production
+    image: 192.168.178.80:5000/stt-server:${IMAGE_TAG:-latest}
+    container_name: stt-ml-worker
+    depends_on:
+      - db
+      - stt-ml
+      - ollama
+    env_file:
+      - .env
+    volumes:
+      - .:/app:z
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
+      - LLM_BASE_URL=http://stt-ollama:11434
+      - LLM_MODEL=${LLM_MODEL}
+      - ML_SERVICE_URL=http://stt-ml:8091
+      - LOG_LEVEL=${LOG_LEVEL}
+      - DJANGO_SETTINGS_MODULE=stt.settings
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-insecure-dev-key-change-in-production}
+      - Q_CLUSTER_NAME=ml
+    networks:
+      - stt-network
+    profiles:
+      - production
+      - web-dev
+    command: ["python", "manage.py", "qcluster"]
+
   # Test runner service (dev stage with pytest, ruff, bandit)
   stt-test:
     build:
