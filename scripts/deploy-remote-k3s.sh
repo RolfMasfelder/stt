@@ -9,7 +9,7 @@ VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','r
 GIT_SHA=$(git rev-parse --short HEAD)
 TAG="v${VERSION}-${GIT_SHA}"
 
-echo "=== STT Remote Deploy (tag: ${TAG}) ==="
+echo "=== STT k3s Deploy (tag: ${TAG}) ==="
 
 # Step 1: Build Docker images
 echo "[1/4] Building Docker images..."
@@ -32,5 +32,5 @@ helm upgrade stt k8s/helm/stt/ -n stt -f k8s/helm/values-k3s.yaml \
   --set mlService.image.tag="${TAG}"
 
 echo ""
-echo "=== Deploy complete (tag: ${TAG}) ==="
+echo "=== k3s Deploy complete (tag: ${TAG}) ==="
 echo "Verify with: kubectl get pods -n stt"
