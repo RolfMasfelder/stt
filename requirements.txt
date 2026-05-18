@@ -1,19 +1,19 @@
 # -- Django + REST Framework --
-boto3>=1.35.0                # S3-compatible object storage (ADR-11)
-cryptography>=44.0.0         # AES-256-GCM encryption at rest (ADR-08)
+boto3>=1.43.9                # S3-compatible object storage (ADR-11)
+cryptography>=48.0.0         # AES-256-GCM encryption at rest (ADR-08)
 
 # -- Django + REST Framework --
 django==5.2.14
 django-cors-headers==4.7.0   # CORS middleware
 django-oauth-toolkit==3.0.1  # OAuth2 Provider (RFC 6749/7636)
 django-prometheus==2.4.1     # Prometheus metrics for Django
-django-q2==1.9.0             # Task queue with DB broker
+django-q2==1.10.0             # Task queue with DB broker
 djangorestframework==3.16.0
 drf-spectacular==0.29.0      # OpenAPI 3.0 schema generation
 
 # -- Runtime --
 gunicorn==23.0.0             # WSGI production server
-numpy==2.4.4
-psycopg[binary]==3.2.6       # PostgreSQL adapter
+numpy==2.4.5
+psycopg[binary]==3.3.4       # PostgreSQL adapter
 python-dotenv==1.2.1         # for loading .env files
 requests==2.32.5
