@@ -1,1054 +1,1655 @@
 {
-  "openapi": "3.0.3",
-  "info": {
-    "title": "STT Server API",
-    "version": "1.0.0",
-    "description": "Speech-to-Text Server mit Transkription, Sprechererkennung und Zusammenfassung"
-  },
-  "paths": {
-    "/health": {
-      "get": {
-        "operationId": "health_retrieve",
-        "summary": "Health check",
-        "tags": [
-          "health"
-        ],
-        "security": [
-          {}
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthResponse"
-                }
-              }
-            },
-            "description": ""
-          }
-        }
-      }
+    "openapi": "3.0.3",
+    "info": {
+        "title": "STT Server API",
+        "version": "1.0.0",
+        "description": "Speech-to-Text Server mit Transkription, Sprechererkennung und Zusammenfassung"
     },
-    "/v1/config/storage": {
-      "get": {
-        "operationId": "v1_config_storage_list",
-        "description": "List and create storage backend configurations.",
-        "summary": "List all storage configurations",
-        "tags": [
-          "v1"
-        ],
-        "security": [
-          {
-            "oauth2": [
-              "read"
-            ]
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/StorageConfig"
-                  }
+    "paths": {
+        "/health": {
+            "get": {
+                "operationId": "health_retrieve",
+                "summary": "Health check",
+                "tags": [
+                    "health"
+                ],
+                "security": [
+                    {}
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HealthResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
                 }
-              }
-            },
-            "description": ""
-          }
-        }
-      },
-      "post": {
-        "operationId": "v1_config_storage_create",
-        "description": "List and create storage backend configurations.",
-        "summary": "Create a storage configuration",
-        "tags": [
-          "v1"
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/StorageConfig"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/StorageConfig"
-              }
-            },
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StorageConfig"
-              }
             }
-          },
-          "required": true
         },
-        "security": [
-          {
-            "oauth2": [
-              "write"
-            ]
-          }
-        ],
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StorageConfig"
+        "/v1/config/storage": {
+            "get": {
+                "operationId": "v1_config_storage_list",
+                "description": "List and create storage backend configurations.",
+                "summary": "List all storage configurations",
+                "tags": [
+                    "v1"
+                ],
+                "security": [
+                    {
+                        "oauth2": [
+                            "read"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/StorageConfig"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
                 }
-              }
             },
-            "description": ""
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+            "post": {
+                "operationId": "v1_config_storage_create",
+                "description": "List and create storage backend configurations.",
+                "summary": "Create a storage configuration",
+                "tags": [
+                    "v1"
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StorageConfig"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StorageConfig"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StorageConfig"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "oauth2": [
+                            "write"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StorageConfig"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
                 }
-              }
-            },
-            "description": ""
-          }
-        }
-      }
-    },
-    "/v1/config/storage/{config_id}": {
-      "get": {
-        "operationId": "v1_config_storage_retrieve",
-        "description": "Retrieve, update, and delete a storage backend configuration.",
-        "summary": "Get a storage configuration",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "config_id",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
-        "tags": [
-          "v1"
-        ],
-        "security": [
-          {
-            "oauth2": [
-              "read"
-            ]
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StorageConfig"
-                }
-              }
-            },
-            "description": ""
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": ""
-          }
-        }
-      },
-      "put": {
-        "operationId": "v1_config_storage_update",
-        "description": "Retrieve, update, and delete a storage backend configuration.",
-        "summary": "Update a storage configuration",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "config_id",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
-        "tags": [
-          "v1"
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/StorageConfig"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/StorageConfig"
-              }
-            },
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StorageConfig"
-              }
             }
-          },
-          "required": true
         },
-        "security": [
-          {
-            "oauth2": [
-              "write"
-            ]
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StorageConfig"
+        "/v1/config/storage/{config_id}": {
+            "get": {
+                "operationId": "v1_config_storage_retrieve",
+                "description": "Retrieve, update, and delete a storage backend configuration.",
+                "summary": "Get a storage configuration",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "config_id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "v1"
+                ],
+                "security": [
+                    {
+                        "oauth2": [
+                            "read"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StorageConfig"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
                 }
-              }
             },
-            "description": ""
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+            "put": {
+                "operationId": "v1_config_storage_update",
+                "description": "Retrieve, update, and delete a storage backend configuration.",
+                "summary": "Update a storage configuration",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "config_id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "v1"
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StorageConfig"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StorageConfig"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StorageConfig"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "oauth2": [
+                            "write"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StorageConfig"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
                 }
-              }
             },
-            "description": ""
-          }
-        }
-      },
-      "delete": {
-        "operationId": "v1_config_storage_destroy",
-        "description": "Retrieve, update, and delete a storage backend configuration.",
-        "summary": "Delete a storage configuration",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "config_id",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
-        "tags": [
-          "v1"
-        ],
-        "security": [
-          {
-            "oauth2": [
-              "write"
-            ]
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No response body"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+            "delete": {
+                "operationId": "v1_config_storage_destroy",
+                "description": "Retrieve, update, and delete a storage backend configuration.",
+                "summary": "Delete a storage configuration",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "config_id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "v1"
+                ],
+                "security": [
+                    {
+                        "oauth2": [
+                            "write"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No response body"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
                 }
-              }
-            },
-            "description": ""
-          }
-        }
-      }
-    },
-    "/v1/config/storage/{config_id}/test": {
-      "post": {
-        "operationId": "v1_config_storage_test_create",
-        "description": "Test a storage backend configuration (ADR-12).",
-        "summary": "Test storage backend connectivity",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "config_id",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
-        "tags": [
-          "v1"
-        ],
-        "security": [
-          {
-            "oauth2": [
-              "write"
-            ]
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StorageTestResponse"
-                }
-              }
-            },
-            "description": ""
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": ""
-          }
-        }
-      }
-    },
-    "/v1/diarize": {
-      "post": {
-        "operationId": "v1_diarize_create",
-        "summary": "Transcribe with speaker diarization",
-        "tags": [
-          "v1"
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/AudioUpload"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/AudioUpload"
-              }
             }
-          },
-          "required": true
         },
-        "security": [
-          {
-            "oauth2": [
-              "write"
-            ]
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DiarizeResponse"
+        "/v1/config/storage/{config_id}/test": {
+            "post": {
+                "operationId": "v1_config_storage_test_create",
+                "description": "Test a storage backend configuration (ADR-12).",
+                "summary": "Test storage backend connectivity",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "config_id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "v1"
+                ],
+                "security": [
+                    {
+                        "oauth2": [
+                            "write"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StorageTestResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
                 }
-              }
-            },
-            "description": ""
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": ""
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": ""
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": ""
-          },
-          "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": ""
-          }
-        }
-      }
-    },
-    "/v1/jobs": {
-      "post": {
-        "operationId": "v1_jobs_create",
-        "description": "Upload an audio file and create an async job. Poll GET /v1/jobs/{id} for status and results.",
-        "summary": "Create async processing job",
-        "tags": [
-          "v1"
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/ProcessUpload"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/ProcessUpload"
-              }
             }
-          },
-          "required": true
         },
-        "security": [
-          {
-            "oauth2": [
-              "write"
-            ]
-          }
-        ],
-        "responses": {
-          "202": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/JobResponse"
+        "/v1/diarize": {
+            "post": {
+                "operationId": "v1_diarize_create",
+                "summary": "Transcribe with speaker diarization",
+                "tags": [
+                    "v1"
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AudioUpload"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AudioUpload"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "oauth2": [
+                            "write"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DiarizeResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "413": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
                 }
-              }
-            },
-            "description": ""
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": ""
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": ""
-          }
-        }
-      }
-    },
-    "/v1/jobs/{job_id}": {
-      "get": {
-        "operationId": "v1_jobs_retrieve",
-        "summary": "Get job status and results",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "job_id",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
-        "tags": [
-          "v1"
-        ],
-        "security": [
-          {
-            "oauth2": [
-              "read"
-            ]
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/JobDetail"
-                }
-              }
-            },
-            "description": ""
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": ""
-          }
-        }
-      }
-    },
-    "/v1/process": {
-      "post": {
-        "operationId": "v1_process_create",
-        "summary": "Full pipeline: transcribe, diarize, summarize",
-        "tags": [
-          "v1"
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/ProcessUpload"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/ProcessUpload"
-              }
             }
-          },
-          "required": true
         },
-        "security": [
-          {
-            "oauth2": [
-              "write"
-            ]
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProcessResponse"
+        "/v1/jobs": {
+            "post": {
+                "operationId": "v1_jobs_create",
+                "description": "Upload an audio file and create an async job. Poll GET /v1/jobs/{id} for status and results.",
+                "summary": "Create async processing job",
+                "tags": [
+                    "v1"
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProcessUpload"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProcessUpload"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "oauth2": [
+                            "write"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JobResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "413": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
                 }
-              }
-            },
-            "description": ""
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": ""
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": ""
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": ""
-          }
-        }
-      }
-    },
-    "/v1/transcribe": {
-      "post": {
-        "operationId": "v1_transcribe_create",
-        "summary": "Transcribe audio file",
-        "tags": [
-          "v1"
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/AudioUpload"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/AudioUpload"
-              }
             }
-          },
-          "required": true
         },
-        "security": [
-          {
-            "oauth2": [
-              "write"
-            ]
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TranscribeResponse"
+        "/v1/jobs/{job_id}": {
+            "get": {
+                "operationId": "v1_jobs_retrieve",
+                "summary": "Get job status and results",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "job_id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "v1"
+                ],
+                "security": [
+                    {
+                        "oauth2": [
+                            "read"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JobDetail"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
                 }
-              }
-            },
-            "description": ""
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+            }
+        },
+        "/v1/jobs/{job_id}/correct": {
+            "patch": {
+                "operationId": "v1_jobs_correct_partial_update",
+                "description": "Update result fields and create a versioned snapshot.",
+                "summary": "Correct job results",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "job_id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "v1"
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedJobUpdate"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedJobUpdate"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedJobUpdate"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "oauth2": [
+                            "write"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JobDetail"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
                 }
-              }
-            },
-            "description": ""
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+            }
+        },
+        "/v1/jobs/{job_id}/delete": {
+            "delete": {
+                "operationId": "v1_jobs_delete_destroy",
+                "description": "Permanently deletes a job, its versions, and related audit logs.",
+                "summary": "Delete a job (DSGVO Art. 17)",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "job_id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "v1"
+                ],
+                "security": [
+                    {
+                        "oauth2": [
+                            "write"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DeleteResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
                 }
-              }
-            },
-            "description": ""
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+            }
+        },
+        "/v1/jobs/{job_id}/reprocess": {
+            "post": {
+                "operationId": "v1_jobs_reprocess_create",
+                "description": "Re-run structure and/or summarize on the current result text. Creates a versioned snapshot of the new results.",
+                "summary": "Re-run pipeline steps",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "job_id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "v1"
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Reprocess"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Reprocess"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Reprocess"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "oauth2": [
+                            "write"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JobDetail"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
                 }
-              }
-            },
-            "description": ""
-          }
+            }
+        },
+        "/v1/jobs/{job_id}/versions": {
+            "get": {
+                "operationId": "v1_jobs_versions_list",
+                "description": "List all versioned snapshots of a job's results.",
+                "summary": "List result versions",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "job_id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "v1"
+                ],
+                "security": [
+                    {
+                        "oauth2": [
+                            "read"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ResultVersion"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/v1/process": {
+            "post": {
+                "operationId": "v1_process_create",
+                "summary": "Full pipeline: transcribe, diarize, summarize",
+                "tags": [
+                    "v1"
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProcessUpload"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProcessUpload"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "oauth2": [
+                            "write"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProcessResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "413": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/v1/transcribe": {
+            "post": {
+                "operationId": "v1_transcribe_create",
+                "summary": "Transcribe audio file",
+                "tags": [
+                    "v1"
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AudioUpload"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AudioUpload"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "oauth2": [
+                            "write"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TranscribeResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "413": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/v1/user/data": {
+            "delete": {
+                "operationId": "v1_user_data_destroy",
+                "description": "Permanently deletes all jobs, versions, and audit logs belonging to the authenticated user.",
+                "summary": "Delete all user data (DSGVO Art. 17)",
+                "tags": [
+                    "v1"
+                ],
+                "security": [
+                    {
+                        "oauth2": [
+                            "write"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DeleteResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/v1/user/data/export": {
+            "get": {
+                "operationId": "v1_user_data_export_retrieve",
+                "description": "Returns all jobs, result versions, and audit log entries belonging to the authenticated user in a portable JSON format.",
+                "summary": "Export all user data (DSGVO Art. 20)",
+                "tags": [
+                    "v1"
+                ],
+                "security": [
+                    {
+                        "oauth2": [
+                            "read"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DataExport"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
         }
-      }
+    },
+    "components": {
+        "schemas": {
+            "AudioUpload": {
+                "type": "object",
+                "properties": {
+                    "file": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Audio file (.wav, .mp3, .flac, .ogg, .m4a, .wma, .webm)"
+                    },
+                    "model": {
+                        "type": "string",
+                        "default": "small",
+                        "description": "Whisper model name"
+                    }
+                },
+                "required": [
+                    "file"
+                ]
+            },
+            "BackendTypeEnum": {
+                "enum": [
+                    "local",
+                    "s3"
+                ],
+                "type": "string",
+                "description": "* `local` - Local Filesystem\n* `s3` - S3-compatible"
+            },
+            "DataExport": {
+                "type": "object",
+                "description": "Full GDPR data export response (Art. 20).",
+                "properties": {
+                    "user": {
+                        "type": "string"
+                    },
+                    "exported_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "jobs": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DataExportJob"
+                        }
+                    },
+                    "versions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DataExportVersion"
+                        }
+                    },
+                    "audit_logs": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": {}
+                        }
+                    }
+                },
+                "required": [
+                    "audit_logs",
+                    "exported_at",
+                    "jobs",
+                    "user",
+                    "versions"
+                ]
+            },
+            "DataExportJob": {
+                "type": "object",
+                "description": "Job data included in GDPR data export.",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "job_type": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "whisper_model": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "result_text": {
+                        "type": "string"
+                    },
+                    "result_diarized_text": {
+                        "type": "string"
+                    },
+                    "result_structured_text": {
+                        "type": "string"
+                    },
+                    "result_summary": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "created_at",
+                    "id",
+                    "job_type",
+                    "result_diarized_text",
+                    "result_structured_text",
+                    "result_summary",
+                    "result_text",
+                    "status",
+                    "updated_at",
+                    "whisper_model"
+                ]
+            },
+            "DataExportVersion": {
+                "type": "object",
+                "description": "Version data included in GDPR data export.",
+                "properties": {
+                    "job_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "source": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "result_text": {
+                        "type": "string"
+                    },
+                    "result_diarized_text": {
+                        "type": "string"
+                    },
+                    "result_structured_text": {
+                        "type": "string"
+                    },
+                    "result_summary": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "created_at",
+                    "job_id",
+                    "result_diarized_text",
+                    "result_structured_text",
+                    "result_summary",
+                    "result_text",
+                    "source",
+                    "version"
+                ]
+            },
+            "DeleteResponse": {
+                "type": "object",
+                "description": "Response for deletion operations (DSGVO Art. 17).",
+                "properties": {
+                    "deleted_jobs": {
+                        "type": "integer"
+                    },
+                    "deleted_versions": {
+                        "type": "integer"
+                    },
+                    "deleted_audit_logs": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "deleted_audit_logs",
+                    "deleted_jobs",
+                    "deleted_versions"
+                ]
+            },
+            "DiarizeResponse": {
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string"
+                    },
+                    "diarized_text": {
+                        "type": "string"
+                    },
+                    "segments": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DiarizedSegment"
+                        }
+                    }
+                },
+                "required": [
+                    "diarized_text",
+                    "segments",
+                    "text"
+                ]
+            },
+            "DiarizedSegment": {
+                "type": "object",
+                "properties": {
+                    "speaker": {
+                        "type": "string"
+                    },
+                    "start": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "end": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "text": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "end",
+                    "speaker",
+                    "start",
+                    "text"
+                ]
+            },
+            "ErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "detail": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "detail"
+                ]
+            },
+            "HealthResponse": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "status"
+                ]
+            },
+            "JobDetail": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "job_type": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "original_filename": {
+                        "type": "string"
+                    },
+                    "whisper_model": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "result_text": {
+                        "type": "string"
+                    },
+                    "result_diarized_text": {
+                        "type": "string"
+                    },
+                    "result_structured_text": {
+                        "type": "string"
+                    },
+                    "result_summary": {
+                        "type": "string"
+                    },
+                    "result_segments_json": {
+                        "nullable": true
+                    },
+                    "error_message": {
+                        "type": "string"
+                    },
+                    "results_delivered": {
+                        "type": "boolean"
+                    },
+                    "results_delivered_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "created_at",
+                    "error_message",
+                    "id",
+                    "job_type",
+                    "original_filename",
+                    "result_diarized_text",
+                    "result_segments_json",
+                    "result_structured_text",
+                    "result_summary",
+                    "result_text",
+                    "results_delivered",
+                    "results_delivered_at",
+                    "status",
+                    "updated_at",
+                    "whisper_model"
+                ]
+            },
+            "JobResponse": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "job_type": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "original_filename": {
+                        "type": "string"
+                    },
+                    "whisper_model": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "created_at",
+                    "id",
+                    "job_type",
+                    "original_filename",
+                    "status",
+                    "updated_at",
+                    "whisper_model"
+                ]
+            },
+            "PatchedJobUpdate": {
+                "type": "object",
+                "description": "Input for correcting job result fields.",
+                "properties": {
+                    "result_text": {
+                        "type": "string"
+                    },
+                    "result_diarized_text": {
+                        "type": "string"
+                    },
+                    "result_structured_text": {
+                        "type": "string"
+                    },
+                    "result_summary": {
+                        "type": "string"
+                    }
+                }
+            },
+            "ProcessResponse": {
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string"
+                    },
+                    "diarized_text": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "structured_text": {
+                        "type": "string"
+                    },
+                    "summary": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "diarized_text",
+                    "structured_text",
+                    "summary",
+                    "text"
+                ]
+            },
+            "ProcessUpload": {
+                "type": "object",
+                "properties": {
+                    "file": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Audio file (.wav, .mp3, .flac, .ogg, .m4a, .wma, .webm)"
+                    },
+                    "model": {
+                        "type": "string",
+                        "default": "small",
+                        "description": "Whisper model name"
+                    },
+                    "diarize": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Enable speaker diarization"
+                    }
+                },
+                "required": [
+                    "file"
+                ]
+            },
+            "Reprocess": {
+                "type": "object",
+                "description": "Input for selecting which steps to re-run.",
+                "properties": {
+                    "steps": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/StepsEnum"
+                        },
+                        "description": "Pipeline steps to re-run on current result text",
+                        "minItems": 1
+                    }
+                },
+                "required": [
+                    "steps"
+                ]
+            },
+            "ResultVersion": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                    },
+                    "version": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "result_text": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "result_diarized_text": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "result_structured_text": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "result_summary": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "source": {
+                        "type": "string",
+                        "readOnly": true,
+                        "description": "How this version was created: pipeline, correction, reprocess"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "created_at",
+                    "id",
+                    "result_diarized_text",
+                    "result_structured_text",
+                    "result_summary",
+                    "result_text",
+                    "source",
+                    "version"
+                ]
+            },
+            "StatusEnum": {
+                "enum": [
+                    "success",
+                    "error"
+                ],
+                "type": "string",
+                "description": "* `success` - success\n* `error` - error"
+            },
+            "StepsEnum": {
+                "enum": [
+                    "structure",
+                    "summarize"
+                ],
+                "type": "string",
+                "description": "* `structure` - structure\n* `summarize` - summarize"
+            },
+            "StorageConfig": {
+                "type": "object",
+                "description": "Serializer for StorageConfig CRUD operations.\n\ns3_secret_key is write-only — never returned in API responses.",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Display name for this backend",
+                        "maxLength": 200
+                    },
+                    "backend_type": {
+                        "$ref": "#/components/schemas/BackendTypeEnum"
+                    },
+                    "is_default": {
+                        "type": "boolean",
+                        "description": "Use as default storage for new jobs"
+                    },
+                    "base_path": {
+                        "type": "string",
+                        "description": "Base path / prefix for stored files",
+                        "maxLength": 1024
+                    },
+                    "s3_endpoint_url": {
+                        "type": "string",
+                        "format": "uri",
+                        "maxLength": 200
+                    },
+                    "s3_bucket": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "s3_access_key": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "s3_secret_key": {
+                        "type": "string",
+                        "writeOnly": true,
+                        "maxLength": 255
+                    },
+                    "s3_region": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "encrypt_at_rest": {
+                        "type": "boolean",
+                        "description": "Encrypt stored files with AES-256-GCM before writing"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "backend_type",
+                    "created_at",
+                    "id",
+                    "name",
+                    "updated_at"
+                ]
+            },
+            "StorageTestResponse": {
+                "type": "object",
+                "description": "Response for the storage backend test endpoint.",
+                "properties": {
+                    "status": {
+                        "$ref": "#/components/schemas/StatusEnum"
+                    },
+                    "checks": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "boolean"
+                        }
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "duration_ms": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "checks",
+                    "duration_ms",
+                    "message",
+                    "status"
+                ]
+            },
+            "TranscribeResponse": {
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "text"
+                ]
+            }
+        },
+        "securitySchemes": {
+            "oauth2": {
+                "type": "oauth2",
+                "flows": {
+                    "clientCredentials": {
+                        "tokenUrl": "/o/token/",
+                        "scopes": {
+                            "read": "Read access to API resources",
+                            "write": "Write access (upload, process)"
+                        }
+                    },
+                    "authorizationCode": {
+                        "authorizationUrl": "/o/authorize/",
+                        "tokenUrl": "/o/token/",
+                        "scopes": {
+                            "read": "Read access to API resources",
+                            "write": "Write access (upload, process)"
+                        }
+                    }
+                }
+            }
+        }
     }
-  },
-  "components": {
-    "schemas": {
-      "AudioUpload": {
-        "type": "object",
-        "properties": {
-          "file": {
-            "type": "string",
-            "format": "uri",
-            "description": "Audio file (.wav, .mp3, .flac, .ogg, .m4a, .wma, .webm)"
-          },
-          "model": {
-            "type": "string",
-            "default": "small",
-            "description": "Whisper model name"
-          }
-        },
-        "required": [
-          "file"
-        ]
-      },
-      "BackendTypeEnum": {
-        "enum": [
-          "local",
-          "s3"
-        ],
-        "type": "string",
-        "description": "* `local` - Local Filesystem\n* `s3` - S3-compatible"
-      },
-      "DiarizeResponse": {
-        "type": "object",
-        "properties": {
-          "text": {
-            "type": "string"
-          },
-          "diarized_text": {
-            "type": "string"
-          },
-          "segments": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DiarizedSegment"
-            }
-          }
-        },
-        "required": [
-          "diarized_text",
-          "segments",
-          "text"
-        ]
-      },
-      "DiarizedSegment": {
-        "type": "object",
-        "properties": {
-          "speaker": {
-            "type": "string"
-          },
-          "start": {
-            "type": "number",
-            "format": "double"
-          },
-          "end": {
-            "type": "number",
-            "format": "double"
-          },
-          "text": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "end",
-          "speaker",
-          "start",
-          "text"
-        ]
-      },
-      "ErrorResponse": {
-        "type": "object",
-        "properties": {
-          "detail": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "detail"
-        ]
-      },
-      "HealthResponse": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "status"
-        ]
-      },
-      "JobDetail": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "job_type": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "original_filename": {
-            "type": "string"
-          },
-          "whisper_model": {
-            "type": "string"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "result_text": {
-            "type": "string"
-          },
-          "result_diarized_text": {
-            "type": "string"
-          },
-          "result_structured_text": {
-            "type": "string"
-          },
-          "result_summary": {
-            "type": "string"
-          },
-          "result_segments_json": {
-            "nullable": true
-          },
-          "error_message": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "created_at",
-          "error_message",
-          "id",
-          "job_type",
-          "original_filename",
-          "result_diarized_text",
-          "result_segments_json",
-          "result_structured_text",
-          "result_summary",
-          "result_text",
-          "status",
-          "updated_at",
-          "whisper_model"
-        ]
-      },
-      "JobResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "job_type": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "original_filename": {
-            "type": "string"
-          },
-          "whisper_model": {
-            "type": "string"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "created_at",
-          "id",
-          "job_type",
-          "original_filename",
-          "status",
-          "updated_at",
-          "whisper_model"
-        ]
-      },
-      "ProcessResponse": {
-        "type": "object",
-        "properties": {
-          "text": {
-            "type": "string"
-          },
-          "diarized_text": {
-            "type": "string",
-            "nullable": true
-          },
-          "structured_text": {
-            "type": "string"
-          },
-          "summary": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "diarized_text",
-          "structured_text",
-          "summary",
-          "text"
-        ]
-      },
-      "ProcessUpload": {
-        "type": "object",
-        "properties": {
-          "file": {
-            "type": "string",
-            "format": "uri",
-            "description": "Audio file (.wav, .mp3, .flac, .ogg, .m4a, .wma, .webm)"
-          },
-          "model": {
-            "type": "string",
-            "default": "small",
-            "description": "Whisper model name"
-          },
-          "diarize": {
-            "type": "boolean",
-            "default": true,
-            "description": "Enable speaker diarization"
-          }
-        },
-        "required": [
-          "file"
-        ]
-      },
-      "StatusEnum": {
-        "enum": [
-          "success",
-          "error"
-        ],
-        "type": "string",
-        "description": "* `success` - success\n* `error` - error"
-      },
-      "StorageConfig": {
-        "type": "object",
-        "description": "Serializer for StorageConfig CRUD operations.\n\ns3_secret_key is write-only \u2014 never returned in API responses.",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "readOnly": true
-          },
-          "name": {
-            "type": "string",
-            "description": "Display name for this backend",
-            "maxLength": 200
-          },
-          "backend_type": {
-            "$ref": "#/components/schemas/BackendTypeEnum"
-          },
-          "is_default": {
-            "type": "boolean",
-            "description": "Use as default storage for new jobs"
-          },
-          "base_path": {
-            "type": "string",
-            "description": "Base path / prefix for stored files",
-            "maxLength": 1024
-          },
-          "s3_endpoint_url": {
-            "type": "string",
-            "format": "uri",
-            "maxLength": 200
-          },
-          "s3_bucket": {
-            "type": "string",
-            "maxLength": 255
-          },
-          "s3_access_key": {
-            "type": "string",
-            "maxLength": 255
-          },
-          "s3_secret_key": {
-            "type": "string",
-            "writeOnly": true,
-            "maxLength": 255
-          },
-          "s3_region": {
-            "type": "string",
-            "maxLength": 100
-          },
-          "encrypt_at_rest": {
-            "type": "boolean",
-            "description": "Encrypt stored files with AES-256-GCM before writing"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "readOnly": true
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "readOnly": true
-          }
-        },
-        "required": [
-          "backend_type",
-          "created_at",
-          "id",
-          "name",
-          "updated_at"
-        ]
-      },
-      "StorageTestResponse": {
-        "type": "object",
-        "description": "Response for the storage backend test endpoint.",
-        "properties": {
-          "status": {
-            "$ref": "#/components/schemas/StatusEnum"
-          },
-          "checks": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "boolean"
-            }
-          },
-          "message": {
-            "type": "string"
-          },
-          "duration_ms": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "checks",
-          "duration_ms",
-          "message",
-          "status"
-        ]
-      },
-      "TranscribeResponse": {
-        "type": "object",
-        "properties": {
-          "text": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "text"
-        ]
-      }
-    },
-    "securitySchemes": {
-      "oauth2": {
-        "type": "oauth2",
-        "flows": {
-          "clientCredentials": {
-            "tokenUrl": "/o/token/",
-            "scopes": {
-              "read": "Read access to API resources",
-              "write": "Write access (upload, process)"
-            }
-          },
-          "authorizationCode": {
-            "authorizationUrl": "/o/authorize/",
-            "tokenUrl": "/o/token/",
-            "scopes": {
-              "read": "Read access to API resources",
-              "write": "Write access (upload, process)"
-            }
-          }
-        }
-      }
-    }
-  }
 }
