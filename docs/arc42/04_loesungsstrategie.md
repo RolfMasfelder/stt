@@ -9,7 +9,7 @@
 | FastAPI als Server-Framework | Asynchron, automatische OpenAPI-Dokumentation, gute Performance |
 | Konfiguration via Umgebungsvariablen | Docker-freundlich, keine Konfigurationsdateien im Container nötig |
 | Frozen Dataclasses für Config | Immutable Konfiguration verhindert versehentliche Änderungen zur Laufzeit |
-| OpenAI-kompatible APIs | faster-whisper-server und LM Studio nutzen beide das OpenAI-Format — einheitliches Interface |
+| OpenAI-kompatible APIs | faster-whisper-server und Ollama nutzen beide das OpenAI-Format — einheitliches Interface. Wechsel des LLM-Backends ohne Code-Änderung möglich. |
 | Modularer Pipeline-Aufbau | Jeder Schritt (transcribe, diarize, summarize) unabhängig nutzbar und testbar |
 
 ## Technologieauswahl
@@ -18,5 +18,5 @@
 |------------|-------------|--------------------------|
 | Transkription | faster-whisper | OpenAI Whisper (langsamer), whisper.cpp (weniger Python-Integration) |
 | Diarization | pyannote.audio | Textbasierte Heuristik (ungenau), NeMo (komplexer), Resemblyzer (kein Diarization-Pipeline) |
-| LLM | LM Studio | Ollama (weniger Model-Management), llama.cpp direkt (weniger komfortabel) |
-| Server | FastAPI | Flask (kein async), Django (zu schwergewichtig) |
+| LLM | Ollama (Produktion) | LM Studio (Dev-Alternative, OpenAI-kompatibel), llama.cpp direkt (weniger komfortabel) |
+| Server | Django/DRF (stt-server) + FastAPI (stt-ml) | Flask (kein async), reines FastAPI (kein ORM/Admin) |

@@ -50,8 +50,9 @@ Die API-Schnittstelle ist in [`openapi.json`](openapi.json) definiert.
 ## Voraussetzungen
 
 - Linux (getestet mit openSUSE)
-- Python 3.12+ (in venv empfohlen)
-- LM Studio installiert und laufend auf dem Remote-Rechner
+- Python 3.13+ (in venv empfohlen)
+- Docker + docker compose
+- Ollama als Docker-Container (Produktion) oder LM Studio nativ (optionale Dev-Alternative)
 - HuggingFace-Token für pyannote-Modelle (`HF_STT_TOKEN` in `.env`)
 
 ## Installation
@@ -61,6 +62,26 @@ python -m venv --prompt stt venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
+
+## Ollama-Modell laden (einmalig)
+
+Nach dem ersten Start des `production`-Stacks muss das LLM-Modell in das
+persistente Volume geladen werden:
+
+```bash
+# Einmalig nach erstem Start:
+docker compose --profile production up -d
+docker compose exec stt-ollama ollama pull mistral
+
+# Verfügbare Modelle anzeigen:
+docker compose exec stt-ollama ollama list
+```
+
+Das Modell überlebt Container-Neustarts dank des persistenten Volumes `ollama_data`.
+Ein erneuter Pull ist nur bei Modell-Updates nötig.
+
+Alternativ kann über `LLM_BASE_URL` in `.env` ein anderes OpenAI-kompatibles
+Backend (z. B. LM Studio unter `http://192.168.178.80:1234`) konfiguriert werden.
 
 ## Nutzung
 

@@ -49,15 +49,18 @@
 
 ### summarize.py
 
-- LLM-basierte Textverarbeitung via LM Studio API
+- LLM-basierte Textverarbeitung via Ollama API (`POST /v1/chat/completions`, OpenAI-kompatibel)
 - Funktionen: `summarize_text`, `structure_text`, `diarize_text`, `process_transcript`
 - System-Prompts definieren das LLM-Verhalten pro Aufgabe
+- Fehlerbehandlung: `SummarizationError` bei Verbindungs-, Timeout- und HTTP-Fehlern
 
-### server.py
+### api/ (Django-App)
 
-- FastAPI-Anwendung mit 4 Endpoints
+- Django/DRF-Anwendung: REST-API, Modelle, Tasks, Migrationen
+- Endpoints: `/health`, `/v1/transcribe`, `/v1/diarize`, `/v1/process`, `/v1/jobs/...`
 - Empfängt Audio-Dateien als Multipart-Upload
 - Orchestriert transcribe/diarize/summarize Module
+- Async Job-Queue via django-q2 (Worker-Prozess: `stt-worker`)
 
 ### client.py
 

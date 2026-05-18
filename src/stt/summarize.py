@@ -1,7 +1,8 @@
-"""Text summarization via LM Studio API."""
+"""Text summarization via Ollama API (OpenAI-compatible)."""
 
 import logging
 import re
+import time
 from dataclasses import dataclass
 
 import requests
@@ -15,6 +16,10 @@ from stt.prompts import (
 )
 
 logger = logging.getLogger(__name__)
+
+_RETRY_STATUS_CODES = {429, 503}
+_MAX_RETRIES = 3
+_RETRY_BACKOFF_BASE = 2.0  # seconds; delay = base * attempt
 
 
 @dataclass(frozen=True)
@@ -67,23 +72,65 @@ def summarize_text(
     logger.debug("System prompt: %s", system_prompt[:80])
     logger.debug("Payload: model=%s, text_length=%d", config.model, len(text))
 
-    try:
-        response = requests.post(
-            config.url,
-            json=payload,
-            timeout=config.timeout,
+    last_error: Exception | None = None
+    for attempt in range(1, _MAX_RETRIES + 1):
+        try:
+            response = requests.post(
+                config.url,
+                json=payload,
+                timeout=config.timeout,
+            )
+            if response.status_code in _RETRY_STATUS_CODES and attempt < _MAX_RETRIES:
+                delay = _RETRY_BACKOFF_BASE * attempt
+                logger.warning(
+                    "LLM returned HTTP %d (attempt %d/%d), retrying in %.0fs...",
+                    response.status_code,
+                    attempt,
+                    _MAX_RETRIES,
+                    delay,
+                )
+                time.sleep(delay)
+                continue
+            response.raise_for_status()
+            break
+        except requests.ConnectionError as e:
+            last_error = e
+            if attempt < _MAX_RETRIES:
+                delay = _RETRY_BACKOFF_BASE * attempt
+                logger.warning(
+                    "Cannot connect to LLM (attempt %d/%d), retrying in %.0fs...",
+                    attempt,
+                    _MAX_RETRIES,
+                    delay,
+                )
+                time.sleep(delay)
+            else:
+                raise SummarizationError(
+                    f"Cannot connect to LLM at {config.url}: {e}"
+                ) from e
+        except requests.Timeout as e:
+            last_error = e
+            if attempt < _MAX_RETRIES:
+                delay = _RETRY_BACKOFF_BASE * attempt
+                logger.warning(
+                    "LLM request timed out (attempt %d/%d), retrying in %.0fs...",
+                    attempt,
+                    _MAX_RETRIES,
+                    delay,
+                )
+                time.sleep(delay)
+            else:
+                raise SummarizationError(
+                    f"Request to LLM timed out after {config.timeout}s: {e}"
+                ) from e
+        except requests.HTTPError as e:
+            raise SummarizationError(
+                f"LLM returned HTTP {response.status_code}: {response.text}"
+            ) from e
+    else:
+        raise SummarizationError(
+            f"LLM unavailable after {_MAX_RETRIES} attempts: {last_error}"
         )
-        response.raise_for_status()
-    except requests.ConnectionError as e:
-        raise SummarizationError(f"Cannot connect to LLM at {config.url}: {e}") from e
-    except requests.Timeout as e:
-        raise SummarizationError(
-            f"Request to LLM timed out after {config.timeout}s: {e}"
-        ) from e
-    except requests.HTTPError as e:
-        raise SummarizationError(
-            f"LLM returned HTTP {response.status_code}: {response.text}"
-        ) from e
 
     try:
         result = response.json()

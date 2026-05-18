@@ -36,6 +36,7 @@ class ProcessUploadSerializer(serializers.Serializer):
 
 class HealthResponseSerializer(serializers.Serializer):
     status = serializers.CharField()
+    llm = serializers.CharField(required=False)
 
 
 class TranscribeResponseSerializer(serializers.Serializer):
@@ -58,8 +59,8 @@ class DiarizeResponseSerializer(serializers.Serializer):
 class ProcessResponseSerializer(serializers.Serializer):
     text = serializers.CharField()
     diarized_text = serializers.CharField(allow_null=True)
-    structured_text = serializers.CharField()
-    summary = serializers.CharField()
+    structured_text = serializers.CharField(allow_null=True)
+    summary = serializers.CharField(allow_null=True)
 
 
 class ErrorResponseSerializer(serializers.Serializer):

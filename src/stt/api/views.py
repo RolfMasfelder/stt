@@ -5,6 +5,7 @@ import os
 import tempfile
 from pathlib import Path
 
+import requests
 from django.core.exceptions import ValidationError
 from django_q.tasks import async_task
 from drf_spectacular.utils import extend_schema
@@ -86,6 +87,16 @@ def _get_config() -> AppConfig:
     return _config
 
 
+def _check_llm(base_url: str) -> str:
+    """Return 'ok' if Ollama /api/tags responds, else 'unavailable'."""
+    try:
+        url = base_url.rstrip("/") + "/api/tags"
+        resp = requests.get(url, timeout=3)
+        return "ok" if resp.ok else "unavailable"
+    except Exception:
+        return "unavailable"
+
+
 def _save_upload(file: object) -> Path:
     """Validate and save an uploaded file to a temporary location."""
     suffix = Path(file.name).suffix.lower() if file.name else ".wav"
@@ -132,7 +143,9 @@ class HealthView(APIView):
         summary="Health check",
     )
     def get(self, request: Request) -> Response:
-        return Response({"status": "ok"})
+        cfg = _get_config()
+        llm_status = _check_llm(cfg.llm.base_url)
+        return Response({"status": "ok", "llm": llm_status})
 
 
 class TranscribeView(APIView):
@@ -293,22 +306,29 @@ class ProcessView(APIView):
             else:
                 plain_text = transcribe_audio(audio_path, cfg.ml_service, model)
 
-            result = process_transcript(
-                plain_text,
-                cfg.llm,
-                diarize=False,
-                diarized_text=diarized_text,
-            )
+            try:
+                result = process_transcript(
+                    plain_text,
+                    cfg.llm,
+                    diarize=False,
+                    diarized_text=diarized_text,
+                )
+                structured_text: str | None = result.structured_text
+                summary: str | None = result.summary
+            except SummarizationError as e:
+                logger.warning("LLM unavailable, returning transcription only: %s", e)
+                structured_text = None
+                summary = None
 
             return Response(
                 {
                     "text": plain_text,
-                    "diarized_text": result.diarized_text,
-                    "structured_text": result.structured_text,
-                    "summary": result.summary,
+                    "diarized_text": diarized_text,
+                    "structured_text": structured_text,
+                    "summary": summary,
                 },
             )
-        except (TranscriptionError, DiarizationError, SummarizationError) as e:
+        except (TranscriptionError, DiarizationError) as e:
             return Response(
                 {"detail": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
