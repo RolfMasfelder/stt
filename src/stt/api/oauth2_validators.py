@@ -6,8 +6,10 @@ from oauth2_provider.oauth2_validators import OAuth2Validator
 
 logger = logging.getLogger(__name__)
 
+
 class CustomOAuth2Validator(OAuth2Validator):
     """Assign the application's user to client credentials tokens.
+
 
     DOT 3.x sets request.user = None for client_credentials in
     _save_bearer_token before creating the AccessToken. We override
