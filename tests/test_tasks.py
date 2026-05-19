@@ -68,6 +68,32 @@ class TestJobCreateEndpoint:
         )
 
     @patch("stt.api.views.async_task")
+    def test_create_job_stores_language(self, mock_async, client) -> None:
+        """Language parameter should be persisted on the Job model."""
+        response = client.post(
+            "/v1/jobs",
+            {"file": _audio_file(), "job_type": "transcribe", "language": "de"},
+            format="multipart",
+        )
+        assert response.status_code == 202
+        job_id = response.json()["id"]
+        job = Job.objects.get(id=job_id)
+        assert job.whisper_language == "de"
+
+    @patch("stt.api.views.async_task")
+    def test_create_job_language_defaults_to_auto(self, mock_async, client) -> None:
+        """Language should default to 'auto' when not provided."""
+        response = client.post(
+            "/v1/jobs",
+            {"file": _audio_file(), "job_type": "transcribe"},
+            format="multipart",
+        )
+        assert response.status_code == 202
+        job_id = response.json()["id"]
+        job = Job.objects.get(id=job_id)
+        assert job.whisper_language == "auto"
+
+    @patch("stt.api.views.async_task")
     def test_create_job_creates_audit_log(self, mock_async, client) -> None:
         response = client.post(
             "/v1/jobs",

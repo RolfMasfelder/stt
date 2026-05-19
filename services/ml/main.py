@@ -50,12 +50,15 @@ class DiarizedSegment:
 # ---------------------------------------------------------------------------
 # Whisper helpers
 # ---------------------------------------------------------------------------
-def _run_whisper(audio_path: Path, model_name: str) -> list[dict]:
+def _run_whisper(
+    audio_path: Path, model_name: str, language: str | None = None
+) -> list[dict]:
     """Run faster-whisper locally, return segments as dicts."""
     model = WhisperModel(
         model_name, device=WHISPER_DEVICE, compute_type=WHISPER_COMPUTE_TYPE
     )
-    segments, info = model.transcribe(str(audio_path))
+    lang = None if language in (None, "auto") else language
+    segments, info = model.transcribe(str(audio_path), language=lang)
     logger.info(
         "Detected language: %s (probability: %.2f)",
         info.language,
@@ -64,9 +67,11 @@ def _run_whisper(audio_path: Path, model_name: str) -> list[dict]:
     return [{"start": s.start, "end": s.end, "text": s.text.strip()} for s in segments]
 
 
-def _transcribe_text(audio_path: Path, model_name: str) -> str:
+def _transcribe_text(
+    audio_path: Path, model_name: str, language: str | None = None
+) -> str:
     """Transcribe audio to plain text."""
-    segments = _run_whisper(audio_path, model_name)
+    segments = _run_whisper(audio_path, model_name, language)
     return " ".join(s["text"] for s in segments).strip()
 
 
@@ -106,10 +111,12 @@ def _assign_speaker(start: float, end: float, diarization: Annotation) -> str:
     return "UNKNOWN"
 
 
-def _diarize(audio_path: Path, model_name: str) -> list[dict]:
+def _diarize(
+    audio_path: Path, model_name: str, language: str | None = None
+) -> list[dict]:
     """Transcribe + diarize, returning segment dicts with speaker labels."""
     # Step 1: whisper segments with timestamps
-    whisper_segments = _run_whisper(audio_path, model_name)
+    whisper_segments = _run_whisper(audio_path, model_name, language)
 
     # Step 2: pyannote diarization
     diarization = _run_diarization(audio_path)
@@ -173,11 +180,12 @@ def health() -> dict:
 def transcribe(
     file: UploadFile = File(...),
     model: str = Form(WHISPER_MODEL),
+    language: str = Form("auto"),
 ) -> dict:
     """Transcribe audio file to plain text."""
     audio_path = _save_upload(file)
     try:
-        text = _transcribe_text(audio_path, model)
+        text = _transcribe_text(audio_path, model, language)
         return {"text": text}
     except Exception as e:
         logger.exception("Transcription failed")
@@ -190,6 +198,7 @@ def transcribe(
 def diarize(
     file: UploadFile = File(...),
     model: str = Form(WHISPER_MODEL),
+    language: str = Form("auto"),
 ) -> dict:
     """Transcribe with speaker diarization."""
     if not HF_STT_TOKEN:
@@ -197,7 +206,7 @@ def diarize(
 
     audio_path = _save_upload(file)
     try:
-        segments = _diarize(audio_path, model)
+        segments = _diarize(audio_path, model, language)
         plain_text = " ".join(s["text"] for s in segments)
         # Build formatted diarized text
         diarized_text = _format_segments(segments)

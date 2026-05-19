@@ -13,11 +13,37 @@ from stt.prompts import (
 )
 from stt.summarize import (
     SummarizationError,
+    _language_suffix,
     diarize_text,
     process_transcript,
     structure_text,
     summarize_text,
 )
+
+
+class TestLanguageSuffix:
+    """Tests for _language_suffix helper."""
+
+    def test_auto_returns_empty(self) -> None:
+        assert _language_suffix("auto") == ""
+
+    def test_german_returns_empty(self) -> None:
+        assert _language_suffix("de") == ""
+
+    def test_empty_returns_empty(self) -> None:
+        assert _language_suffix("") == ""
+
+    def test_french_returns_instruction(self) -> None:
+        suffix = _language_suffix("fr")
+        assert "Französisch" in suffix
+
+    def test_english_returns_instruction(self) -> None:
+        suffix = _language_suffix("en")
+        assert "Englisch" in suffix
+
+    def test_unknown_code_uses_uppercased_code(self) -> None:
+        suffix = _language_suffix("xx")
+        assert "XX" in suffix
 
 
 class TestSummarizeText:
@@ -154,6 +180,38 @@ class TestSummarizeText:
         call_args = mock_post.call_args
         messages = call_args.kwargs["json"]["messages"]
         assert messages[0]["content"] == "Custom prompt"
+
+    @patch("stt.summarize.requests.post")
+    def test_language_appended_to_system_prompt(self, mock_post: MagicMock) -> None:
+        """Non-German language should append instruction to system prompt."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "choices": [{"message": {"content": "Résultat"}}]
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        summarize_text("Text", system_prompt="Base prompt", language="fr")
+
+        messages = mock_post.call_args.kwargs["json"]["messages"]
+        assert "Französisch" in messages[0]["content"]
+
+    @patch("stt.summarize.requests.post")
+    def test_language_auto_does_not_modify_prompt(self, mock_post: MagicMock) -> None:
+        """'auto' language should not modify the system prompt."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "choices": [{"message": {"content": "Result"}}]
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        summarize_text("Text", system_prompt="Base prompt", language="auto")
+
+        messages = mock_post.call_args.kwargs["json"]["messages"]
+        assert messages[0]["content"] == "Base prompt"
 
     @patch("stt.summarize.time.sleep")
     @patch("stt.summarize.requests.post")

@@ -61,6 +61,7 @@ class Job(models.Model):
     # Input metadata.
     original_filename = models.CharField(max_length=512, blank=True, default="")
     whisper_model = models.CharField(max_length=50, default="small")
+    whisper_language = models.CharField(max_length=10, default="auto")
     enable_diarize = models.BooleanField(default=True)
 
     # Audio storage (2f.8): persistent storage in backend instead of temp files.

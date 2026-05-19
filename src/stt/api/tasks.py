@@ -109,7 +109,9 @@ def run_transcribe(job_id: str) -> None:
     _start = time.monotonic()
     try:
         cfg = _get_config()
-        text = transcribe_audio(audio_path, cfg.ml_service, job.whisper_model)
+        text = transcribe_audio(
+            audio_path, cfg.ml_service, job.whisper_model, job.whisper_language
+        )
         job.status = JobStatus.COMPLETED
         job.result_text = text
         job.save(
@@ -151,7 +153,9 @@ def run_diarize(job_id: str) -> None:
     _start = time.monotonic()
     try:
         cfg = _get_config()
-        segments = diarize_audio(audio_path, cfg.ml_service, job.whisper_model)
+        segments = diarize_audio(
+            audio_path, cfg.ml_service, job.whisper_model, job.whisper_language
+        )
         diarized_text = format_diarized_segments(segments)
         plain_text = " ".join(seg.text for seg in segments)
 
@@ -212,17 +216,22 @@ def run_process(job_id: str) -> None:
         diarized_text: str | None = None
 
         if job.enable_diarize:
-            segments = diarize_audio(audio_path, cfg.ml_service, job.whisper_model)
+            segments = diarize_audio(
+                audio_path, cfg.ml_service, job.whisper_model, job.whisper_language
+            )
             diarized_text = format_diarized_segments(segments)
             plain_text = " ".join(seg.text for seg in segments)
         else:
-            plain_text = transcribe_audio(audio_path, cfg.ml_service, job.whisper_model)
+            plain_text = transcribe_audio(
+                audio_path, cfg.ml_service, job.whisper_model, job.whisper_language
+            )
 
         result = process_transcript(
             plain_text,
             cfg.llm,
             diarize=False,
             diarized_text=diarized_text,
+            language=job.whisper_language,
         )
 
         job.status = JobStatus.COMPLETED

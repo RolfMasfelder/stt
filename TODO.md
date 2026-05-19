@@ -171,8 +171,11 @@ bereits via MetalLB erreichbar – **keine firewall-cmd-Regel für Ollama nötig
 ### 9. Weitere offene Punkte (nicht Ollama-spezifisch)
 
 - [x] `.env` ist in `.gitignore` eingetragen und wird nicht getrackt.
-- [ ] `openapi.json` validieren und aktualisieren (spiegelt es den aktuellen API-Stand wider?).
+- [x] `openapi.json` validieren und aktualisieren: Diff gegen Live-API durchgeführt, 3 Felder nachgezogen (`HealthResponse.llm`, `ProcessResponse.structured_text`/`summary` nullable).
 - [ ] `HF_STT_TOKEN` rotieren falls er jemals committed wurde (git-history prüfen).
-- [ ] Flutter-App: API-Anbindung an `/v1/process` vervollständigen.
+- [x] Flutter-App: API-Anbindung an `/v1/process` – **obsolet**. Flutter nutzt korrekt `/v1/jobs` (async Job-Queue). Kein Handlungsbedarf.
+- [x] `language`-Parameter end-to-end implementiert: ML-Service (`faster-whisper`), `transcribe.py`/`diarize.py`, `Job`-Modell (`whisper_language`), Migration `0009`, Views, Tasks, Flutter `upload.dart`.
+- [x] LLM-Ausgabesprache: `process_transcript()` hängt Sprachanweisung an System-Prompts an – Zusammenfassung/Strukturierung erscheint in der gewählten Sprache (nicht nur Transkription).
+- [ ] Flutter-Tests verbessern: `UploadService` mit gemocktem HTTP-Client, `ResultScreen`-Widget-Tests, `RecordingHistoryService`-Persistenz.
 - [ ] CI/CD: GitHub Actions Workflow für automatisierte Tests und Container-Build.
 - [ ] SBOM-Dateien (`sbom/`) aktuell halten.

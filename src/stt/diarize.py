@@ -29,6 +29,7 @@ def diarize_audio(
     audio_file: str | Path,
     ml_service: MLServiceConfig | None = None,
     model: str = "small",
+    language: str = "auto",
 ) -> list[DiarizedSegment]:
     """Transcribe and diarize an audio file via the ML service.
 
@@ -36,6 +37,7 @@ def diarize_audio(
         audio_file: Path to the audio file.
         ml_service: ML service configuration.
         model: Whisper model name to use.
+        language: Language code (e.g. 'de', 'en') or 'auto' for detection.
 
     Returns:
         List of DiarizedSegment with speaker labels, timestamps, and text.
@@ -56,7 +58,7 @@ def diarize_audio(
     try:
         with open(audio_path, "rb") as f:
             files = {"file": (audio_path.name, f, "audio/wav")}
-            data = {"model": model}
+            data = {"model": model, "language": language}
             response = requests.post(
                 url, files=files, data=data, timeout=ml_service.timeout
             )
