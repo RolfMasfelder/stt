@@ -34,20 +34,24 @@ try:
 except: print('stt-cli-secret')
 ")
 
+LLM_MODEL=$(grep -E '^LLM_MODEL=' .env 2>/dev/null | cut -d= -f2 | tr -d '"' || true)
+LLM_MODEL="${LLM_MODEL:-mistral}"
+
 echo "=== STT Docker Deploy (tag: ${TAG}) ==="
 echo "    OAuth2 client: ${OAUTH2_CLIENT_ID}"
+echo "    LLM model:     ${LLM_MODEL}"
 
 # Step 1: Build Docker images — IMAGE_TAG ensures correct names from the start
-echo "[1/6] Building Docker images (tag: ${TAG})..."
+echo "[1/8] Building Docker images (tag: ${TAG})..."
 IMAGE_TAG=${TAG} docker compose build ${EXTRA_ARGS} stt-server stt-ml
 
 # Step 2: Push to registry (no separate tagging needed — build already named correctly)
-echo "[2/6] Pushing images to registry..."
+echo "[2/8] Pushing images to registry..."
 docker push "${REGISTRY}/stt-server:${TAG}"
 docker push "${REGISTRY}/stt-ml:${TAG}"
 
 # Step 3: Sync docker-compose.yml and pull images on remote
-echo "[3/6] Syncing docker-compose.yml and pulling images on ${REMOTE_HOST}..."
+echo "[3/8] Syncing docker-compose.yml and pulling images on ${REMOTE_HOST}..."
 scp docker-compose.yml "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/docker-compose.yml"
 ssh "${REMOTE_USER}@${REMOTE_HOST}" "
   docker pull ${REGISTRY}/stt-server:${TAG} &&
@@ -55,14 +59,32 @@ ssh "${REMOTE_USER}@${REMOTE_HOST}" "
 "
 
 # Step 4: Restart production stack with the versioned tag (no rebuild)
-echo "[4/6] Restarting production stack on ${REMOTE_HOST}..."
+echo "[4/8] Restarting production stack on ${REMOTE_HOST}..."
 ssh "${REMOTE_USER}@${REMOTE_HOST}" "
   cd ${REMOTE_DIR} &&
   IMAGE_TAG=${TAG} docker compose --profile production up -d --no-build
 "
 
-# Step 5: Fetch Caddy CA certificate (retry up to 30s for Caddy to initialise)
-echo "[5/6] Fetching Caddy CA certificate..."
+# Step 5: Run database migrations on remote
+echo "[5/8] Running database migrations on ${REMOTE_HOST}..."
+ssh "${REMOTE_USER}@${REMOTE_HOST}" \
+  "cd ${REMOTE_DIR} && docker compose exec stt-server python manage.py migrate --noinput"
+echo "  ✓ Migrations applied"
+
+# Step 6: Pull Ollama LLM model on remote (idempotent — no-op if already present)
+echo "[6/8] Ensuring Ollama model '${LLM_MODEL}' is available on ${REMOTE_HOST}..."
+ssh "${REMOTE_USER}@${REMOTE_HOST}" "
+  OLLAMA_CONTAINER=\$(docker ps -q --filter name=stt-ollama 2>/dev/null | head -1 || true)
+  if [[ -n \"\${OLLAMA_CONTAINER}\" ]]; then
+    docker exec \"\${OLLAMA_CONTAINER}\" ollama pull ${LLM_MODEL}
+    echo '  ✓ Model ${LLM_MODEL} ready'
+  else
+    echo '  ⚠ Ollama container not running — skipping model pull'
+  fi
+"
+
+# Step 7: Fetch Caddy CA certificate (retry up to 30s for Caddy to initialise)
+echo "[7/8] Fetching Caddy CA certificate..."
 for i in $(seq 1 30); do
   if ssh "${REMOTE_USER}@${REMOTE_HOST}" \
        "docker exec stt-caddy test -f /data/caddy/pki/authorities/local/root.crt" 2>/dev/null; then
@@ -76,8 +98,8 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
-# Step 6: Bootstrap OAuth2 application on remote (idempotent — creates only if missing)
-echo "[6/6] Bootstrapping OAuth2 application (${OAUTH2_CLIENT_ID})..."
+# Step 8: Bootstrap OAuth2 application on remote (idempotent — creates only if missing)
+echo "[8/8] Bootstrapping OAuth2 application (${OAUTH2_CLIENT_ID})..."
 ssh "${REMOTE_USER}@${REMOTE_HOST}" \
   "docker exec -i \
      -e \"OAUTH2_CLIENT_ID=${OAUTH2_CLIENT_ID}\" \
