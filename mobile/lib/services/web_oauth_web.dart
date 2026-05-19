@@ -1,13 +1,13 @@
-// Web-specific OAuth2 PKCE implementation using dart:html
-// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
-import 'dart:html' as html;
+// Web-specific OAuth2 PKCE implementation using package:web + dart:js_interop
 import 'dart:async';
 import 'dart:convert';
+import 'dart:js_interop';
 import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
+import 'package:web/web.dart';
 
 /// Generates a random PKCE code verifier (URL-safe base64, no padding).
 String generateCodeVerifier() {
@@ -58,43 +58,41 @@ Future<Map<String, String>?> authorizeWithPopup({
 
   final completer = Completer<Map<String, String>?>();
 
-  final popup = html.window.open(
+  final popup = window.open(
     authUrl.toString(),
     '_auth_popup',
     'width=600,height=700,left=200,top=100',
   );
 
-  late html.EventListener listener;
+  late EventListener jsListener;
   late Timer timeoutTimer;
 
-  listener = (html.Event event) {
-    if (event is html.MessageEvent) {
-      final data = event.data;
-      // callback.html sends a plain string 'oauth_callback:<url>'
-      // to avoid JS-object → Dart Map interop issues.
-      if (data is String && data.startsWith('oauth_callback:')) {
-        final callbackUrl = data.substring('oauth_callback:'.length);
-        html.window.removeEventListener('message', listener);
-        timeoutTimer.cancel();
+  jsListener = ((MessageEvent event) {
+    final data = event.data.dartify();
+    // callback.html sends a plain string 'oauth_callback:<url>'
+    // to avoid JS-object → Dart Map interop issues.
+    if (data is String && data.startsWith('oauth_callback:')) {
+      final callbackUrl = data.substring('oauth_callback:'.length);
+      window.removeEventListener('message', jsListener);
+      timeoutTimer.cancel();
 
-        final uri = Uri.parse(callbackUrl);
-        final code = uri.queryParameters['code'];
-        final returnedState = uri.queryParameters['state'];
+      final uri = Uri.parse(callbackUrl);
+      final code = uri.queryParameters['code'];
+      final returnedState = uri.queryParameters['state'];
 
-        if (code != null && returnedState == state) {
-          completer.complete({'code': code, 'verifier': verifier});
-        } else {
-          completer.complete(null);
-        }
+      if (code != null && returnedState == state) {
+        completer.complete({'code': code, 'verifier': verifier});
+      } else {
+        completer.complete(null);
       }
     }
-  };
+  }).toJS;
 
-  html.window.addEventListener('message', listener);
+  window.addEventListener('message', jsListener);
 
   timeoutTimer = Timer(const Duration(minutes: 5), () {
-    html.window.removeEventListener('message', listener);
-    popup.close();
+    window.removeEventListener('message', jsListener);
+    popup?.close();
     if (!completer.isCompleted) completer.complete(null);
   });
 
