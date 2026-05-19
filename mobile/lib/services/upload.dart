@@ -9,7 +9,6 @@ import 'package:http_parser/http_parser.dart';
 
 import '../models/job_result.dart';
 import '../models/processing_config.dart';
-import '../models/recording_entry.dart';
 import '../models/result_version.dart';
 import '../models/upload_status.dart';
 import '../services/auth.dart';
@@ -106,9 +105,9 @@ class UploadService extends ChangeNotifier {
         if (_currentEntryId != null) {
           _historyService?.updateEntry(
             _currentEntryId!,
-            (await _historyService!.findById(
-              _currentEntryId!,
-            ))!.copyWith(jobId: _currentJob!.id, status: 'uploaded'),
+            _historyService!
+                .findById(_currentEntryId!)!
+                .copyWith(jobId: _currentJob!.id, status: 'uploaded'),
           );
         }
         _startPolling(serverUrl);
@@ -153,7 +152,7 @@ class UploadService extends ChangeNotifier {
             summary: _currentJob!.resultSummary,
           );
           if (_currentEntryId != null) {
-            final e = await _historyService?.findById(_currentEntryId!);
+            final e = _historyService?.findById(_currentEntryId!);
             if (e != null) {
               _historyService?.updateEntry(
                 _currentEntryId!,
@@ -174,7 +173,7 @@ class UploadService extends ChangeNotifier {
             error: _errorMessage,
           );
           if (_currentEntryId != null) {
-            final e = await _historyService?.findById(_currentEntryId!);
+            final e = _historyService?.findById(_currentEntryId!);
             if (e != null) {
               _historyService?.updateEntry(
                 _currentEntryId!,

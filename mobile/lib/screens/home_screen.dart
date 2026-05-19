@@ -234,6 +234,7 @@ class HomeScreen extends StatelessWidget {
         status: 'recorded',
       );
       await history.add(entry);
+      if (!context.mounted) return;
 
       final canUploadNow =
           connection.status == ConnectionStatus.connected &&
