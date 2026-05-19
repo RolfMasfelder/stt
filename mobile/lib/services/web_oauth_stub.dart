@@ -6,8 +6,7 @@ Future<Map<String, String>?> authorizeWithPopup({
   required String clientId,
   required String redirectUri,
   required List<String> scopes,
-}) async =>
-    null;
+}) async => null;
 
 Future<Map<String, dynamic>?> exchangeCodeForTokens({
   required String tokenEndpoint,
@@ -15,8 +14,7 @@ Future<Map<String, dynamic>?> exchangeCodeForTokens({
   required String redirectUri,
   required String code,
   required String codeVerifier,
-}) async =>
-    null;
+}) async => null;
 
 Future<Map<String, dynamic>?> refreshTokens({
   required String tokenEndpoint,
@@ -24,5 +22,4 @@ Future<Map<String, dynamic>?> refreshTokens({
   required String redirectUri,
   required String refreshToken,
   required List<String> scopes,
-}) async =>
-    null;
+}) async => null;

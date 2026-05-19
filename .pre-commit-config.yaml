@@ -32,3 +32,15 @@ repos:
       - id: name-tests-test
         args: [--pytest-test-first]
       - id: requirements-txt-fixer
+
+  # Dart formatting (runs inside the flutter Docker service)
+  # Formats mobile/ in-place; pre-commit detects changed files and blocks commit.
+  # User must re-stage formatted files and commit again.
+  - repo: local
+    hooks:
+      - id: dart-format
+        name: dart format
+        language: system
+        entry: docker compose run --rm --no-deps -T -w /app flutter dart format .
+        files: \.dart$
+        pass_filenames: false

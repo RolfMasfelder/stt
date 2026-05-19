@@ -89,9 +89,7 @@ class UploadService extends ChangeNotifier {
           ),
         );
       } else {
-        request.files.add(
-          await http.MultipartFile.fromPath('file', filePath),
-        );
+        request.files.add(await http.MultipartFile.fromPath('file', filePath));
       }
 
       final streamedResponse = await request.send();
@@ -108,8 +106,9 @@ class UploadService extends ChangeNotifier {
         if (_currentEntryId != null) {
           _historyService?.updateEntry(
             _currentEntryId!,
-            (await _historyService!.findById(_currentEntryId!))!
-                .copyWith(jobId: _currentJob!.id, status: 'uploaded'),
+            (await _historyService!.findById(
+              _currentEntryId!,
+            ))!.copyWith(jobId: _currentJob!.id, status: 'uploaded'),
           );
         }
         _startPolling(serverUrl);
