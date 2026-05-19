@@ -4,7 +4,9 @@ import 'dart:developer';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_appauth/flutter_appauth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'web_oauth_stub.dart' if (dart.library.html) 'web_oauth_web.dart' as webOAuth;
+import 'web_oauth_stub.dart'
+    if (dart.library.html) 'web_oauth_web.dart'
+    as webOAuth;
 
 class AuthState {
   final bool isAuthenticated;
@@ -82,10 +84,7 @@ class AuthService extends ChangeNotifier {
       final issuer = serverUrl.endsWith('/') ? '${serverUrl}o' : '$serverUrl/o';
 
       if (kIsWeb) {
-        return await _loginWeb(
-          clientId: clientId,
-          issuer: issuer,
-        );
+        return await _loginWeb(clientId: clientId, issuer: issuer);
       }
 
       final result = await _appAuth.authorizeAndExchangeCode(
