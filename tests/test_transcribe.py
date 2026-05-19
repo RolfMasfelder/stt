@@ -113,3 +113,39 @@ class TestTranscribeAudio:
 
         result = transcribe_audio(audio_file)
         assert result == ""
+
+    @patch("stt.transcribe.requests.post")
+    def test_language_passed_to_ml_service(
+        self, mock_post: MagicMock, tmp_path: Path
+    ) -> None:
+        """Should forward language parameter to ML service."""
+        audio_file = tmp_path / "test.wav"
+        audio_file.write_bytes(b"fake audio data")
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"text": "Hallo"}
+        mock_post.return_value = mock_response
+
+        transcribe_audio(audio_file, language="de")
+
+        call_args = mock_post.call_args
+        assert call_args[1]["data"]["language"] == "de"
+
+    @patch("stt.transcribe.requests.post")
+    def test_language_auto_is_default(
+        self, mock_post: MagicMock, tmp_path: Path
+    ) -> None:
+        """Language should default to 'auto'."""
+        audio_file = tmp_path / "test.wav"
+        audio_file.write_bytes(b"fake audio data")
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"text": "Hello"}
+        mock_post.return_value = mock_response
+
+        transcribe_audio(audio_file)
+
+        call_args = mock_post.call_args
+        assert call_args[1]["data"]["language"] == "auto"

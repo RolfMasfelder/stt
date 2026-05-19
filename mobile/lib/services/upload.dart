@@ -73,7 +73,8 @@ class UploadService extends ChangeNotifier {
       final request = http.MultipartRequest('POST', uri)
         ..headers.addAll(headers)
         ..fields['model'] = config.model
-        ..fields['diarize'] = config.diarize.toString();
+        ..fields['diarize'] = config.diarize.toString()
+        ..fields['language'] = config.language;
 
       if (kIsWeb) {
         // On web, filePath is a blob URL returned by the record package.

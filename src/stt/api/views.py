@@ -171,6 +171,7 @@ class TranscribeView(APIView):
             )
 
         model = request.data.get("model", "small")
+        language = request.data.get("language", "auto")
 
         try:
             audio_path = _save_upload(file)
@@ -179,7 +180,7 @@ class TranscribeView(APIView):
 
         try:
             cfg = _get_config()
-            text = transcribe_audio(audio_path, cfg.ml_service, model)
+            text = transcribe_audio(audio_path, cfg.ml_service, model, language)
             return Response({"text": text})
         except TranscriptionError as e:
             return Response(
@@ -221,6 +222,7 @@ class DiarizeView(APIView):
             )
 
         model = request.data.get("model", "small")
+        language = request.data.get("language", "auto")
 
         try:
             audio_path = _save_upload(file)
@@ -228,7 +230,7 @@ class DiarizeView(APIView):
             return Response({"detail": e.detail}, status=e.status_code)
 
         try:
-            segments = diarize_audio(audio_path, cfg.ml_service, model)
+            segments = diarize_audio(audio_path, cfg.ml_service, model, language)
             diarized_text = format_diarized_segments(segments)
             plain_text = " ".join(seg.text for seg in segments)
             return Response(
@@ -285,6 +287,7 @@ class ProcessView(APIView):
             )
 
         model = request.data.get("model", "small")
+        language = request.data.get("language", "auto")
         do_diarize = str(request.data.get("diarize", "true")).lower() in (
             "true",
             "1",
@@ -300,11 +303,13 @@ class ProcessView(APIView):
             diarized_text: str | None = None
 
             if do_diarize:
-                segments = diarize_audio(audio_path, cfg.ml_service, model)
+                segments = diarize_audio(audio_path, cfg.ml_service, model, language)
                 diarized_text = format_diarized_segments(segments)
                 plain_text = " ".join(seg.text for seg in segments)
             else:
-                plain_text = transcribe_audio(audio_path, cfg.ml_service, model)
+                plain_text = transcribe_audio(
+                    audio_path, cfg.ml_service, model, language
+                )
 
             try:
                 result = process_transcript(
@@ -312,6 +317,7 @@ class ProcessView(APIView):
                     cfg.llm,
                     diarize=False,
                     diarized_text=diarized_text,
+                    language=language,
                 )
                 structured_text: str | None = result.structured_text
                 summary: str | None = result.summary
@@ -385,6 +391,7 @@ class JobCreateView(APIView):
             )
 
         model = request.data.get("model", "small")
+        language = request.data.get("language", "auto")
         do_diarize = str(request.data.get("diarize", "true")).lower() in (
             "true",
             "1",
@@ -401,6 +408,7 @@ class JobCreateView(APIView):
             job_type=raw_type,
             original_filename=user_filename,
             whisper_model=model,
+            whisper_language=language,
             enable_diarize=do_diarize,
             owner=request.user if request.user.is_authenticated else None,
             tenant=getattr(request, "tenant", None),

@@ -18,6 +18,7 @@ def transcribe_audio(
     audio_file: str | Path,
     ml_service: MLServiceConfig | None = None,
     model: str = "small",
+    language: str = "auto",
 ) -> str:
     """Transcribe an audio file to text via the ML service.
 
@@ -25,6 +26,7 @@ def transcribe_audio(
         audio_file: Path to the audio file to transcribe.
         ml_service: ML service configuration. Uses defaults if None.
         model: Whisper model name to use.
+        language: Language code (e.g. 'de', 'en') or 'auto' for detection.
 
     Returns:
         The transcribed text as a single string.
@@ -45,7 +47,7 @@ def transcribe_audio(
     try:
         with open(audio_path, "rb") as f:
             files = {"file": (audio_path.name, f, "audio/wav")}
-            data = {"model": model}
+            data = {"model": model, "language": language}
             response = requests.post(
                 url, files=files, data=data, timeout=ml_service.timeout
             )

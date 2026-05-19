@@ -18,6 +18,32 @@ from stt.prompts import (
 logger = logging.getLogger(__name__)
 
 _RETRY_STATUS_CODES = {429, 503}
+
+_LANGUAGE_NAMES: dict[str, str] = {
+    "en": "Englisch",
+    "fr": "Französisch",
+    "es": "Spanisch",
+    "it": "Italienisch",
+    "pt": "Portugiesisch",
+    "nl": "Niederländisch",
+    "pl": "Polnisch",
+    "ru": "Russisch",
+    "tr": "Türkisch",
+    "ar": "Arabisch",
+    "zh": "Chinesisch",
+    "ja": "Japanisch",
+    "ko": "Koreanisch",
+}
+
+
+def _language_suffix(language: str) -> str:
+    """Return a language instruction for non-German/non-auto languages."""
+    if language in ("auto", "de", ""):
+        return ""
+    lang_name = _LANGUAGE_NAMES.get(language, language.upper())
+    return f"\nAntworte ausschließlich auf {lang_name}."
+
+
 _MAX_RETRIES = 3
 _RETRY_BACKOFF_BASE = 2.0  # seconds; delay = base * attempt
 
@@ -39,6 +65,7 @@ def summarize_text(
     text: str,
     config: LLMConfig | None = None,
     system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+    language: str = "auto",
 ) -> str:
     """Summarize text using an LLM.
 
@@ -46,6 +73,7 @@ def summarize_text(
         text: The text to summarize.
         config: LLM configuration. Uses defaults if None.
         system_prompt: System prompt for the LLM.
+        language: Language code for the output (e.g. 'de', 'fr') or 'auto'.
 
     Returns:
         The summarized text.
@@ -60,10 +88,13 @@ def summarize_text(
     if not text.strip():
         raise ValueError("Input text must not be empty")
 
+    suffix = _language_suffix(language)
+    effective_prompt = system_prompt + suffix if suffix else system_prompt
+
     payload = {
         "model": config.model,
         "messages": [
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": effective_prompt},
             {"role": "user", "content": text},
         ],
     }
@@ -147,12 +178,14 @@ def summarize_text(
 def structure_text(
     text: str,
     config: LLMConfig | None = None,
+    language: str = "auto",
 ) -> str:
     """Structure a transcript into thematic sections.
 
     Args:
         text: The raw transcript text to structure.
         config: LLM configuration. Uses defaults if None.
+        language: Language code for the output or 'auto'.
 
     Returns:
         The structured text with thematic sections as Markdown.
@@ -162,12 +195,15 @@ def structure_text(
         SummarizationError: If the API request fails.
     """
     logger.info("Structuring transcript (%d characters)", len(text))
-    return summarize_text(text, config, system_prompt=STRUCTURE_SYSTEM_PROMPT)
+    return summarize_text(
+        text, config, system_prompt=STRUCTURE_SYSTEM_PROMPT, language=language
+    )
 
 
 def diarize_text(
     text: str,
     config: LLMConfig | None = None,
+    language: str = "auto",
 ) -> str:
     """Add speaker labels to a transcript using LLM heuristics.
 
@@ -177,6 +213,7 @@ def diarize_text(
     Args:
         text: The raw transcript text.
         config: LLM configuration. Uses defaults if None.
+        language: Language code for the output or 'auto'.
 
     Returns:
         The transcript with speaker labels added.
@@ -186,7 +223,9 @@ def diarize_text(
         SummarizationError: If the API request fails.
     """
     logger.info("Diarizing transcript (%d characters)", len(text))
-    return summarize_text(text, config, system_prompt=DIARIZE_SYSTEM_PROMPT)
+    return summarize_text(
+        text, config, system_prompt=DIARIZE_SYSTEM_PROMPT, language=language
+    )
 
 
 def process_transcript(
@@ -194,6 +233,7 @@ def process_transcript(
     config: LLMConfig | None = None,
     diarize: bool = False,
     diarized_text: str | None = None,
+    language: str = "auto",
 ) -> ProcessResult:
     """Full pipeline: optionally diarize, structure, then summarize.
 
@@ -208,6 +248,7 @@ def process_transcript(
         diarize: If True, run speaker diarization before structuring.
         diarized_text: Pre-computed diarized text (e.g. from audio-based
             diarization). When set, skips LLM-based diarization.
+        language: Language code for LLM output (e.g. 'de', 'fr') or 'auto'.
 
     Returns:
         ProcessResult with structured_text, summary, and optional diarized_text.
@@ -220,12 +261,14 @@ def process_transcript(
     input_text = text
 
     if diarize:
-        diarized = diarize_text(text, config)
+        diarized = diarize_text(text, config, language=language)
         input_text = diarized
 
-    structured = structure_text(input_text, config)
+    structured = structure_text(input_text, config, language=language)
     logger.info("Summarizing structured text (%d characters)", len(structured))
-    summary = summarize_text(structured, config, system_prompt=SUMMARY_SYSTEM_PROMPT)
+    summary = summarize_text(
+        structured, config, system_prompt=SUMMARY_SYSTEM_PROMPT, language=language
+    )
     return ProcessResult(
         structured_text=structured, summary=summary, diarized_text=diarized
     )

@@ -15,6 +15,10 @@ class AudioUploadSerializer(serializers.Serializer):
         default="small",
         help_text="Whisper model name",
     )
+    language = serializers.CharField(
+        default="auto",
+        help_text="Language code (e.g. 'de', 'en') or 'auto' for auto-detection",
+    )
 
 
 class ProcessUploadSerializer(serializers.Serializer):
@@ -24,6 +28,10 @@ class ProcessUploadSerializer(serializers.Serializer):
     model = serializers.CharField(
         default="small",
         help_text="Whisper model name",
+    )
+    language = serializers.CharField(
+        default="auto",
+        help_text="Language code (e.g. 'de', 'en') or 'auto' for auto-detection",
     )
     diarize = serializers.BooleanField(
         default=True,

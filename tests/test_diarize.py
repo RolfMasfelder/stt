@@ -143,3 +143,37 @@ class TestDiarizeAudio:
 
         with pytest.raises(DiarizationError, match="Failed to connect to ML service"):
             diarize_audio(audio_file)
+
+    @patch("stt.diarize.requests.post")
+    def test_language_passed_to_ml_service(
+        self, mock_post: MagicMock, tmp_path: Path
+    ) -> None:
+        audio_file = tmp_path / "test.wav"
+        audio_file.write_bytes(b"fake audio")
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"segments": []}
+        mock_post.return_value = mock_response
+
+        diarize_audio(audio_file, language="de")
+
+        call_args = mock_post.call_args
+        assert call_args[1]["data"]["language"] == "de"
+
+    @patch("stt.diarize.requests.post")
+    def test_language_auto_is_default(
+        self, mock_post: MagicMock, tmp_path: Path
+    ) -> None:
+        audio_file = tmp_path / "test.wav"
+        audio_file.write_bytes(b"fake audio")
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"segments": []}
+        mock_post.return_value = mock_response
+
+        diarize_audio(audio_file)
+
+        call_args = mock_post.call_args
+        assert call_args[1]["data"]["language"] == "auto"
