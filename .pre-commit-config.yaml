@@ -44,3 +44,9 @@ repos:
         entry: docker compose run --rm --no-deps -T -w /app flutter dart format .
         files: \.dart$
         pass_filenames: false
+      - id: flutter-analyze
+        name: flutter analyze
+        language: system
+        entry: docker compose run --rm --no-deps -T -w /app flutter flutter analyze
+        files: \.dart$
+        pass_filenames: false

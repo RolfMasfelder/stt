@@ -6,7 +6,7 @@ import 'package:flutter_appauth/flutter_appauth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'web_oauth_stub.dart'
     if (dart.library.html) 'web_oauth_web.dart'
-    as webOAuth;
+    as web_oauth;
 
 class AuthState {
   final bool isAuthenticated;
@@ -127,7 +127,7 @@ class AuthService extends ChangeNotifier {
     required String clientId,
     required String issuer,
   }) async {
-    final authResult = await webOAuth.authorizeWithPopup(
+    final authResult = await web_oauth.authorizeWithPopup(
       authorizationEndpoint: '$issuer/authorize/',
       clientId: clientId,
       redirectUri: _redirectUri,
@@ -135,7 +135,7 @@ class AuthService extends ChangeNotifier {
     );
     if (authResult == null) return false;
 
-    final tokens = await webOAuth.exchangeCodeForTokens(
+    final tokens = await web_oauth.exchangeCodeForTokens(
       tokenEndpoint: '$issuer/token/',
       clientId: clientId,
       redirectUri: _redirectUri,
@@ -187,7 +187,7 @@ class AuthService extends ChangeNotifier {
 
     try {
       if (kIsWeb) {
-        final tokens = await webOAuth.refreshTokens(
+        final tokens = await web_oauth.refreshTokens(
           tokenEndpoint: '$issuer/token/',
           clientId: clientId,
           redirectUri: _redirectUri,

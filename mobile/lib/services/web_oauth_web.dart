@@ -1,5 +1,5 @@
 // Web-specific OAuth2 PKCE implementation using dart:html
-// ignore: avoid_web_libraries_in_flutter
+// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:html' as html;
 import 'dart:async';
 import 'dart:convert';
@@ -94,7 +94,7 @@ Future<Map<String, String>?> authorizeWithPopup({
 
   timeoutTimer = Timer(const Duration(minutes: 5), () {
     html.window.removeEventListener('message', listener);
-    popup?.close();
+    popup.close();
     if (!completer.isCompleted) completer.complete(null);
   });
 
