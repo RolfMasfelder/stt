@@ -17,6 +17,7 @@ import '../services/recording_history.dart';
 
 class UploadService extends ChangeNotifier {
   final AuthService _authService;
+  final http.Client _httpClient;
   RecordingHistoryService? _historyService;
 
   UploadStatus _status = UploadStatus.idle;
@@ -34,8 +35,10 @@ class UploadService extends ChangeNotifier {
   UploadService({
     required AuthService authService,
     RecordingHistoryService? historyService,
+    http.Client? httpClient,
   }) : _authService = authService,
-       _historyService = historyService;
+       _historyService = historyService,
+       _httpClient = httpClient ?? http.Client();
 
   void updateHistoryService(RecordingHistoryService historyService) {
     _historyService = historyService;
@@ -79,7 +82,7 @@ class UploadService extends ChangeNotifier {
       if (kIsWeb) {
         // On web, filePath is a blob URL returned by the record package.
         // Fetch its bytes via XHR then attach as multipart bytes.
-        final blobResponse = await http.get(Uri.parse(filePath));
+        final blobResponse = await _httpClient.get(Uri.parse(filePath));
         request.files.add(
           http.MultipartFile.fromBytes(
             'file',
@@ -92,7 +95,7 @@ class UploadService extends ChangeNotifier {
         request.files.add(await http.MultipartFile.fromPath('file', filePath));
       }
 
-      final streamedResponse = await request.send();
+      final streamedResponse = await _httpClient.send(request);
       _progress = 1.0;
       notifyListeners();
 
@@ -137,7 +140,7 @@ class UploadService extends ChangeNotifier {
     try {
       final headers = await _authService.getAuthHeaders();
       final uri = Uri.parse('$serverUrl/v1/jobs/${_currentJob!.id}');
-      final response = await http
+      final response = await _httpClient
           .get(uri, headers: headers)
           .timeout(const Duration(seconds: 10));
 
@@ -210,7 +213,7 @@ class UploadService extends ChangeNotifier {
     try {
       final headers = await _authService.getAuthHeaders();
       final uri = Uri.parse('$serverUrl/v1/jobs/$jobId');
-      final response = await http
+      final response = await _httpClient
           .get(uri, headers: headers)
           .timeout(const Duration(seconds: 10));
 
@@ -234,7 +237,7 @@ class UploadService extends ChangeNotifier {
       final headers = await _authService.getAuthHeaders();
       headers['Content-Type'] = 'application/json';
       final uri = Uri.parse('$serverUrl/v1/jobs/$jobId/correct');
-      final response = await http
+      final response = await _httpClient
           .patch(uri, headers: headers, body: jsonEncode(fields))
           .timeout(const Duration(seconds: 30));
 
@@ -258,7 +261,7 @@ class UploadService extends ChangeNotifier {
       final headers = await _authService.getAuthHeaders();
       headers['Content-Type'] = 'application/json';
       final uri = Uri.parse('$serverUrl/v1/jobs/$jobId/reprocess');
-      final response = await http
+      final response = await _httpClient
           .post(uri, headers: headers, body: jsonEncode({'steps': steps}))
           .timeout(const Duration(seconds: 120));
 
@@ -280,7 +283,7 @@ class UploadService extends ChangeNotifier {
     try {
       final headers = await _authService.getAuthHeaders();
       final uri = Uri.parse('$serverUrl/v1/jobs/$jobId/versions');
-      final response = await http
+      final response = await _httpClient
           .get(uri, headers: headers)
           .timeout(const Duration(seconds: 10));
 
@@ -305,9 +308,10 @@ class UploadService extends ChangeNotifier {
 
   /// Only for integration / widget tests.
   @visibleForTesting
-  void setTestStatus(UploadStatus status, {String? error}) {
+  void setTestStatus(UploadStatus status, {String? error, JobResult? job}) {
     _status = status;
     _errorMessage = error;
+    _currentJob = job;
     notifyListeners();
   }
 
