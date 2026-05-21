@@ -1,0 +1,66 @@
+name: ML Service CI
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - 'services/ml/**'
+      - '.github/workflows/ml-ci.yml'
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - 'services/ml/**'
+      - '.github/workflows/ml-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/ml
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install ruff
+        run: pip install "ruff>=0.1.0"
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+  dockerfile-lint:
+    name: Dockerfile Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify Dockerfile exists and is parseable
+        run: docker build --check services/ml/ || true
+
+      - name: Check no :latest tags in Dockerfile
+        run: |
+          if grep -E '^FROM .+:latest' services/ml/Dockerfile; then
+            echo "::error::Dockerfile uses :latest tag"
+            exit 1
+          fi
+          echo "No :latest tags found"

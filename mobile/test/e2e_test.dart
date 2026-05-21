@@ -255,4 +255,122 @@ void main() {
       expect(switchWidget.value, isFalse);
     });
   });
+
+  group('Verarbeitungsoptionen', () {
+    testWidgets('Sprechererkennung kann deaktiviert werden', (tester) async {
+      await pumpApp(tester);
+
+      await tester.tap(find.byIcon(Icons.settings));
+      await settle(tester);
+
+      await tester.scrollUntilVisible(
+        find.widgetWithText(SwitchListTile, 'Sprechererkennung'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await settle(tester);
+
+      final diarizeTile = find.widgetWithText(
+        SwitchListTile,
+        'Sprechererkennung',
+      );
+      final before = tester.widget<SwitchListTile>(diarizeTile).value;
+      await tester.tap(diarizeTile);
+      await settle(tester);
+
+      expect(tester.widget<SwitchListTile>(diarizeTile).value, isNot(before));
+    });
+
+    testWidgets(
+      'Zusammenfassung und Strukturierung können deaktiviert werden',
+      (tester) async {
+        await pumpApp(tester);
+
+        await tester.tap(find.byIcon(Icons.settings));
+        await settle(tester);
+
+        // Scroll to and toggle Strukturierung
+        await tester.scrollUntilVisible(
+          find.widgetWithText(SwitchListTile, 'Strukturierung'),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await settle(tester);
+
+        final structureTile = find.widgetWithText(
+          SwitchListTile,
+          'Strukturierung',
+        );
+        if (tester.widget<SwitchListTile>(structureTile).value) {
+          await tester.tap(structureTile);
+          await settle(tester);
+        }
+        expect(tester.widget<SwitchListTile>(structureTile).value, isFalse);
+
+        // Scroll to and toggle Zusammenfassung
+        await tester.scrollUntilVisible(
+          find.widgetWithText(SwitchListTile, 'Zusammenfassung'),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await settle(tester);
+
+        final summaryTile = find.widgetWithText(
+          SwitchListTile,
+          'Zusammenfassung',
+        );
+        if (tester.widget<SwitchListTile>(summaryTile).value) {
+          await tester.tap(summaryTile);
+          await settle(tester);
+        }
+        expect(tester.widget<SwitchListTile>(summaryTile).value, isFalse);
+      },
+    );
+
+    testWidgets('Optionsänderung bleibt nach Navigation erhalten', (
+      tester,
+    ) async {
+      await pumpApp(tester);
+
+      // Open settings and disable diarize
+      await tester.tap(find.byIcon(Icons.settings));
+      await settle(tester);
+
+      await tester.scrollUntilVisible(
+        find.widgetWithText(SwitchListTile, 'Sprechererkennung'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await settle(tester);
+
+      final tile = find.widgetWithText(SwitchListTile, 'Sprechererkennung');
+      if (tester.widget<SwitchListTile>(tile).value) {
+        await tester.tap(tile);
+        await settle(tester);
+      }
+      final savedValue = tester.widget<SwitchListTile>(tile).value;
+
+      // Navigate away and back
+      await tester.tap(find.byType(BackButton));
+      await settle(tester);
+      await tester.tap(find.byIcon(Icons.settings));
+      await settle(tester);
+
+      await tester.scrollUntilVisible(
+        find.widgetWithText(SwitchListTile, 'Sprechererkennung'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await settle(tester);
+
+      expect(
+        tester
+            .widget<SwitchListTile>(
+              find.widgetWithText(SwitchListTile, 'Sprechererkennung'),
+            )
+            .value,
+        savedValue,
+      );
+    });
+  });
 }
