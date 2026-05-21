@@ -172,10 +172,10 @@ bereits via MetalLB erreichbar – **keine firewall-cmd-Regel für Ollama nötig
 
 - [x] `.env` ist in `.gitignore` eingetragen und wird nicht getrackt.
 - [x] `openapi.json` validieren und aktualisieren: Diff gegen Live-API durchgeführt, 3 Felder nachgezogen (`HealthResponse.llm`, `ProcessResponse.structured_text`/`summary` nullable).
-- [ ] `HF_STT_TOKEN` rotieren falls er jemals committed wurde (git-history prüfen).
+- [x] `HF_STT_TOKEN` rotieren falls er jemals committed wurde (git-history geprüft: kein echter Token-Wert in keinem Commit – nur der Variablenname in Konfig-Dateien).
 - [x] Flutter-App: API-Anbindung an `/v1/process` – **obsolet**. Flutter nutzt korrekt `/v1/jobs` (async Job-Queue). Kein Handlungsbedarf.
 - [x] `language`-Parameter end-to-end implementiert: ML-Service (`faster-whisper`), `transcribe.py`/`diarize.py`, `Job`-Modell (`whisper_language`), Migration `0009`, Views, Tasks, Flutter `upload.dart`.
 - [x] LLM-Ausgabesprache: `process_transcript()` hängt Sprachanweisung an System-Prompts an – Zusammenfassung/Strukturierung erscheint in der gewählten Sprache (nicht nur Transkription).
-- [ ] Flutter-Tests verbessern: `UploadService` mit gemocktem HTTP-Client, `ResultScreen`-Widget-Tests, `RecordingHistoryService`-Persistenz.
-- [ ] CI/CD: GitHub Actions Workflow für automatisierte Tests und Container-Build.
+- [x] Flutter-Tests verbessern: `UploadService` mit gemocktem HTTP-Client (`test/upload_service_test.dart`), `ResultScreen`-Widget-Tests inkl. aller Tab-Kombinationen (`test/result_screen_test.dart`), `RecordingHistoryService`-Persistenz (`test/recording_history_test.dart`), `ProcessingConfigService`-Tests mit Serialisierungsround-trips und allen Bool-Kombinationen (`test/processing_config_service_test.dart`), Settings-Toggle-E2E in `test/e2e_test.dart`.
+- [x] CI/CD: GitHub Actions Workflow für automatisierte Tests und Container-Build (`backend-test.yml`, `backend-quality.yml`, `backend-security.yml`, `docker-build.yml`, `flutter-ci.yml`, `ml-ci.yml` für ML-Microservice-Lint).
 - [ ] SBOM-Dateien (`sbom/`) aktuell halten.

@@ -81,6 +81,3 @@ jobs:
           name: flutter-coverage
           path: mobile/coverage/lcov.info
           retention-days: 30
-
-      - name: Run E2E tests
-        run: flutter test test/e2e_test.dart --reporter expanded

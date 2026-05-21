@@ -212,5 +212,155 @@ void main() {
         findsNothing,
       );
     });
+
+    // --- Tab-Kombinationen ---
+
+    testWidgets('shows 2 tabs for text + diarize', (tester) async {
+      final svc = UploadService(authService: _FakeAuthService());
+      addTearDown(svc.dispose);
+      svc.setTestStatus(
+        UploadStatus.completed,
+        job: _makeJob(
+          resultText: 'Transkript',
+          resultDiarizedText: 'Sprecher A: Hallo',
+        ),
+      );
+
+      await tester.pumpWidget(_buildApp(svc));
+      await tester.pump();
+
+      expect(find.text('Transkript'), findsOneWidget);
+      expect(find.text('Sprecher'), findsOneWidget);
+      expect(find.text('Zusammenfassung'), findsNothing);
+      expect(find.text('Struktur'), findsNothing);
+    });
+
+    testWidgets('shows 2 tabs for text + structure', (tester) async {
+      final svc = UploadService(authService: _FakeAuthService());
+      addTearDown(svc.dispose);
+      svc.setTestStatus(
+        UploadStatus.completed,
+        job: _makeJob(
+          resultText: 'Transkript',
+          resultStructuredText: '## Abschnitt 1\nInhalt',
+        ),
+      );
+
+      await tester.pumpWidget(_buildApp(svc));
+      await tester.pump();
+
+      expect(find.text('Transkript'), findsOneWidget);
+      expect(find.text('Struktur'), findsOneWidget);
+      expect(find.text('Zusammenfassung'), findsNothing);
+      expect(find.text('Sprecher'), findsNothing);
+    });
+
+    testWidgets('shows 3 tabs for text + diarize + structure (no summary)', (
+      tester,
+    ) async {
+      final svc = UploadService(authService: _FakeAuthService());
+      addTearDown(svc.dispose);
+      svc.setTestStatus(
+        UploadStatus.completed,
+        job: _makeJob(
+          resultText: 'T',
+          resultDiarizedText: 'D',
+          resultStructuredText: 'S',
+        ),
+      );
+
+      await tester.pumpWidget(_buildApp(svc));
+      await tester.pump();
+
+      expect(find.text('Transkript'), findsOneWidget);
+      expect(find.text('Sprecher'), findsOneWidget);
+      expect(find.text('Struktur'), findsOneWidget);
+      expect(find.text('Zusammenfassung'), findsNothing);
+    });
+
+    testWidgets('shows 3 tabs for text + summary + structure (no diarize)', (
+      tester,
+    ) async {
+      final svc = UploadService(authService: _FakeAuthService());
+      addTearDown(svc.dispose);
+      svc.setTestStatus(
+        UploadStatus.completed,
+        job: _makeJob(
+          resultText: 'T',
+          resultSummary: 'Z',
+          resultStructuredText: 'S',
+        ),
+      );
+
+      await tester.pumpWidget(_buildApp(svc));
+      await tester.pump();
+
+      expect(find.text('Transkript'), findsOneWidget);
+      expect(find.text('Zusammenfassung'), findsOneWidget);
+      expect(find.text('Struktur'), findsOneWidget);
+      expect(find.text('Sprecher'), findsNothing);
+    });
+
+    testWidgets('tab switch shows correct content', (tester) async {
+      final svc = UploadService(authService: _FakeAuthService());
+      addTearDown(svc.dispose);
+      svc.setTestStatus(
+        UploadStatus.completed,
+        job: _makeJob(
+          resultText: 'Vollstaendiges Transkript',
+          resultSummary: 'Kurze Zusammenfassung',
+        ),
+      );
+
+      await tester.pumpWidget(_buildApp(svc));
+      await tester.pump();
+
+      // First tab (Zusammenfassung) is active by default – content visible
+      expect(find.text('Kurze Zusammenfassung'), findsOneWidget);
+
+      // Switch to Transkript tab and wait for animation
+      await tester.tap(find.text('Transkript'));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('Vollstaendiges Transkript'), findsOneWidget);
+    });
+
+    testWidgets('tab order: Zusammenfassung before Struktur before Sprecher', (
+      tester,
+    ) async {
+      final svc = UploadService(authService: _FakeAuthService());
+      addTearDown(svc.dispose);
+      svc.setTestStatus(
+        UploadStatus.completed,
+        job: _makeJob(
+          resultText: 'T',
+          resultSummary: 'Z',
+          resultDiarizedText: 'D',
+          resultStructuredText: 'S',
+        ),
+      );
+
+      await tester.pumpWidget(_buildApp(svc));
+      await tester.pump();
+
+      final tabBar = find.byType(TabBar);
+      expect(tabBar, findsOneWidget);
+
+      // Tab order: Zusammenfassung | Struktur | Sprecher | Transkript
+      final tabTexts = tester
+          .widgetList<Tab>(
+            find.descendant(of: tabBar, matching: find.byType(Tab)),
+          )
+          .map((t) => (t.text ?? ''))
+          .toList();
+
+      expect(tabTexts, [
+        'Zusammenfassung',
+        'Struktur',
+        'Sprecher',
+        'Transkript',
+      ]);
+    });
   });
 }
