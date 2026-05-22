@@ -248,26 +248,19 @@ services:
       - mobile
     command: bash
 
-  # Flutter web dev server — simulates the mobile app in the browser
-  # Access at http://localhost:5000 after: docker compose --profile web-dev up flutter-web
+  # Flutter web UI — production image served by nginx (~30 MB)
+  # Accessible at https://<SITE_ADDRESS>/ui/ via Caddy
   flutter-web:
     build:
       context: ./mobile
+      target: web-runner
+    image: 192.168.178.80:5000/stt-flutter-web:${IMAGE_TAG:-latest}
     container_name: stt-flutter-web
-    volumes:
-      - ./mobile:/app:z
-      - flutter_pub_cache:/home/appuser/.pub-cache
-      - flutter_gradle:/home/appuser/.gradle
-    ports:
-      - "5000:5000"
     networks:
       - stt-network
     profiles:
-      - web-dev
-    command: [
-      "sh", "-c",
-      "flutter pub get && flutter build web --release && dart pub global activate dhttpd && dart pub global run dhttpd --path build/web --port 5000 --host 0.0.0.0"
-    ]
+      - production
+    restart: unless-stopped
 
 networks:
   stt-network:

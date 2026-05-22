@@ -21,7 +21,7 @@
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
-		Permissions-Policy "microphone=(), camera=(), geolocation=()"
+		Permissions-Policy "microphone=(self), camera=(), geolocation=()"
 		-Server
 	}
 
@@ -30,16 +30,23 @@
 		max_size 500MB
 	}
 
-	# --- Reverse-Proxy to Gunicorn ---
-	reverse_proxy stt-server:8090 {
-		# Pass original client info (Zero-Trust)
-		header_up X-Forwarded-Proto {scheme}
-		header_up X-Real-IP {remote_host}
+	# --- Flutter Web UI at /ui/ ---
+	handle /ui* {
+		reverse_proxy stt-flutter-web:80
+	}
 
-		# Health check
-		health_uri /health
-		health_interval 30s
-		health_timeout 5s
+	# --- Reverse-Proxy to Gunicorn ---
+	handle {
+		reverse_proxy stt-server:8090 {
+			# Pass original client info (Zero-Trust)
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Real-IP {remote_host}
+
+			# Health check
+			health_uri /health
+			health_interval 30s
+			health_timeout 5s
+		}
 	}
 
 	# --- Logging ---
