@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim AS dev
 
 # Avoid interactive prompts during install
 ENV DEBIAN_FRONTEND=noninteractive
@@ -72,3 +72,19 @@ RUN git config --global --add safe.directory /opt/flutter
 WORKDIR /app
 
 CMD ["bash"]
+
+# ============================================================
+# Stage: web-builder — copies source and builds Flutter web
+# ============================================================
+FROM dev AS web-builder
+COPY --chown=appuser:appuser . /app
+RUN flutter pub get && \
+    flutter build web --release --base-href /ui/
+
+# ============================================================
+# Stage: web-runner — nginx:alpine (~30 MB production image)
+# ============================================================
+FROM nginx:1.27-alpine AS web-runner
+COPY --from=web-builder /app/build/web /usr/share/nginx/html/ui
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
