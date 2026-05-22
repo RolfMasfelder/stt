@@ -154,7 +154,30 @@ class TestJobReprocess:
         assert response.status_code == 200
         data = response.json()
         assert data["result_summary"] == "New summary"
+        # Must use the transcript (result_text), NOT the old result_structured_text,
+        # so that corrected transcripts are reflected in the summary.
         mock_summ.assert_called_once()
+        call_args = mock_summ.call_args[0]
+        assert call_args[0] == "Original text"
+
+    @patch("stt.api.views.summarize_text", return_value="New summary")
+    def test_reprocess_summarize_after_correction_uses_corrected_transcript(
+        self, mock_summ, client, completed_job
+    ) -> None:
+        """Correcting transcript then reprocessing summary must use the corrected text."""
+        client.patch(
+            f"/v1/jobs/{completed_job.id}/correct",
+            {"result_text": "Corrected transcript"},
+            format="json",
+        )
+        client.post(
+            f"/v1/jobs/{completed_job.id}/reprocess",
+            {"steps": ["summarize"]},
+            format="json",
+        )
+        mock_summ.assert_called_once()
+        call_args = mock_summ.call_args[0]
+        assert call_args[0] == "Corrected transcript"
 
     @patch("stt.api.views.summarize_text", return_value="Both summary")
     @patch("stt.api.views.structure_text", return_value="# Both structure")
@@ -170,6 +193,10 @@ class TestJobReprocess:
         data = response.json()
         assert data["result_structured_text"] == "# Both structure"
         assert data["result_summary"] == "Both summary"
+        # Summary must use the freshly generated structure, not the old one.
+        mock_summ.assert_called_once()
+        call_args = mock_summ.call_args[0]
+        assert call_args[0] == "# Both structure"
 
     def test_reprocess_creates_version(self, client, completed_job) -> None:
         with patch("stt.api.views.structure_text", return_value="# V"):
