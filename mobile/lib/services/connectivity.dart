@@ -26,8 +26,11 @@ class ConnectivityService extends ChangeNotifier {
   }
 
   /// Check if upload is allowed given the wifiOnly preference.
+  /// On web, WiFi detection is not possible (browser only reports online/offline),
+  /// so the wifiOnly restriction is ignored.
   bool canUpload({required bool wifiOnly}) {
     if (!isOnline) return false;
+    if (kIsWeb) return true;
     if (wifiOnly && !isOnWifi) return false;
     return true;
   }

@@ -25,9 +25,11 @@ class AuthState {
 }
 
 class AuthService extends ChangeNotifier {
-  // On web, use a localhost HTTP redirect; on mobile, use the custom scheme.
+  // On web, derive the redirect URI from the current page origin so it works
+  // on any deployment (localhost, LAN IP, production domain).
+  // On mobile, use the custom URL scheme.
   static String get _redirectUri =>
-      kIsWeb ? 'http://localhost:5000/callback.html' : 'stt.app://callback';
+      kIsWeb ? '${Uri.base.origin}/ui/callback.html' : 'stt.app://callback';
   static const _scopes = ['read', 'write'];
 
   static const _keyAccessToken = 'auth_access_token';
