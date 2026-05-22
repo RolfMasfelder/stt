@@ -40,7 +40,7 @@ echo ""
 
 # Step 1: Build Docker images
 echo "[1/6] Building Docker images (tag: ${TAG})..."
-IMAGE_TAG=${TAG} docker compose build ${EXTRA_ARGS} stt-server stt-ml
+IMAGE_TAG=${TAG} docker compose build ${EXTRA_ARGS} stt-server stt-ml flutter-web
 echo "  ✓ Images built"
 echo ""
 

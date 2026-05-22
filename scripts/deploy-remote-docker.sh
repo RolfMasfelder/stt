@@ -10,7 +10,7 @@ set -euo pipefail
 REGISTRY="192.168.178.80:5000"
 REMOTE_HOST="192.168.178.80"
 REMOTE_USER="rolf"
-REMOTE_DIR="~/workspace/stt"
+REMOTE_DIR="~/workspace/STT"
 EXTRA_ARGS="${*}"
 
 # Build versioned tag: v<version>-<git-sha>
