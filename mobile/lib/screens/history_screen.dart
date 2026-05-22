@@ -3,7 +3,10 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/recording_entry.dart';
+import '../services/processing_config.dart';
 import '../services/recording_history.dart';
+import '../services/server_connection.dart';
+import '../services/upload.dart';
 import 'job_detail_screen.dart';
 
 class HistoryScreen extends StatelessWidget {
@@ -81,9 +84,22 @@ class _EntryTile extends StatelessWidget {
           onSelected: (value) {
             if (value == 'delete') {
               context.read<RecordingHistoryService>().remove(entry.id);
+            } else if (value == 'upload') {
+              final connection = context.read<ServerConnectionService>();
+              final config = context.read<ProcessingConfigService>().config;
+              final upload = context.read<UploadService>();
+              if (connection.config != null) {
+                upload.uploadAndProcess(
+                  serverUrl: connection.config!.serverUrl,
+                  filePath: entry.filePath,
+                  config: config,
+                  entryId: entry.id,
+                );
+              }
             }
           },
           itemBuilder: (_) => [
+            const PopupMenuItem(value: 'upload', child: Text('Hochladen')),
             const PopupMenuItem(value: 'delete', child: Text('Löschen')),
           ],
         );
