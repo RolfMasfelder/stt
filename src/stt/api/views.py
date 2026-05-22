@@ -626,7 +626,13 @@ class JobReprocessView(APIView):
                 updated_fields.append("result_structured_text")
 
             if "summarize" in steps:
-                text_to_summarize = job.result_structured_text or source_text
+                # Use freshly generated structure only when it was also
+                # reprocessed in this same request; otherwise summarize
+                # directly from the (possibly corrected) transcript so that
+                # transcript corrections are reflected in the output.
+                text_to_summarize = (
+                    job.result_structured_text if "structure" in steps else source_text
+                )
                 job.result_summary = summarize_text(text_to_summarize, cfg.llm)
                 updated_fields.append("result_summary")
         except SummarizationError as e:
