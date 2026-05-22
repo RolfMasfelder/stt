@@ -37,10 +37,16 @@ except: print('stt-cli-secret')
 LLM_MODEL=$(grep -E '^LLM_MODEL=' .env 2>/dev/null | cut -d= -f2 | tr -d '"' || true)
 LLM_MODEL="${LLM_MODEL:-mistral}"
 
-echo "=== STT Docker Deploy (tag: ${TAG}) ==="
-echo "    OAuth2 client: ${OAUTH2_CLIENT_ID}"
-echo "    LLM model:     ${LLM_MODEL}"
+SITE_ADDRESS=$(grep -E '^SITE_ADDRESS=' .env 2>/dev/null | cut -d= -f2 | tr -d '"' || true)
+SITE_ADDRESS="${SITE_ADDRESS:-192.168.178.80}"
+FLUTTER_CLIENT_ID="stt-flutter-app"
 
+echo "=== STT Docker Deploy (tag: ${TAG}) ==="
+echo "    OAuth2 client:  ${OAUTH2_CLIENT_ID}"
+echo "    Flutter client: ${FLUTTER_CLIENT_ID}"
+echo "    LLM model:      ${LLM_MODEL}"
+echo "    Site address:   ${SITE_ADDRESS}"
+echo ""
 # Step 1: Build Docker images locally — IMAGE_TAG ensures correct names from the start
 echo "[1/8] Building Docker images locally (tag: ${TAG})..."
 IMAGE_TAG=${TAG} docker compose build ${EXTRA_ARGS} stt-server stt-ml flutter-web
@@ -104,27 +110,33 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
-# Step 8: Bootstrap OAuth2 application on remote (idempotent — creates only if missing)
-echo "[8/8] Bootstrapping OAuth2 application (${OAUTH2_CLIENT_ID})..."
+# Step 8: Bootstrap OAuth2 applications on remote (idempotent — creates only if missing)
+echo "[8/8] Bootstrapping OAuth2 applications..."
 ssh "${REMOTE_USER}@${REMOTE_HOST}" \
   "docker exec -i \
      -e \"OAUTH2_CLIENT_ID=${OAUTH2_CLIENT_ID}\" \
      -e \"OAUTH2_CLIENT_SECRET=${OAUTH2_CLIENT_SECRET}\" \
+     -e \"FLUTTER_CLIENT_ID=${FLUTTER_CLIENT_ID}\" \
+     -e \"SITE_ADDRESS=${SITE_ADDRESS}\" \
      stt-server python" << 'PYEOF'
 import os, django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'stt.settings')
 django.setup()
 from django.contrib.auth.models import User
 from oauth2_provider.models import Application
+
+# --- Ensure superuser exists ---
+u = User.objects.filter(is_superuser=True).first()
+if not u:
+    u = User.objects.create_superuser('admin', '', 'admin')
+    print('Created superuser: admin')
+
+# --- CLI client (client_credentials, confidential) ---
 client_id = os.environ.get('OAUTH2_CLIENT_ID', 'stt-cli-client')
 client_secret = os.environ.get('OAUTH2_CLIENT_SECRET', 'stt-cli-secret')
 if Application.objects.filter(client_id=client_id).exists():
-    print('OAuth2 app already exists: ' + client_id)
+    print('OAuth2 CLI app already exists: ' + client_id)
 else:
-    u = User.objects.filter(is_superuser=True).first()
-    if not u:
-        u = User.objects.create_superuser('admin', '', 'admin')
-        print('Created superuser: admin')
     Application.objects.create(
         client_id=client_id,
         user=u,
@@ -133,7 +145,33 @@ else:
         authorization_grant_type=Application.GRANT_CLIENT_CREDENTIALS,
         client_secret=client_secret,
     )
-    print('OAuth2 app created: ' + client_id)
+    print('OAuth2 CLI app created: ' + client_id)
+
+# --- Flutter Web client (authorization_code + PKCE, public) ---
+flutter_client_id = os.environ.get('FLUTTER_CLIENT_ID', 'stt-flutter-app')
+site_address = os.environ.get('SITE_ADDRESS', '192.168.178.80')
+redirect_uri = f'https://{site_address}/ui/callback.html'
+if Application.objects.filter(client_id=flutter_client_id).exists():
+    # Keep redirect_uri in sync with current SITE_ADDRESS
+    app = Application.objects.get(client_id=flutter_client_id)
+    if app.redirect_uris != redirect_uri:
+        app.redirect_uris = redirect_uri
+        app.save(update_fields=['redirect_uris'])
+        print(f'OAuth2 Flutter app updated redirect_uri: {redirect_uri}')
+    else:
+        print('OAuth2 Flutter app already exists: ' + flutter_client_id)
+else:
+    Application.objects.create(
+        client_id=flutter_client_id,
+        client_secret='',
+        user=u,
+        name='STT Flutter Web',
+        client_type=Application.CLIENT_PUBLIC,
+        authorization_grant_type=Application.GRANT_AUTHORIZATION_CODE,
+        redirect_uris=redirect_uri,
+        algorithm='',
+    )
+    print(f'OAuth2 Flutter app created: {flutter_client_id} → {redirect_uri}')
 PYEOF
 
 echo ""
