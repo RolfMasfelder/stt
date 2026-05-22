@@ -41,24 +41,30 @@ echo "=== STT Docker Deploy (tag: ${TAG}) ==="
 echo "    OAuth2 client: ${OAUTH2_CLIENT_ID}"
 echo "    LLM model:     ${LLM_MODEL}"
 
-# Step 1: Build Docker images — IMAGE_TAG ensures correct names from the start
-echo "[1/8] Building Docker images (tag: ${TAG})..."
-IMAGE_TAG=${TAG} docker compose build ${EXTRA_ARGS} stt-server stt-ml
+# Step 1: Build Docker images locally — IMAGE_TAG ensures correct names from the start
+echo "[1/8] Building Docker images locally (tag: ${TAG})..."
+IMAGE_TAG=${TAG} docker compose build ${EXTRA_ARGS} stt-server stt-ml flutter-web
+echo "  ✓ Images built"
 
 # Step 2: Push to registry (no separate tagging needed — build already named correctly)
 echo "[2/8] Pushing images to registry..."
 docker push "${REGISTRY}/stt-server:${TAG}"
 docker push "${REGISTRY}/stt-ml:${TAG}"
+docker push "${REGISTRY}/stt-flutter-web:${TAG}"
+echo "  ✓ Images pushed"
 
-# Step 3: Sync docker-compose.yml and pull images on remote
-echo "[3/8] Syncing docker-compose.yml and pulling images on ${REMOTE_HOST}..."
+# Step 3: Sync docker-compose.yml and .env, then pull images on remote
+echo "[3/8] Syncing config files and pulling images on ${REMOTE_HOST}..."
 scp docker-compose.yml "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/docker-compose.yml"
+scp .env "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/.env"
 ssh "${REMOTE_USER}@${REMOTE_HOST}" "
   docker pull ${REGISTRY}/stt-server:${TAG} &&
-  docker pull ${REGISTRY}/stt-ml:${TAG}
+  docker pull ${REGISTRY}/stt-ml:${TAG} &&
+  docker pull ${REGISTRY}/stt-flutter-web:${TAG}
 "
+echo "  ✓ Images pulled on remote"
 
-# Step 4: Restart production stack with the versioned tag (no rebuild)
+# Step 4: Restart production stack with the versioned tag (no rebuild on remote)
 echo "[4/8] Restarting production stack on ${REMOTE_HOST}..."
 ssh "${REMOTE_USER}@${REMOTE_HOST}" "
   cd ${REMOTE_DIR} &&
