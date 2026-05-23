@@ -6,6 +6,8 @@ from oauth2_provider.oauth2_validators import OAuth2Validator
 
 logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
+
 
 class CustomOAuth2Validator(OAuth2Validator):
     """Assign the application's user to client credentials tokens.
