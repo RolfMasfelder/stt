@@ -14,7 +14,7 @@ dependencies = [
     "django-q2==1.10.0",
     "djangorestframework==3.17.1",
     "drf-spectacular==0.29.0",
-    "gunicorn==23.0.0",
+    "gunicorn==26.0.0",
 
     "numpy==2.4.6",
     "psycopg[binary]==3.3.4",
