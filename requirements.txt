@@ -16,4 +16,4 @@ gunicorn==23.0.0             # WSGI production server
 numpy==2.4.6
 psycopg[binary]==3.3.4       # PostgreSQL adapter
 python-dotenv==1.2.1         # for loading .env files
-requests==2.32.5
+requests==2.34.2
