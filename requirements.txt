@@ -12,7 +12,7 @@ djangorestframework==3.17.1
 drf-spectacular==0.29.0      # OpenAPI 3.0 schema generation
 
 # -- Runtime --
-gunicorn==23.0.0             # WSGI production server
+gunicorn==26.0.0             # WSGI production server
 numpy==2.4.6
 psycopg[binary]==3.3.4       # PostgreSQL adapter
 python-dotenv==1.2.1         # for loading .env files
