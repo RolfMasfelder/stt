@@ -6,7 +6,7 @@ cryptography>=48.0.0         # AES-256-GCM encryption at rest (ADR-08)
 django==5.2.14
 django-cors-headers==4.7.0   # CORS middleware
 django-oauth-toolkit==3.2.0  # OAuth2 Provider (RFC 6749/7636)
-django-prometheus==2.4.1     # Prometheus metrics for Django
+django-prometheus==2.5.0     # Prometheus metrics for Django
 django-q2==1.10.0             # Task queue with DB broker
 djangorestframework==3.17.1
 drf-spectacular==0.29.0      # OpenAPI 3.0 schema generation
