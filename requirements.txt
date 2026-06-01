@@ -1,5 +1,5 @@
 # -- Django + REST Framework --
-boto3>=1.43.14                # S3-compatible object storage (ADR-11)
+boto3>=1.43.18                # S3-compatible object storage (ADR-11)
 cryptography>=48.0.0         # AES-256-GCM encryption at rest (ADR-08)
 
 # -- Django + REST Framework --
