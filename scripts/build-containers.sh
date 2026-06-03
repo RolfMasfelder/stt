@@ -28,7 +28,7 @@ echo ""
 echo "[4/4] Verifying production image has no dev/ML dependencies..."
 IMAGE=$(docker compose --profile production images stt-server --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | head -1)
 if [ -z "$IMAGE" ]; then
-    IMAGE="stt-stt-server"
+    IMAGE="192.168.178.80:5000/stt-server:latest"
 fi
 docker run --rm "$IMAGE" python -c "
 try:
