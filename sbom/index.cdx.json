@@ -1,14 +1,14 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:26d8181a-951a-4cd8-858e-e3ca3da57c25",
+  "serialNumber": "urn:uuid:f6a48260-2f45-4795-90eb-e7680a4676f7",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-04-01T19:45:54Z",
+    "timestamp": "2026-06-03T14:28:57Z",
     "component": {
       "type": "application",
       "name": "stt",
-      "version": "0.1.0",
+      "version": "0.1.5",
       "group": "stt",
       "description": "STT – Lokale Meeting-Transkription und Zusammenfassung (Product-Level SBOM Index)"
     },
@@ -23,26 +23,18 @@
     {
       "type": "application",
       "name": "stt-backend",
-      "version": "0.1.0",
+      "version": "0.1.5",
       "group": "stt",
-      "description": "STT Backend – Django/DRF API Server (Python) (876 dependencies)",
+      "description": "STT Backend – Django/DRF API Server (Python) (445 dependencies)",
       "bom-ref": "component-stt-backend"
     },
     {
       "type": "application",
       "name": "stt-mobile",
-      "version": "0.1.0",
+      "version": "0.1.5",
       "group": "stt",
-      "description": "STT Mobile App – Audio Recording Client (Flutter/Dart) (104 dependencies)",
+      "description": "STT Mobile App – Audio Recording Client (Flutter/Dart) (109 dependencies)",
       "bom-ref": "component-stt-mobile"
-    },
-    {
-      "type": "container",
-      "name": "stt-server-image",
-      "version": "0.1.0",
-      "group": "stt",
-      "description": "STT Server Container Image (python:3.13-slim-bookworm) (6718 dependencies)",
-      "bom-ref": "component-stt-server-image"
     }
   ],
   "externalReferences": [
@@ -55,11 +47,6 @@
       "type": "bom",
       "url": "./mobile-flutter.cdx.json",
       "comment": "CycloneDX SBOM for stt-mobile"
-    },
-    {
-      "type": "bom",
-      "url": "./container-image.cdx.json",
-      "comment": "CycloneDX SBOM for stt-server-image"
     }
   ]
 }
