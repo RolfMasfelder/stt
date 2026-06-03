@@ -50,10 +50,8 @@ services:
       - .env
     ports:
       - "8090:8090"
-    volumes:
-      - .:/app:z
     environment:
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app/src
       - LLM_BASE_URL=${LLM_BASE_URL}
       - LLM_MODEL=${LLM_MODEL}
       - ML_SERVICE_URL=http://stt-ml:8091
@@ -81,10 +79,8 @@ services:
       - ollama
     env_file:
       - .env
-    volumes:
-      - .:/app:z
     environment:
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app/src
       - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
       - LLM_BASE_URL=${LLM_BASE_URL}
       - LLM_MODEL=${LLM_MODEL}
@@ -114,10 +110,8 @@ services:
       - ollama
     env_file:
       - .env
-    volumes:
-      - .:/app:z
     environment:
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app/src
       - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
       - LLM_BASE_URL=${LLM_BASE_URL}
       - LLM_MODEL=${LLM_MODEL}
@@ -145,7 +139,7 @@ services:
     volumes:
       - .:/app:z
     environment:
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app/src
       - DATABASE_URL=postgres://stt:${POSTGRES_PASSWORD:-stt_dev}@db:5432/stt
       - DJANGO_SETTINGS_MODULE=stt.settings
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-test-secret-not-for-production}
@@ -170,7 +164,7 @@ services:
       - ${OUTPUT_DIR:-./data/output}:/app/data/output:z
       - caddy_data:/caddy_data:ro
     environment:
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app/src
       - STT_SERVER_URL=${STT_SERVER_URL:-https://localhost}
       - OAUTH2_TOKEN_URL=${OAUTH2_TOKEN_URL:-}
       - OAUTH2_CLIENT_ID=${OAUTH2_CLIENT_ID:-}
