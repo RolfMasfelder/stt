@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 _RETRY_STATUS_CODES = {429, 503}
 
 _LANGUAGE_NAMES: dict[str, str] = {
+    "de": "Deutsch",
     "en": "Englisch",
     "fr": "Französisch",
     "es": "Spanisch",
@@ -37,8 +38,8 @@ _LANGUAGE_NAMES: dict[str, str] = {
 
 
 def _language_suffix(language: str) -> str:
-    """Return a language instruction for non-German/non-auto languages."""
-    if language in ("auto", "de", ""):
+    """Return a language instruction for the detected language."""
+    if language in ("auto", ""):
         return ""
     lang_name = _LANGUAGE_NAMES.get(language, language.upper())
     return f"\nAntworte ausschließlich auf {lang_name}."

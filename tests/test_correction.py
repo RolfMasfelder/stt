@@ -17,6 +17,7 @@ from stt.api.models import (
 from stt.api.tasks import run_process, run_transcribe
 from stt.config import LLMConfig, MLServiceConfig
 from stt.summarize import ProcessResult
+from stt.transcribe import TranscriptionResult
 
 
 @pytest.fixture
@@ -326,7 +327,9 @@ class TestTaskCreatesVersion:
     @patch("stt.api.tasks.transcribe_audio")
     def test_run_transcribe_creates_v0(self, mock_transcribe, mock_config) -> None:
         mock_config.return_value = MagicMock(ml_service=MLServiceConfig())
-        mock_transcribe.return_value = "Hello World"
+        mock_transcribe.return_value = TranscriptionResult(
+            text="Hello World", detected_language="en"
+        )
 
         tmp = Path("/tmp/test_correction_task.wav")
         tmp.write_bytes(b"audio")
@@ -355,7 +358,9 @@ class TestTaskCreatesVersion:
             ml_service=MLServiceConfig(),
             llm=LLMConfig(),
         )
-        mock_transcribe.return_value = "Some text"
+        mock_transcribe.return_value = TranscriptionResult(
+            text="Some text", detected_language="en"
+        )
         mock_process.return_value = ProcessResult(
             diarized_text="",
             structured_text="# Structure",

@@ -247,9 +247,9 @@ def _transcribe_local(args, config) -> tuple[str, str | None] | int:
     diarized_text: str | None = None
     if args.diarize:
         try:
-            segments = diarize_audio(audio_path, config.ml_service)
-            diarized_text = format_diarized_segments(segments)
-            transcript = " ".join(seg.text for seg in segments)
+            diarize_result = diarize_audio(audio_path, config.ml_service)
+            diarized_text = format_diarized_segments(diarize_result.segments)
+            transcript = " ".join(seg.text for seg in diarize_result.segments)
         except FileNotFoundError as e:
             logger.error("%s", e)
             return 1
@@ -258,7 +258,8 @@ def _transcribe_local(args, config) -> tuple[str, str | None] | int:
             return 1
     else:
         try:
-            transcript = transcribe_audio(audio_path, config.ml_service)
+            transcribe_result = transcribe_audio(audio_path, config.ml_service)
+            transcript = transcribe_result.text
         except FileNotFoundError as e:
             logger.error("%s", e)
             return 1
@@ -290,7 +291,6 @@ def _run_postprocessing(
                 diarize=args.diarize,
                 diarized_text=diarized_text,
             )
-
             if result.diarized_text:
                 print("\n--- Sprecherzuordnung ---")
                 print(result.diarized_text)

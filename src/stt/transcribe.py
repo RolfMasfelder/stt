@@ -1,6 +1,7 @@
 """Audio transcription via ML service HTTP API."""
 
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 
 import requests
@@ -14,12 +15,20 @@ class TranscriptionError(Exception):
     """Raised when audio transcription fails."""
 
 
+@dataclass(frozen=True)
+class TranscriptionResult:
+    """Result from audio transcription."""
+
+    text: str
+    detected_language: str
+
+
 def transcribe_audio(
     audio_file: str | Path,
     ml_service: MLServiceConfig | None = None,
     model: str = "small",
     language: str = "auto",
-) -> str:
+) -> TranscriptionResult:
     """Transcribe an audio file to text via the ML service.
 
     Args:
@@ -29,7 +38,7 @@ def transcribe_audio(
         language: Language code (e.g. 'de', 'en') or 'auto' for detection.
 
     Returns:
-        The transcribed text as a single string.
+        TranscriptionResult with text and Whisper-detected language code.
 
     Raises:
         FileNotFoundError: If the audio file does not exist.
@@ -59,7 +68,10 @@ def transcribe_audio(
             )
 
         result = response.json()
-        return result.get("text", "").strip()
+        return TranscriptionResult(
+            text=result.get("text", "").strip(),
+            detected_language=result.get("detected_language", "auto"),
+        )
     except TranscriptionError:
         raise
     except requests.RequestException as e:

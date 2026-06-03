@@ -44,7 +44,11 @@ class TestTranscribeEndpoint:
 
     @patch("stt.api.views.transcribe_audio")
     def test_transcribe_success(self, mock_transcribe, client) -> None:
-        mock_transcribe.return_value = "Hello World"
+        from stt.transcribe import TranscriptionResult
+
+        mock_transcribe.return_value = TranscriptionResult(
+            text="Hello World", detected_language="en"
+        )
         response = client.post(
             "/v1/transcribe",
             {"file": _audio_file(), "model": "small"},
@@ -78,13 +82,15 @@ class TestDiarizeEndpoint:
     @patch("stt.api.views.format_diarized_segments")
     @patch("stt.api.views.diarize_audio")
     def test_diarize_success(self, mock_diarize, mock_format, client) -> None:
-        from stt.diarize import DiarizedSegment
+        from stt.diarize import DiarizationResult, DiarizedSegment
 
         segments = [
             DiarizedSegment(speaker="Sprecher 1", start=0.0, end=1.5, text="Hallo"),
             DiarizedSegment(speaker="Sprecher 2", start=1.5, end=3.0, text="Hi"),
         ]
-        mock_diarize.return_value = segments
+        mock_diarize.return_value = DiarizationResult(
+            segments=segments, detected_language="de"
+        )
         mock_format.return_value = "**Sprecher 1:**\nHallo\n\n**Sprecher 2:**\nHi"
 
         response = client.post(
@@ -122,12 +128,14 @@ class TestProcessEndpoint:
     def test_process_with_diarize(
         self, mock_diarize, mock_format, mock_process, client
     ) -> None:
-        from stt.diarize import DiarizedSegment
+        from stt.diarize import DiarizationResult, DiarizedSegment
 
         segments = [
             DiarizedSegment(speaker="Sprecher 1", start=0.0, end=2.0, text="Text"),
         ]
-        mock_diarize.return_value = segments
+        mock_diarize.return_value = DiarizationResult(
+            segments=segments, detected_language="de"
+        )
         mock_format.return_value = "**Sprecher 1:**\nText"
         mock_process.return_value = ProcessResult(
             structured_text="## Struktur",
@@ -152,7 +160,11 @@ class TestProcessEndpoint:
     def test_process_without_diarize(
         self, mock_transcribe, mock_process, client
     ) -> None:
-        mock_transcribe.return_value = "Transkript"
+        from stt.transcribe import TranscriptionResult
+
+        mock_transcribe.return_value = TranscriptionResult(
+            text="Transkript", detected_language="de"
+        )
         mock_process.return_value = ProcessResult(
             structured_text="Strukturiert",
             summary="Zusammenfassung",

@@ -109,7 +109,11 @@ class TestAudioPersistentStorage:
         self, mock_get_backend, mock_transcribe, mock_config
     ) -> None:
         mock_config.return_value = MagicMock(ml_service=MLServiceConfig())
-        mock_transcribe.return_value = "Hello World"
+        from stt.transcribe import TranscriptionResult
+
+        mock_transcribe.return_value = TranscriptionResult(
+            text="Hello World", detected_language="en"
+        )
 
         mock_backend = MagicMock()
         mock_backend.retrieve.return_value = b"fake audio data"
@@ -156,7 +160,11 @@ class TestAudioPersistentStorage:
     ) -> None:
         """Jobs without audio_storage_path fall back to original_filename."""
         mock_config.return_value = MagicMock(ml_service=MLServiceConfig())
-        mock_transcribe.return_value = "Legacy text"
+        from stt.transcribe import TranscriptionResult
+
+        mock_transcribe.return_value = TranscriptionResult(
+            text="Legacy text", detected_language="en"
+        )
 
         tmp = Path("/tmp/test_legacy_audio.wav")
         tmp.write_bytes(b"audio")

@@ -52,8 +52,8 @@ class DiarizedSegment:
 # ---------------------------------------------------------------------------
 def _run_whisper(
     audio_path: Path, model_name: str, language: str | None = None
-) -> list[dict]:
-    """Run faster-whisper locally, return segments as dicts."""
+) -> tuple[list[dict], str]:
+    """Run faster-whisper locally, return (segments, detected_language)."""
     model = WhisperModel(
         model_name, device=WHISPER_DEVICE, compute_type=WHISPER_COMPUTE_TYPE
     )
@@ -64,15 +64,17 @@ def _run_whisper(
         info.language,
         info.language_probability,
     )
-    return [{"start": s.start, "end": s.end, "text": s.text.strip()} for s in segments]
+    return [
+        {"start": s.start, "end": s.end, "text": s.text.strip()} for s in segments
+    ], info.language
 
 
 def _transcribe_text(
     audio_path: Path, model_name: str, language: str | None = None
-) -> str:
-    """Transcribe audio to plain text."""
-    segments = _run_whisper(audio_path, model_name, language)
-    return " ".join(s["text"] for s in segments).strip()
+) -> tuple[str, str]:
+    """Transcribe audio to plain text, returning (text, detected_language)."""
+    segments, detected_language = _run_whisper(audio_path, model_name, language)
+    return " ".join(s["text"] for s in segments).strip(), detected_language
 
 
 # ---------------------------------------------------------------------------
@@ -113,10 +115,10 @@ def _assign_speaker(start: float, end: float, diarization: Annotation) -> str:
 
 def _diarize(
     audio_path: Path, model_name: str, language: str | None = None
-) -> list[dict]:
-    """Transcribe + diarize, returning segment dicts with speaker labels."""
+) -> tuple[list[dict], str]:
+    """Transcribe + diarize, returning (segment dicts, detected_language)."""
     # Step 1: whisper segments with timestamps
-    whisper_segments = _run_whisper(audio_path, model_name, language)
+    whisper_segments, detected_language = _run_whisper(audio_path, model_name, language)
 
     # Step 2: pyannote diarization
     diarization = _run_diarization(audio_path)
@@ -150,7 +152,7 @@ def _diarize(
             }
         )
 
-    return normalized
+    return normalized, detected_language
 
 
 # ---------------------------------------------------------------------------
@@ -185,8 +187,8 @@ def transcribe(
     """Transcribe audio file to plain text."""
     audio_path = _save_upload(file)
     try:
-        text = _transcribe_text(audio_path, model, language)
-        return {"text": text}
+        text, detected_language = _transcribe_text(audio_path, model, language)
+        return {"text": text, "detected_language": detected_language}
     except Exception as e:
         logger.exception("Transcription failed")
         raise HTTPException(status_code=500, detail=str(e)) from e
@@ -206,7 +208,7 @@ def diarize(
 
     audio_path = _save_upload(file)
     try:
-        segments = _diarize(audio_path, model, language)
+        segments, detected_language = _diarize(audio_path, model, language)
         plain_text = " ".join(s["text"] for s in segments)
         # Build formatted diarized text
         diarized_text = _format_segments(segments)
@@ -214,6 +216,7 @@ def diarize(
             "text": plain_text,
             "diarized_text": diarized_text,
             "segments": segments,
+            "detected_language": detected_language,
         }
     except Exception as e:
         logger.exception("Diarization failed")

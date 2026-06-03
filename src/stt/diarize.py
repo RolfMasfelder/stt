@@ -25,12 +25,20 @@ class DiarizedSegment:
     text: str
 
 
+@dataclass(frozen=True)
+class DiarizationResult:
+    """Result from audio diarization."""
+
+    segments: list[DiarizedSegment]
+    detected_language: str
+
+
 def diarize_audio(
     audio_file: str | Path,
     ml_service: MLServiceConfig | None = None,
     model: str = "small",
     language: str = "auto",
-) -> list[DiarizedSegment]:
+) -> DiarizationResult:
     """Transcribe and diarize an audio file via the ML service.
 
     Args:
@@ -40,7 +48,7 @@ def diarize_audio(
         language: Language code (e.g. 'de', 'en') or 'auto' for detection.
 
     Returns:
-        List of DiarizedSegment with speaker labels, timestamps, and text.
+        DiarizationResult with segments and Whisper-detected language code.
 
     Raises:
         DiarizationError: If diarization fails.
@@ -82,9 +90,14 @@ def diarize_audio(
             )
             for s in result.get("segments", [])
         ]
+        detected_language = result.get("detected_language", "auto")
 
-        logger.info("Diarization complete: %d segments", len(segments))
-        return segments
+        logger.info(
+            "Diarization complete: %d segments, lang=%s",
+            len(segments),
+            detected_language,
+        )
+        return DiarizationResult(segments=segments, detected_language=detected_language)
     except DiarizationError:
         raise
     except requests.RequestException as e:

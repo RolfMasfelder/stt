@@ -28,11 +28,15 @@ class TestTranscribeAudio:
 
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"text": "Hallo Welt"}
+        mock_response.json.return_value = {
+            "text": "Hallo Welt",
+            "detected_language": "de",
+        }
         mock_post.return_value = mock_response
 
         result = transcribe_audio(audio_file)
-        assert result == "Hallo Welt"
+        assert result.text == "Hallo Welt"
+        assert result.detected_language == "de"
         mock_post.assert_called_once()
 
     @patch("stt.transcribe.requests.post")
@@ -43,7 +47,7 @@ class TestTranscribeAudio:
 
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"text": ""}
+        mock_response.json.return_value = {"text": "", "detected_language": "auto"}
         mock_post.return_value = mock_response
 
         config = MLServiceConfig(base_url="http://custom-ml:9000", timeout=300)
@@ -92,7 +96,7 @@ class TestTranscribeAudio:
 
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"text": "test"}
+        mock_response.json.return_value = {"text": "test", "detected_language": "en"}
         mock_post.return_value = mock_response
 
         transcribe_audio(audio_file)
@@ -108,11 +112,11 @@ class TestTranscribeAudio:
 
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"text": ""}
+        mock_response.json.return_value = {"text": "", "detected_language": "auto"}
         mock_post.return_value = mock_response
 
         result = transcribe_audio(audio_file)
-        assert result == ""
+        assert result.text == ""
 
     @patch("stt.transcribe.requests.post")
     def test_language_passed_to_ml_service(
@@ -124,7 +128,7 @@ class TestTranscribeAudio:
 
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"text": "Hallo"}
+        mock_response.json.return_value = {"text": "Hallo", "detected_language": "de"}
         mock_post.return_value = mock_response
 
         transcribe_audio(audio_file, language="de")
@@ -142,7 +146,7 @@ class TestTranscribeAudio:
 
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"text": "Hello"}
+        mock_response.json.return_value = {"text": "Hello", "detected_language": "en"}
         mock_post.return_value = mock_response
 
         transcribe_audio(audio_file)

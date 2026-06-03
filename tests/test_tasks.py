@@ -10,7 +10,9 @@ import pytest
 from stt.api.models import AuditAction, AuditLog, Job, JobStatus, JobType
 from stt.api.tasks import run_diarize, run_process, run_transcribe
 from stt.config import LLMConfig, MLServiceConfig
+from stt.diarize import DiarizationResult
 from stt.summarize import ProcessResult
+from stt.transcribe import TranscriptionResult
 
 
 @pytest.fixture
@@ -198,7 +200,9 @@ class TestRunTranscribeTask:
     @patch("stt.api.tasks.transcribe_audio")
     def test_transcribe_success(self, mock_transcribe, mock_config) -> None:
         mock_config.return_value = MagicMock(ml_service=MLServiceConfig())
-        mock_transcribe.return_value = "Hello World"
+        mock_transcribe.return_value = TranscriptionResult(
+            text="Hello World", detected_language="en"
+        )
 
         tmp = Path("/tmp/test_task.wav")
         tmp.write_bytes(b"audio")
@@ -269,7 +273,9 @@ class TestRunDiarizeTask:
         segment.start = 0.0
         segment.end = 1.5
         segment.text = "Hallo"
-        mock_diarize.return_value = [segment]
+        mock_diarize.return_value = DiarizationResult(
+            segments=[segment], detected_language="de"
+        )
         mock_format.return_value = "[Sprecher 1] Hallo"
         mock_config.return_value = MagicMock(
             ml_service=MLServiceConfig(),
@@ -307,7 +313,9 @@ class TestRunProcessTask:
             ml_service=MLServiceConfig(),
             llm=LLMConfig(),
         )
-        mock_transcribe.return_value = "Hello World"
+        mock_transcribe.return_value = TranscriptionResult(
+            text="Hello World", detected_language="en"
+        )
         mock_process.return_value = ProcessResult(
             diarized_text="",
             structured_text="# Meeting",
@@ -343,7 +351,9 @@ class TestRunProcessTask:
         segment.start = 0.0
         segment.end = 2.0
         segment.text = "Test"
-        mock_diarize.return_value = [segment]
+        mock_diarize.return_value = DiarizationResult(
+            segments=[segment], detected_language="de"
+        )
         mock_format.return_value = "[SPEAKER_00] Test"
         mock_config.return_value = MagicMock(
             ml_service=MLServiceConfig(),
