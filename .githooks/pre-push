@@ -1,0 +1,10 @@
+#!/bin/sh
+# Prevent direct pushes to main — use a PR instead.
+while read local_ref local_sha remote_ref remote_sha; do
+    if [ "$remote_ref" = "refs/heads/main" ]; then
+        echo "ERROR: Direct push to 'main' is not allowed."
+        echo "       Open a Pull Request from 'dev' instead."
+        exit 1
+    fi
+done
+exit 0
