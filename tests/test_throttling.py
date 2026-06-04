@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from stt.config import LLMConfig, MLServiceConfig
+from stt.transcribe import TranscriptionResult
 
 
 def _mock_config():
@@ -60,7 +61,10 @@ class TestThrottleSettings:
 class TestUploadThrottling:
     """Verify upload endpoints are rate-limited."""
 
-    @patch("stt.api.views.transcribe_audio", return_value="text")
+    @patch(
+        "stt.api.views.transcribe_audio",
+        return_value=TranscriptionResult(text="text", detected_language="en"),
+    )
     @patch("stt.api.throttles.UploadRateThrottle.get_rate", return_value="2/minute")
     def test_upload_throttle_limits_requests(
         self, mock_rate, mock_transcribe, auth_client

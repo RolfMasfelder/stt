@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from stt.__main__ import main
 from stt.summarize import ProcessResult
+from stt.transcribe import TranscriptionResult
 
 
 class TestCLI:
@@ -23,7 +24,9 @@ class TestCLI:
         config.log_level = "WARNING"
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
-        mock_transcribe.return_value = "Hello World"
+        mock_transcribe.return_value = TranscriptionResult(
+            text="Hello World", detected_language="en"
+        )
 
         result = main([str(audio_file)])
         assert result == 0
@@ -60,7 +63,9 @@ class TestCLI:
         config.log_level = "WARNING"
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
-        mock_transcribe.return_value = "Transcribed text"
+        mock_transcribe.return_value = TranscriptionResult(
+            text="Transcribed text", detected_language="de"
+        )
 
         result = main([str(audio_file), "--output", str(output_file)])
         assert result == 0
@@ -108,7 +113,9 @@ class TestCLI:
         config.log_level = "WARNING"
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
-        mock_transcribe.return_value = "Transkript"
+        mock_transcribe.return_value = TranscriptionResult(
+            text="Transkript", detected_language="de"
+        )
         mock_process.return_value = ProcessResult(
             structured_text="## Struktur",
             summary="Zusammenfassung",
@@ -144,7 +151,9 @@ class TestCLI:
         config.log_level = "WARNING"
         config.audio_input_dir = tmp_path
         mock_config.return_value = config
-        mock_transcribe.return_value = "Transkript"
+        mock_transcribe.return_value = TranscriptionResult(
+            text="Transkript", detected_language="de"
+        )
         mock_process.return_value = ProcessResult(
             structured_text="Strukturiert",
             summary="Zusammenfassung",
@@ -179,7 +188,9 @@ class TestCLI:
             whisper=WhisperConfig(),
         )
         mock_config.return_value = config
-        mock_transcribe.return_value = "Hello"
+        mock_transcribe.return_value = TranscriptionResult(
+            text="Hello", detected_language="en"
+        )
 
         with patch("stt.__main__.summarize_text") as mock_summarize:
             mock_summarize.return_value = "Summary"

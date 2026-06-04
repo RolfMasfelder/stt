@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM) – STT
 
-**Generated:** 18. May 2026
+**Generated:** 3. June 2026
 **Format:** CycloneDX 1.5 (JSON) + Human-Readable MD
 **Generation Method:** Automated (generate-sbom.sh / generate-sbom-md.py)
 
@@ -10,7 +10,7 @@
 pipeline with speaker diarization, LLM-based summarization, and a Flutter
 mobile recording client.
 
-- **Version:** 0.1.1
+- **Version:** 0.1.5
 - **Architecture:** Three-service: Django/DRF API + FastAPI ML microservice + Ollama LLM
 - **Deployment:** Docker Compose (Production) / k3s (Kubernetes)
 - **Machine learning:** faster-whisper (CTranslate2) + pyannote.audio
@@ -66,14 +66,17 @@ mobile recording client.
 | --- | --- | --- | --- |
 | cupertino_icons | 1.0.9 | MIT | iOS-style icons |
 | http | 1.6.0 | BSD-3-Clause | HTTP client |
+| http_parser | 4.1.2 | — | — |
 | provider | 6.1.5+1 | MIT | State management |
 | shared_preferences | 2.5.5 | BSD-3-Clause | Local key-value storage |
 | record | 6.2.0 | MIT | Audio recording |
 | path_provider | 2.1.5 | BSD-3-Clause | File system paths |
 | intl | 0.20.2 | BSD-3-Clause | Internationalization |
 | flutter_appauth | 12.0.0 | Apache-2.0 | OAuth2 / OpenID Connect client |
-| flutter_secure_storage | 10.0.0 | BSD-3-Clause | Encrypted secure storage |
-| connectivity_plus | 7.1.0 | BSD-3-Clause | Network connectivity detection |
+| flutter_secure_storage | 10.2.0 | BSD-3-Clause | Encrypted secure storage |
+| crypto | 3.0.7 | — | — |
+| web | 1.1.1 | — | — |
+| connectivity_plus | 7.1.1 | BSD-3-Clause | Network connectivity detection |
 | flutter_local_notifications | 21.0.0 | MIT | Local push notifications |
 | flutter_lints | 6.0.0 | BSD-3-Clause | Lint rules |
 
@@ -81,12 +84,12 @@ mobile recording client.
 
 | Service | Version | License | Type | Port | Purpose |
 | --- | --- | --- | --- | --- | --- |
-| stt-server | 0.1.1 | Proprietary | Application | 8090 | Django/DRF REST API + orchestration |
-| stt-worker | 0.1.1 | Proprietary | Background | — | Celery async task processing |
-| stt-ml | 0.1.1 | Proprietary | ML Service | 8091 | faster-whisper transcription + pyannote diarization |
+| stt-server | 0.1.5 | Proprietary | Application | 8090 | Django/DRF REST API + orchestration |
+| stt-worker | 0.1.5 | Proprietary | Background | — | Celery async task processing |
+| stt-ml | 0.1.5 | Proprietary | ML Service | 8091 | faster-whisper transcription + pyannote diarization |
 | stt-ollama | 0.24.0 | MIT | LLM Service | 11434 | Ollama – LLM inference (mistral) |
 | caddy | 2-alpine | Apache-2.0 | Infrastructure | 80/443 | Reverse proxy + automatic TLS |
-| PostgreSQL | 17 | PostgreSQL License | PostgreSQL License | Database | 5432 | Primary database |
+| PostgreSQL | 17 | PostgreSQL License | PostgreSQL License | 5432 | Primary database |
 | python:3.13-slim-bookworm | 3.13 | PSF-2.0 | Infrastructure | — | Backend base image |
 
 ### Development & Quality Tools

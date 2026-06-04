@@ -6,10 +6,15 @@ set -euo pipefail
 # Generates separate CycloneDX SBOMs per component + index document
 #
 # Components:
-#   1. Backend (Python/Django)    → sbom/backend-python.cdx.json
-#   2. Mobile App (Flutter/Dart)  → sbom/mobile-flutter.cdx.json
-#   3. Container Image            → sbom/container-image.cdx.json
-#   4. Index (Top-Level BOM)      → sbom/index.cdx.json
+#   1. Backend (Python/Django)       → sbom/backend-python.cdx.json
+#   2. Mobile App (Flutter/Dart)     → sbom/mobile-flutter.cdx.json
+#   3. Container: stt-server         → sbom/container-server.cdx.json
+#   4. Container: stt-ml             → sbom/container-ml.cdx.json
+#   5. Container: stt-flutter-web    → sbom/container-flutter.cdx.json
+#   6. Index (Top-Level BOM)         → sbom/index.cdx.json
+#
+# Container images are looked up by versioned tag (v<version>-<git-sha>).
+# If an image is not yet present locally it is built automatically.
 #
 # Requirements: syft (https://github.com/anchore/syft)
 #   - Uses local binary if available, otherwise runs via Docker
@@ -22,6 +27,11 @@ TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 # Project version from pyproject.toml
 PROJECT_VERSION="$(grep '^version' "$PROJECT_ROOT/pyproject.toml" | head -1 | cut -d'"' -f2)"
+
+# Container registry + versioned image tag (same formula as deploy-remote-docker.sh)
+REGISTRY="192.168.178.80:5000"
+GIT_SHA="$(git -C "$PROJECT_ROOT" rev-parse --short HEAD 2>/dev/null || echo "unversioned")"
+IMAGE_TAG="v${PROJECT_VERSION}-${GIT_SHA}"
 
 # -- Colors -------------------------------------------------------------------
 RED='\033[0;31m'
@@ -146,45 +156,58 @@ generate_mobile_sbom() {
     fi
 }
 
-generate_container_sbom() {
-    header "Container Image (stt-server)"
-    local output="$SBOM_DIR/container-image.cdx.json"
-    # docker compose prefixes image name with project directory name
-    local image_name="stt-stt-server:latest"
+# Scan a single container image; build it locally if not already present.
+# Usage: generate_image_sbom <compose-service> <registry-image-name> <output-file> <description>
+generate_image_sbom() {
+    local compose_service="$1"
+    local image_name="$2"
+    local output_file="$3"
+    local description="$4"
+
+    local full_image="${REGISTRY}/${image_name}:${IMAGE_TAG}"
+    local output="$SBOM_DIR/${output_file}"
+
+    header "Container Image: ${description}"
+    info "Image: ${full_image}"
 
     if ! command -v docker &>/dev/null; then
-        warn "Docker not available, skipping container image SBOM"
+        warn "Docker not available, skipping"
         return
     fi
 
-    if ! docker image inspect "$image_name" &>/dev/null 2>&1; then
-        warn "Image '$image_name' not found"
-        warn "Build first: docker compose build stt-server"
+    # Build the versioned image locally if it is not already present
+    if ! docker image inspect "${full_image}" &>/dev/null 2>&1; then
+        warn "Image not found locally — building with IMAGE_TAG=${IMAGE_TAG}..."
+        IMAGE_TAG="${IMAGE_TAG}" docker compose build "${compose_service}"
+    fi
+
+    if ! docker image inspect "${full_image}" &>/dev/null 2>&1; then
+        warn "Image still not found after build attempt, skipping"
         return
     fi
 
-    info "Scanning container image '$image_name'..."
+    info "Scanning container image..."
     if [[ "$SYFT_MODE" == "local" ]]; then
-        syft "$image_name" -o "cyclonedx-json=$output"
+        syft "${full_image}" -o "cyclonedx-json=${output}" \
+            --source-name "${image_name}" --source-version "${PROJECT_VERSION}"
     else
-        # Export image as tar so syft container doesn't need Docker socket access
-        local tmp_tar="$SBOM_DIR/.image-export.tar"
+        local tmp_tar="$SBOM_DIR/.sbom-export-${compose_service}.tar"
         info "Exporting image to tar (this may take a moment)..."
-        docker save "$image_name" -o "$tmp_tar"
+        docker save "${full_image}" -o "${tmp_tar}"
         docker run --rm \
             -v "$SBOM_DIR:/out:z" \
             anchore/syft:latest \
-            "/out/.image-export.tar" -o "cyclonedx-json=/out/container-image.cdx.json"
-        rm -f "$tmp_tar"
+            "/out/.sbom-export-${compose_service}.tar" -o "cyclonedx-json=/out/${output_file}"
+        rm -f "${tmp_tar}"
     fi
 
-    if [[ -f "$output" ]]; then
+    if [[ -f "${output}" ]]; then
         local count
-        count="$(python3 -c "import json; d=json.load(open('$output')); print(len(d.get('components',[])))" 2>/dev/null || echo '?')"
-        info "→ $(basename "$output") ($count components)"
-        generated_sboms+=("container-image.cdx.json")
+        count="$(python3 -c "import json; d=json.load(open('${output}')); print(len(d.get('components',[])))" 2>/dev/null || echo '?')"
+        info "→ $(basename "${output}") ($count components)"
+        generated_sboms+=("${output_file}")
     else
-        warn "Container image SBOM generation failed"
+        warn "Container image SBOM generation failed for ${image_name}"
     fi
 }
 
@@ -227,10 +250,22 @@ component_map = {
         "description": "STT Mobile App – Audio Recording Client (Flutter/Dart)",
         "group": "stt",
     },
-    "container-image.cdx.json": {
+    "container-server.cdx.json": {
         "name": "stt-server-image",
         "type": "container",
-        "description": "STT Server Container Image (python:3.13-slim-bookworm)",
+        "description": "STT Server Container Image (Django/DRF, python:3.13-slim-bookworm)",
+        "group": "stt",
+    },
+    "container-ml.cdx.json": {
+        "name": "stt-ml-image",
+        "type": "container",
+        "description": "STT ML Container Image (faster-whisper, pyannote.audio, torch)",
+        "group": "stt",
+    },
+    "container-flutter.cdx.json": {
+        "name": "stt-flutter-web-image",
+        "type": "container",
+        "description": "STT Flutter Web Container Image (compiled Flutter app + Nginx)",
         "group": "stt",
     },
 }
@@ -321,7 +356,9 @@ main() {
     # Generate component SBOMs
     generate_backend_sbom
     generate_mobile_sbom
-    generate_container_sbom
+    generate_image_sbom "stt-server"  "stt-server"      "container-server.cdx.json"  "stt-server (Django/DRF API)"
+    generate_image_sbom "stt-ml"      "stt-ml"          "container-ml.cdx.json"      "stt-ml (faster-whisper + pyannote.audio)"
+    generate_image_sbom "flutter-web" "stt-flutter-web" "container-flutter.cdx.json" "stt-flutter-web (Flutter Web / Nginx)"
 
     # Generate index
     generate_index

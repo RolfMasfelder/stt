@@ -180,8 +180,17 @@ class TranscribeView(APIView):
 
         try:
             cfg = _get_config()
-            text = transcribe_audio(audio_path, cfg.ml_service, model, language)
-            return Response({"text": text})
+            logger.info(
+                "Pipeline | file=%s | size=%d | step=transcribe", file.name, file.size
+            )
+            result = transcribe_audio(audio_path, cfg.ml_service, model, language)
+            logger.info(
+                "Pipeline | file=%s | step=transcribe | lang=%s | chars=%d",
+                file.name,
+                result.detected_language,
+                len(result.text),
+            )
+            return Response({"text": result.text})
         except TranscriptionError as e:
             return Response(
                 {"detail": str(e)},
@@ -230,7 +239,18 @@ class DiarizeView(APIView):
             return Response({"detail": e.detail}, status=e.status_code)
 
         try:
-            segments = diarize_audio(audio_path, cfg.ml_service, model, language)
+            logger.info(
+                "Pipeline | file=%s | size=%d | step=diarize", file.name, file.size
+            )
+            diarize_result = diarize_audio(audio_path, cfg.ml_service, model, language)
+            segments = diarize_result.segments
+            logger.info(
+                "Pipeline | file=%s | step=diarize | lang=%s | segments=%d | speakers=%s",
+                file.name,
+                diarize_result.detected_language,
+                len(segments),
+                len({s.speaker for s in segments}),
+            )
             diarized_text = format_diarized_segments(segments)
             plain_text = " ".join(seg.text for seg in segments)
             return Response(
@@ -301,14 +321,40 @@ class ProcessView(APIView):
 
         try:
             diarized_text: str | None = None
+            detected_language = language
 
+            logger.info(
+                "Pipeline | file=%s | size=%d | step=process | diarize=%s",
+                file.name,
+                file.size,
+                do_diarize,
+            )
             if do_diarize:
-                segments = diarize_audio(audio_path, cfg.ml_service, model, language)
+                diarize_result = diarize_audio(
+                    audio_path, cfg.ml_service, model, language
+                )
+                segments = diarize_result.segments
+                detected_language = diarize_result.detected_language
+                logger.info(
+                    "Pipeline | file=%s | step=diarize | lang=%s | segments=%d | speakers=%d",
+                    file.name,
+                    detected_language,
+                    len(segments),
+                    len({s.speaker for s in segments}),
+                )
                 diarized_text = format_diarized_segments(segments)
                 plain_text = " ".join(seg.text for seg in segments)
             else:
-                plain_text = transcribe_audio(
+                transcribe_result = transcribe_audio(
                     audio_path, cfg.ml_service, model, language
+                )
+                plain_text = transcribe_result.text
+                detected_language = transcribe_result.detected_language
+                logger.info(
+                    "Pipeline | file=%s | step=transcribe | lang=%s | chars=%d",
+                    file.name,
+                    detected_language,
+                    len(plain_text),
                 )
 
             try:
@@ -317,7 +363,14 @@ class ProcessView(APIView):
                     cfg.llm,
                     diarize=False,
                     diarized_text=diarized_text,
-                    language=language,
+                    language=detected_language,
+                )
+                logger.info(
+                    "Pipeline | file=%s | step=llm | lang=%s | structured_chars=%d | summary_chars=%d",
+                    file.name,
+                    detected_language,
+                    len(result.structured_text or ""),
+                    len(result.summary or ""),
                 )
                 structured_text: str | None = result.structured_text
                 summary: str | None = result.summary

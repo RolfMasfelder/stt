@@ -93,8 +93,13 @@ class TestAuthenticatedAccess:
     """Verify that valid tokens grant access."""
 
     def test_valid_token_grants_access(self, auth_client) -> None:
+        from stt.transcribe import TranscriptionResult
+
         with patch("stt.api.views._get_config", return_value=_mock_config()):
-            with patch("stt.api.views.transcribe_audio", return_value="text"):
+            with patch(
+                "stt.api.views.transcribe_audio",
+                return_value=TranscriptionResult(text="text", detected_language="en"),
+            ):
                 from io import BytesIO
 
                 f = BytesIO(b"audio")

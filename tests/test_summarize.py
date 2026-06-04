@@ -27,8 +27,9 @@ class TestLanguageSuffix:
     def test_auto_returns_empty(self) -> None:
         assert _language_suffix("auto") == ""
 
-    def test_german_returns_empty(self) -> None:
-        assert _language_suffix("de") == ""
+    def test_german_returns_instruction(self) -> None:
+        suffix = _language_suffix("de")
+        assert "Deutsch" in suffix
 
     def test_empty_returns_empty(self) -> None:
         assert _language_suffix("") == ""

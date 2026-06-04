@@ -8,6 +8,7 @@ import pytest
 from stt.config import MLServiceConfig
 from stt.diarize import (
     DiarizationError,
+    DiarizationResult,
     DiarizedSegment,
     diarize_audio,
     format_diarized_segments,
@@ -76,16 +77,19 @@ class TestDiarizeAudio:
                     "text": "Guten Morgen",
                 },
             ],
+            "detected_language": "de",
         }
         mock_post.return_value = mock_response
 
         result = diarize_audio(audio_file)
 
-        assert len(result) == 2
-        assert result[0].speaker == "Sprecher 1"
-        assert result[0].text == "Hallo zusammen"
-        assert result[1].speaker == "Sprecher 2"
-        assert result[1].text == "Guten Morgen"
+        assert isinstance(result, DiarizationResult)
+        assert result.detected_language == "de"
+        assert len(result.segments) == 2
+        assert result.segments[0].speaker == "Sprecher 1"
+        assert result.segments[0].text == "Hallo zusammen"
+        assert result.segments[1].speaker == "Sprecher 2"
+        assert result.segments[1].text == "Guten Morgen"
 
     @patch("stt.diarize.requests.post")
     def test_uses_config(self, mock_post: MagicMock, tmp_path: Path) -> None:

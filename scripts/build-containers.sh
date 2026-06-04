@@ -6,30 +6,32 @@ set -euo pipefail
 
 EXTRA_ARGS="${*}"
 
-echo "=== STT Container Build ==="
+# Versioned tag — same formula as deploy-remote-docker.sh
+VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+GIT_SHA=$(git rev-parse --short HEAD)
+IMAGE_TAG="v${VERSION}-${GIT_SHA}"
+
+echo "=== STT Container Build (tag: ${IMAGE_TAG}) ==="
 echo ""
 
 echo "[1/4] Building production images (stt-server, stt-worker)..."
-docker compose --profile production build ${EXTRA_ARGS} stt-server stt-worker
+IMAGE_TAG=${IMAGE_TAG} docker compose --profile production build ${EXTRA_ARGS} stt-server stt-worker
 echo "  ✓ Production images built"
 echo ""
 
 echo "[2/4] Building ML service image (stt-ml)..."
-docker compose --profile production build ${EXTRA_ARGS} stt-ml
+IMAGE_TAG=${IMAGE_TAG} docker compose --profile production build ${EXTRA_ARGS} stt-ml
 echo "  ✓ ML service image built"
 echo ""
 
 echo "[3/4] Building dev/test images (stt-test, stt-cli)..."
-docker compose --profile test build ${EXTRA_ARGS} stt-test
-docker compose --profile cli build ${EXTRA_ARGS} stt-cli
+IMAGE_TAG=${IMAGE_TAG} docker compose --profile test build ${EXTRA_ARGS} stt-test
+IMAGE_TAG=${IMAGE_TAG} docker compose --profile cli build ${EXTRA_ARGS} stt-cli
 echo "  ✓ Dev/test images built"
 echo ""
 
 echo "[4/4] Verifying production image has no dev/ML dependencies..."
-IMAGE=$(docker compose --profile production images stt-server --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | head -1)
-if [ -z "$IMAGE" ]; then
-    IMAGE="stt-stt-server"
-fi
+IMAGE="192.168.178.80:5000/stt-server:${IMAGE_TAG}"
 docker run --rm "$IMAGE" python -c "
 try:
     import pytest
@@ -46,7 +48,7 @@ except ImportError:
 "
 
 echo ""
-echo "=== Build complete ==="
+echo "=== Build complete (tag: ${IMAGE_TAG}) ==="
 echo ""
 echo "Images:"
 docker image ls --format 'table {{.Repository}}\t{{.Tag}}\t{{.Size}}' | grep -i stt | sort

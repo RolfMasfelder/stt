@@ -10,18 +10,15 @@ RUN apt-get update && apt-get install -y \
 
 # Copy requirements first for better caching
 COPY requirements.txt .
-
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Copy application code
 COPY . .
 
+ENV PYTHONPATH=/app/src
+
 # ---- Production stage: minimal image for deployment ----
 FROM base AS production
-
-# Install package without dev dependencies
-RUN pip install --no-cache-dir -e .
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash stt && \
@@ -33,8 +30,8 @@ CMD ["python", "-m", "gunicorn", "stt.wsgi:application", "--bind", "0.0.0.0:8090
 # ---- Dev/Test stage: includes pytest, ruff, bandit etc. ----
 FROM base AS dev
 
-# Install package with dev/test dependencies
-RUN pip install --no-cache-dir -e ".[dev]"
+COPY requirements-dev.txt .
+RUN pip install -r requirements-dev.txt
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash stt && \

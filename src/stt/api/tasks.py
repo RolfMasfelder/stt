@@ -109,11 +109,17 @@ def run_transcribe(job_id: str) -> None:
     _start = time.monotonic()
     try:
         cfg = _get_config()
-        text = transcribe_audio(
+        transcribe_result = transcribe_audio(
             audio_path, cfg.ml_service, job.whisper_model, job.whisper_language
         )
+        logger.info(
+            "Pipeline | job=%s | step=transcribe | lang=%s | chars=%d",
+            job_id,
+            transcribe_result.detected_language,
+            len(transcribe_result.text),
+        )
         job.status = JobStatus.COMPLETED
-        job.result_text = text
+        job.result_text = transcribe_result.text
         job.save(
             update_fields=[
                 "status",
@@ -153,8 +159,15 @@ def run_diarize(job_id: str) -> None:
     _start = time.monotonic()
     try:
         cfg = _get_config()
-        segments = diarize_audio(
+        diarize_result = diarize_audio(
             audio_path, cfg.ml_service, job.whisper_model, job.whisper_language
+        )
+        segments = diarize_result.segments
+        logger.info(
+            "Pipeline | job=%s | step=diarize | lang=%s | segments=%d",
+            job_id,
+            diarize_result.detected_language,
+            len(segments),
         )
         diarized_text = format_diarized_segments(segments)
         plain_text = " ".join(seg.text for seg in segments)
@@ -214,16 +227,33 @@ def run_process(job_id: str) -> None:
         cfg = _get_config()
 
         diarized_text: str | None = None
+        detected_language = job.whisper_language
 
         if job.enable_diarize:
-            segments = diarize_audio(
+            diarize_result = diarize_audio(
                 audio_path, cfg.ml_service, job.whisper_model, job.whisper_language
+            )
+            segments = diarize_result.segments
+            detected_language = diarize_result.detected_language
+            logger.info(
+                "Pipeline | job=%s | step=diarize | lang=%s | segments=%d",
+                job_id,
+                detected_language,
+                len(segments),
             )
             diarized_text = format_diarized_segments(segments)
             plain_text = " ".join(seg.text for seg in segments)
         else:
-            plain_text = transcribe_audio(
+            transcribe_result = transcribe_audio(
                 audio_path, cfg.ml_service, job.whisper_model, job.whisper_language
+            )
+            plain_text = transcribe_result.text
+            detected_language = transcribe_result.detected_language
+            logger.info(
+                "Pipeline | job=%s | step=transcribe | lang=%s | chars=%d",
+                job_id,
+                detected_language,
+                len(plain_text),
             )
 
         result = process_transcript(
@@ -231,7 +261,7 @@ def run_process(job_id: str) -> None:
             cfg.llm,
             diarize=False,
             diarized_text=diarized_text,
-            language=job.whisper_language,
+            language=detected_language,
         )
 
         job.status = JobStatus.COMPLETED
