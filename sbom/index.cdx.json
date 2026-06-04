@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:f6a48260-2f45-4795-90eb-e7680a4676f7",
+  "serialNumber": "urn:uuid:aa60d11b-908f-4a66-81df-4ed5e097ec7e",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-06-03T14:28:57Z",
+    "timestamp": "2026-06-03T15:04:51Z",
     "component": {
       "type": "application",
       "name": "stt",
@@ -35,6 +35,30 @@
       "group": "stt",
       "description": "STT Mobile App – Audio Recording Client (Flutter/Dart) (109 dependencies)",
       "bom-ref": "component-stt-mobile"
+    },
+    {
+      "type": "container",
+      "name": "stt-server-image",
+      "version": "0.1.5",
+      "group": "stt",
+      "description": "STT Server Container Image (Django/DRF, python:3.13-slim-bookworm) (6193 dependencies)",
+      "bom-ref": "component-stt-server-image"
+    },
+    {
+      "type": "container",
+      "name": "stt-ml-image",
+      "version": "0.1.5",
+      "group": "stt",
+      "description": "STT ML Container Image (faster-whisper, pyannote.audio, torch) (6643 dependencies)",
+      "bom-ref": "component-stt-ml-image"
+    },
+    {
+      "type": "container",
+      "name": "stt-flutter-web-image",
+      "version": "0.1.5",
+      "group": "stt",
+      "description": "STT Flutter Web Container Image (compiled Flutter app + Nginx) (1047 dependencies)",
+      "bom-ref": "component-stt-flutter-web-image"
     }
   ],
   "externalReferences": [
@@ -47,6 +71,21 @@
       "type": "bom",
       "url": "./mobile-flutter.cdx.json",
       "comment": "CycloneDX SBOM for stt-mobile"
+    },
+    {
+      "type": "bom",
+      "url": "./container-server.cdx.json",
+      "comment": "CycloneDX SBOM for stt-server-image"
+    },
+    {
+      "type": "bom",
+      "url": "./container-ml.cdx.json",
+      "comment": "CycloneDX SBOM for stt-ml-image"
+    },
+    {
+      "type": "bom",
+      "url": "./container-flutter.cdx.json",
+      "comment": "CycloneDX SBOM for stt-flutter-web-image"
     }
   ]
 }

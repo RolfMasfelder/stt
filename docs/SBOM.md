@@ -89,7 +89,7 @@ mobile recording client.
 | stt-ml | 0.1.5 | Proprietary | ML Service | 8091 | faster-whisper transcription + pyannote diarization |
 | stt-ollama | 0.24.0 | MIT | LLM Service | 11434 | Ollama – LLM inference (mistral) |
 | caddy | 2-alpine | Apache-2.0 | Infrastructure | 80/443 | Reverse proxy + automatic TLS |
-| PostgreSQL | 17 | PostgreSQL License | PostgreSQL License | Database | 5432 | Primary database |
+| PostgreSQL | 17 | PostgreSQL License | PostgreSQL License | 5432 | Primary database |
 | python:3.13-slim-bookworm | 3.13 | PSF-2.0 | Infrastructure | — | Backend base image |
 
 ### Development & Quality Tools
