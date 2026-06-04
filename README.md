@@ -13,7 +13,7 @@ Drei-Service-Architektur. Der Django-Server (`stt-server`) koordiniert die Verar
 und delegiert ML-Arbeit an spezialisierte Dienste:
 
 ```txt
-Workstation (Entwicklung)           cirrus7-neu — 192.168.178.80
+Workstation (Entwicklung)           Server (Produktionshost)
 ─────────────────────────           ──────────────────────────────────────
 stt-cli (CLI/Client)                Docker Compose (Profile: production)
   └── client.py                     ┌──────────────────────────────────────┐
@@ -26,7 +26,7 @@ stt-cli (CLI/Client)                Docker Compose (Profile: production)
                                     │          └─► db (postgres:5432)       │
                                     └──────────────────────────────────────┘
 
-                                    k3s Cluster (cirrus7-neu + cirrus7)
+                                    k3s Cluster (stt-namespace)
                                     ┌──────────────────────────────────────┐
                                     │  ingress-nginx → stt-server          │
                                     │  stt-server → stt-ml (ClusterIP)     │
@@ -44,6 +44,7 @@ konfiguriert und lauffähig. Docker Compose bringt Ollama als eigenen Container 
 - **`stt-ml`**: FastAPI-Microservice auf Port 8091. Führt faster-whisper und pyannote.audio aus.
 - **`stt-ollama`/`ollama`**: LLM-Inferenz (Ollama) auf Port 11434. Strukturierung und Zusammenfassung.
 - **`stt-cli`**: CLI-Tool. Sendet Audio-Dateien an `stt-server` und zeigt/speichert Ergebnisse.
+- **`stt-flutter-web`**: Flutter-Web-UI. Wird von Caddy unter `/ui/` bereitgestellt (z. B. `https://<SERVER>/ui/`).
 
 Die API-Schnittstelle ist in [`openapi.json`](openapi.json) definiert.
 
@@ -81,7 +82,7 @@ Das Modell überlebt Container-Neustarts dank des persistenten Volumes `ollama_d
 Ein erneuter Pull ist nur bei Modell-Updates nötig.
 
 Alternativ kann über `LLM_BASE_URL` in `.env` ein anderes OpenAI-kompatibles
-Backend (z. B. LM Studio unter `http://192.168.178.80:1234`) konfiguriert werden.
+Backend (z. B. LM Studio unter `http://<LM-STUDIO-HOST>:1234`) konfiguriert werden.
 
 ## Nutzung
 
@@ -116,6 +117,19 @@ python -m stt --skip --text-file data/output/transcript.txt --summarize -o data/
 Hinweis: `--diarize` mit `--skip` verwendet LLM-basierte Sprechererkennung (Heuristik),
 da ohne Audiodatei keine audio-basierte Diarization möglich ist.
 
+### Web UI (Flutter)
+
+Die Flutter-Web-Oberfläche wird von Caddy als Reverse-Proxy bereitgestellt und ist
+nach dem Start des `production`-Stacks unter folgendem Pfad erreichbar:
+
+```
+https://<SERVER-IP-ODER-DOMAIN>/ui/
+```
+
+Der Dienst `stt-flutter-web` läuft als eigenständiger Container und wird von Caddy
+unter `/ui*` weitergeleitet (siehe [Caddyfile](Caddyfile)). Der Quellcode der App
+liegt im Verzeichnis [`mobile/`](mobile/).
+
 ### Docker
 
 Das Dockerfile nutzt einen Multi-Stage-Build:
@@ -136,6 +150,7 @@ Das Dockerfile nutzt einen Multi-Stage-Build:
 | `cli` | `stt-cli` | `dev` | CLI-Tool |
 | `whisper-remote` | `whisper-server` | — (faster-whisper) | Alternativer Whisper-Server |
 | `mobile` | `flutter` | — (eigenes) | Flutter-Entwicklung |
+| `production` | `stt-flutter-web` | — (eigenes) | Flutter Web UI (erreichbar unter `/ui/`) |
 
 ```bash
 # Alle Container bauen
@@ -150,19 +165,19 @@ docker compose run --rm stt-test
 # CLI nutzen
 docker compose --profile cli run --rm stt-cli python -m stt data/audio/meeting.wav --diarize --process -o data/output/x.txt
 # oder auch mit expliziten Umgebungsvariablen (z.B. für caddy ohne Zertifikatsprüfung)
-# stt-server auf 'anderem' Rechner
-STT_SERVER_URL=http://192.168.178.80:8090 \
-OAUTH2_TOKEN_URL=http://192.168.178.80:8090/o/token/ \
+# stt-server auf einem anderen Rechner
+STT_SERVER_URL=http://<SERVER>:8090 \
+OAUTH2_TOKEN_URL=http://<SERVER>:8090/o/token/ \
 REQUESTS_CA_BUNDLE= \
-docker compose --profile cli run --rm stt-cli python -m stt data/audio/passwoerter_raus_aus_USCloud.wav --diarize --process -o data/output/x.txt
+docker compose --profile cli run --rm stt-cli python -m stt data/audio/meeting.wav --diarize --process -o data/output/x.txt
 
-# voher, um certificate von caddy zu bekommen (falls caddy mit TLS läuft und self-signed Zertifikate nutzt)
-ssh rolf@192.168.178.80 "cd workspace/stt && docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt -" | tar xf - -O > ./caddy-root.crt
+# Einmalig: Caddy-Root-Zertifikat vom Server holen (falls caddy mit self-signed TLS)
+ssh user@<SERVER> "cd workspace/stt && docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt -" | tar xf - -O > ./caddy-root.crt
 # bis hierher muss nur einmal gemacht werden
 
-# dann mit certifikat arbeiten
-STT_SERVER_URL=https://192.168.178.80 \
-OAUTH2_TOKEN_URL=https://192.168.178.80/o/token/ \
+# dann mit Zertifikat arbeiten
+STT_SERVER_URL=https://<SERVER> \
+OAUTH2_TOKEN_URL=https://<SERVER>/o/token/ \
 REQUESTS_CA_BUNDLE=/app/caddy-root.crt \
-docker compose --profile cli run --rm stt-cli python -m stt data/audio/passwoerter_raus_aus_USCloud.wav --diarize --process -o data/output/x.txt
+docker compose --profile cli run --rm stt-cli python -m stt data/audio/meeting.wav --diarize --process -o data/output/x.txt
 ```

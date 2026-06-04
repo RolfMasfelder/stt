@@ -31,7 +31,7 @@ docker compose --profile cli run --rm stt-cli python -m stt \
   data/audio/meeting.wav --diarize --process -o data/output/result.txt
 
 # Caddy-Zertifikat einmalig abrufen (falls noch nicht vorhanden)
-ssh rolf@192.168.178.80 \
+ssh <user>@<SERVER> \
   "docker exec stt-caddy cat /data/caddy/pki/authorities/local/root.crt" \
   > caddy-root.crt
 ```
