@@ -1,5 +1,5 @@
 ---
-name: git_merge_workflow
+name: git-merge-workflow
 display_name: Git Merge Workflow
 version: 1.0.0
 author: Rolf Masfelder
