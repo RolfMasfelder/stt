@@ -33,7 +33,7 @@ jobs:
     name: Build & Verify Image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build production Docker image
         run: docker build -t stt-server:ci --target production --build-arg SKIP_MODEL_CACHE=1 .
