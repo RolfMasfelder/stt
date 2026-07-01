@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM) – STT
 
-**Generated:** 3. June 2026
+**Generated:** 1. July 2026
 **Format:** CycloneDX 1.5 (JSON) + Human-Readable MD
 **Generation Method:** Automated (generate-sbom.sh / generate-sbom-md.py)
 
@@ -30,20 +30,20 @@ mobile recording client.
 
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
-| boto3 | 1.43.9 | Apache-2.0 | S3-compatible object storage (ADR-11) |
-| cryptography | 48.0.0 | Apache-2.0 / BSD | AES-256-GCM encryption at rest (ADR-08) |
-| django | 5.2.14 | BSD-3-Clause | Web framework |
+| boto3 | ≥1.43.36 | Apache-2.0 | S3-compatible object storage (ADR-11) |
+| cryptography | ≥49.0.0 | Apache-2.0 / BSD | AES-256-GCM encryption at rest (ADR-08) |
+| django | 5.2.15 | BSD-3-Clause | Web framework |
 | django-cors-headers | 4.7.0 | MIT | CORS middleware |
-| django-oauth-toolkit | 3.0.1 | BSD-3-Clause | OAuth2 Provider (RFC 6749/7636) |
+| django-oauth-toolkit | 3.3.0 | BSD-3-Clause | OAuth2 Provider (RFC 6749/7636) |
 | django-prometheus | 2.4.1 | Apache-2.0 | Prometheus metrics |
 | django-q2 | 1.10.0 | MIT | Async task queue (DB broker) |
-| djangorestframework | 3.16.0 | BSD-2-Clause | REST API framework |
+| djangorestframework | 3.17.1 | BSD-2-Clause | REST API framework |
 | drf-spectacular | 0.29.0 | BSD-3-Clause | OpenAPI 3.0 schema generation |
-| gunicorn | 23.0.0 | MIT | WSGI production server |
-| numpy | 2.4.5 | BSD-3-Clause | Numerical operations |
+| gunicorn | 26.0.0 | MIT | WSGI production server |
+| numpy | 2.5.0 | BSD-3-Clause | Numerical operations |
 | psycopg[binary] | 3.3.4 | LGPL-3.0 | PostgreSQL adapter |
 | python-dotenv | 1.2.1 | BSD-3-Clause | Load .env config |
-| requests | 2.32.5 | Apache-2.0 | HTTP client |
+| requests | 2.34.2 | Apache-2.0 | HTTP client |
 
 ### ML Service Libraries
 
@@ -84,9 +84,9 @@ mobile recording client.
 
 | Service | Version | License | Type | Port | Purpose |
 | --- | --- | --- | --- | --- | --- |
-| stt-server | 0.1.5 | Proprietary | Application | 8090 | Django/DRF REST API + orchestration |
-| stt-worker | 0.1.5 | Proprietary | Background | — | Celery async task processing |
-| stt-ml | 0.1.5 | Proprietary | ML Service | 8091 | faster-whisper transcription + pyannote diarization |
+| stt-server | 0.1.5 | MIT | Application | 8090 | Django/DRF REST API + orchestration |
+| stt-worker | 0.1.5 | MIT | Background | — | django-q2 async task processing |
+| stt-ml | 0.1.5 | MIT | ML Service | 8091 | faster-whisper transcription + pyannote diarization |
 | stt-ollama | 0.24.0 | MIT | LLM Service | 11434 | Ollama – LLM inference (mistral) |
 | caddy | 2-alpine | Apache-2.0 | Infrastructure | 80/443 | Reverse proxy + automatic TLS |
 | PostgreSQL | 17 | PostgreSQL License | PostgreSQL License | 5432 | Primary database |
@@ -96,12 +96,12 @@ mobile recording client.
 
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
-| pytest | 7.0 | MIT | Testing framework |
-| pytest-django | 4.12.0 | BSD-3-Clause | Django integration for pytest |
+| pytest | ≥9.1.1 | MIT | Testing framework |
+| pytest-django | ≥4.12.0 | BSD-3-Clause | Django integration for pytest |
 | coverage | — | Apache-2.0 | Code coverage |
-| ruff | 0.15.13 | MIT | Linting + formatting |
-| bandit | 1.9.4 | Apache-2.0 | Security static analysis |
-| pre-commit | 3.0 | MIT | Git hooks |
+| ruff | ≥0.15.20 | MIT | Linting + formatting |
+| bandit | ≥1.9.4 | Apache-2.0 | Security static analysis |
+| pre-commit | ≥4.6.0 | MIT | Git hooks |
 | factory-boy | — | MIT | Test fixtures / factories |
 | responses | — | Apache-2.0 | HTTP mocking for tests |
 | syft | latest | Apache-2.0 | SBOM generation (anchore/syft) |

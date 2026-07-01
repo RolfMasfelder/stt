@@ -62,6 +62,10 @@ Die API-Schnittstelle ist in [`openapi.json`](openapi.json) definiert.
 python -m venv --prompt stt venv
 source venv/bin/activate
 pip install -r requirements.txt
+
+# Konfiguration anlegen und anpassen
+cp .env.example .env
+# HF_STT_TOKEN in .env mit HuggingFace-Token setzen (für pyannote)
 ```
 
 ## Ollama-Modell laden (einmalig)

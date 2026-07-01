@@ -2,6 +2,7 @@
 name = "stt"
 version = "0.1.5"
 description = "Lokale Meeting-Transkription und Zusammenfassung"
+license = {text = "MIT"}
 authors = [
     {name = "Rolf"}
 ]
