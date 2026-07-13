@@ -14,7 +14,7 @@ dependencies = [
     "django-oauth-toolkit==3.3.0",
     "django-q2==1.10.0",
     "djangorestframework==3.17.1",
-    "drf-spectacular==0.29.0",
+    "drf-spectacular==0.30.0",
     "gunicorn==26.0.0",
     "numpy==2.5.1",
     "psycopg[binary]==3.3.4",
