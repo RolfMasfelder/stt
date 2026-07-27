@@ -1,7 +1,7 @@
 -r requirements.txt
 bandit>=1.9.4
 pip-audit>=2.10.1
-pre-commit>=3.0
+pre-commit>=4.6.1
 
 # -- Dev/Test --
 pytest>=9.1.1
