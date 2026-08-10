@@ -20,7 +20,7 @@ dependencies = [
     "psycopg[binary]==3.3.4",
     "python-dotenv==1.2.1",
     "boto3>=1.43.66",
-    "cryptography>=49.0.0",
+    "cryptography>=50.0.0",
     "requests==2.34.2",
 ]
 
