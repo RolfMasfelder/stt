@@ -6,5 +6,5 @@ pre-commit>=4.6.1
 # -- Dev/Test --
 pytest>=9.1.1
 pytest-cov
-pytest-django>=4.13.0
+pytest-django>=4.14.0
 ruff>=0.16.1
