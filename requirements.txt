@@ -8,7 +8,7 @@ django-cors-headers==4.7.0   # CORS middleware
 django-oauth-toolkit==3.4.0  # OAuth2 Provider (RFC 6749/7636)
 django-prometheus==2.5.0     # Prometheus metrics for Django
 django-q2==1.11.0             # Task queue with DB broker
-djangorestframework==3.17.2
+djangorestframework==3.18.0
 drf-spectacular==0.30.0      # OpenAPI 3.0 schema generation
 
 # -- Runtime --
