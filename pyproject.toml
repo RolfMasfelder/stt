@@ -30,7 +30,7 @@ dev = [
     "pytest-cov",
 
     "pytest-django>=4.14.0",
-    "ruff>=0.16.4",
+    "ruff>=0.16.5",
     "pre-commit>=4.6.2",
     "bandit>=1.9.4",
     "pip-audit>=2.10.1",
