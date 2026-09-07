@@ -17,7 +17,7 @@ dependencies = [
     "drf-spectacular==0.30.0",
     "gunicorn==26.2.0",
     "numpy==2.5.2",
-    "psycopg[binary]==3.3.4",
+    "psycopg[binary]==3.3.5",
     "python-dotenv==1.2.3",
     "boto3>=1.43.82",
     "cryptography>=50.0.1",
