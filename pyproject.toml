@@ -16,7 +16,7 @@ dependencies = [
     "djangorestframework==3.18.0",
     "drf-spectacular==0.30.0",
     "gunicorn==26.2.0",
-    "numpy==2.5.2",
+    "numpy==2.5.3",
     "psycopg[binary]==3.3.5",
     "python-dotenv==1.2.3",
     "boto3>=1.43.88",
