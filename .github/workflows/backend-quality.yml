@@ -3,22 +3,8 @@ name: Backend Quality
 on:
   push:
     branches: [dev, main]
-    paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'pyproject.toml'
-      - 'requirements.txt'
-      - 'manage.py'
-      - '.github/workflows/backend-quality.yml'
   pull_request:
     branches: [dev, main]
-    paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'pyproject.toml'
-      - 'requirements.txt'
-      - 'manage.py'
-      - '.github/workflows/backend-quality.yml'
 
 permissions:
   contents: read
